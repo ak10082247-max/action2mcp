@@ -6,6 +6,7 @@ checks live SSL expiry (<= 14 days / expired) + live 404/5xx broken booking/cont
 extracts verified public contact emails, and emails proof-first alerts linking to SiteRescue ($10 deal, was $49).
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
 import os
@@ -98,8 +99,26 @@ def extract_candidate_booking_links(html: str, base_url: str) -> list[tuple[str,
 def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 3) -> tuple[list[dict], int]:
     candidates = []
     seen_domains = set()
+
+    # 1. Primary: Single clean Overpass metro call (avoids multi-call IP throttling) to fetch 150+ clinics/lawyers/vets
+    m_count = len(common.METRO_BBOXES)
+    city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
+    ql = (
+        f'[out:json][timeout:24];('
+        f'node["amenity"~"dentist|clinic|veterinary|doctors"]["website"]({s},{w},{n_lat},{e});'
+        f'node["office"~"lawyer|solicitor|accountant|estate_agent"]["website"]({s},{w},{n_lat},{e});'
+        f');out tags 180;'
+    )
+    for item in common.fetch_overpass_websites(ql, timeout=25):
+        if item["domain"] in seen_domains:
+            continue
+        seen_domains.add(item["domain"])
+        candidates.append({**item, "category": "local_service", "city": city})
+
+    # 2. Fallback / supplement: Nominatim category search
     n = len(SEARCH_ROTATION)
-    for offset in range(limit_queries):
+    nom_queries = max(2, min(5, limit_queries))
+    for offset in range(nom_queries):
         cat, city = SEARCH_ROTATION[(cursor + offset) % n]
         q = f"{cat} {city}"
         url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(q)}&format=json&extratags=1&limit=40"
@@ -115,7 +134,7 @@ def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 3) -> 
                 host = (urllib.parse.urlparse(web).hostname or "").lower().replace("www.", "")
                 if not host or "." not in host or host in seen_domains:
                     continue
-                if any(big in host for big in ("facebook.com", "instagram.com", "linkedin.com", "yell.com", "nhs.uk")):
+                if any(big in host for big in common.DIRECTORY_BLOCKLIST):
                     continue
                 seen_domains.add(host)
                 name = str(it.get("display_name") or host).split(",")[0].strip()[:80]
@@ -123,7 +142,7 @@ def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 3) -> 
             time.sleep(1.1)
         except Exception as exc:
             print(f"   [!] Nominatim lookup warning ({q}): {exc}", flush=True)
-    return candidates, (cursor + limit_queries) % n
+    return candidates, (cursor + 1) % max(n, m_count)
 
 
 def diagnose_local_site(cand: dict) -> dict | None:
@@ -248,20 +267,23 @@ def main():
     state["cursor"] = next_cursor
     common.save_json_state(STATE_FILE, state)
 
-    probed = 0
+    to_probe = [c for c in cands if c["domain"] not in known_domains][: args.limit]
+    probed = len(to_probe)
     hits = []
-    for c in cands:
-        if probed >= args.limit:
-            break
-        if c["domain"] in known_domains:
-            continue
-        probed += 1
-        diag = diagnose_local_site(c)
-        if not diag:
-            continue
-        if diag["domain"] in known_domains or diag["email"] in known_emails:
-            continue
-        hits.append(diag)
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futs = [pool.submit(diagnose_local_site, c) for c in to_probe]
+        for fut in as_completed(futs):
+            try:
+                diag = fut.result()
+            except Exception:
+                diag = None
+            if not diag:
+                continue
+            if diag["domain"] in known_domains or diag["email"] in known_emails:
+                continue
+            hits.append(diag)
+
+    for diag in hits:
         subj, body = craft_site_rescue_email(diag)
         print(f"[+] FOUND PLAY A ISSUE: {diag['domain']} -> {diag['email']} | broken={len(diag['broken_links'])} ssl_days={diag['ssl_days_remaining']}")
         if args.send:

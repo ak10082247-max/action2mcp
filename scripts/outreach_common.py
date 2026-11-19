@@ -10,6 +10,7 @@ import os
 import re
 import smtplib
 import ssl
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -36,6 +37,68 @@ except Exception:
     SSL_NOVERIFY = None
 
 _MX_CACHE: dict[str, bool] = {}
+_MX_LOCK = threading.Lock()
+
+METRO_BBOXES = [
+    ("London", 51.35, -0.35, 51.65, 0.15),
+    ("Manchester", 53.38, -2.38, 53.55, -2.12),
+    ("Birmingham", 52.40, -1.98, 52.56, -1.78),
+    ("Bristol", 51.40, -2.68, 51.52, -2.50),
+    ("Edinburgh", 55.90, -3.28, 55.99, -3.10),
+    ("New York", 40.66, -74.03, 40.82, -73.90),
+    ("Chicago", 41.80, -87.73, 41.98, -87.58),
+    ("Los Angeles", 33.98, -118.48, 34.12, -118.20),
+    ("Austin", 30.20, -97.82, 30.38, -97.68),
+    ("Toronto", 43.62, -79.46, 43.74, -79.30),
+    ("Miami", 25.70, -80.32, 25.88, -80.12),
+    ("Seattle", 47.55, -122.40, 47.70, -122.26),
+]
+
+DIRECTORY_BLOCKLIST = (
+    "facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com",
+    "youtube.com", "tiktok.com", "yell.com", "nhs.uk", "yelp.com",
+)
+
+
+def fetch_overpass_websites(ql_query: str, timeout: int = 18) -> list[dict]:
+    """Query Overpass OSM API and return deduplicated {name, website, domain} dicts."""
+    hdrs = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+    }
+    body = ("data=" + urllib.parse.quote(ql_query)).encode("utf-8")
+    out: list[dict] = []
+    seen: set[str] = set()
+    try:
+        st, _, _, raw = http_fetch(
+            "https://overpass-api.de/api/interpreter",
+            method="POST",
+            headers=hdrs,
+            data=body,
+            timeout=timeout,
+            verify_ssl=False,
+        )
+        if st != 200:
+            return []
+        data = json.loads(raw.decode("utf-8", "replace"))
+        for el in data.get("elements") or []:
+            tags = el.get("tags") or {}
+            web = (tags.get("website") or tags.get("contact:website") or tags.get("url") or "").strip()
+            if not web:
+                continue
+            if not web.startswith(("http://", "https://")):
+                web = "https://" + web
+            host = (urllib.parse.urlparse(web).hostname or "").lower().replace("www.", "")
+            if not host or "." not in host or host in seen:
+                continue
+            if any(b in host for b in DIRECTORY_BLOCKLIST):
+                continue
+            seen.add(host)
+            name = (tags.get("name") or tags.get("brand") or host).strip()[:80]
+            out.append({"name": name, "website": web, "domain": host})
+    except Exception:
+        return []
+    return out
 
 
 def load_workspace_env(repo_root: str) -> None:
@@ -98,8 +161,9 @@ def http_get_json(url: str, headers: dict | None = None, timeout: int = 12):
 
 def has_valid_mx(domain: str) -> bool:
     d = domain.lower().strip().rstrip(".")
-    if d in _MX_CACHE:
-        return _MX_CACHE[d]
+    with _MX_LOCK:
+        if d in _MX_CACHE:
+            return _MX_CACHE[d]
     ok = False
     for doh in (
         f"https://cloudflare-dns.com/dns-query?name={urllib.parse.quote(d)}&type=MX",
@@ -113,7 +177,8 @@ def has_valid_mx(domain: str) -> bool:
                 break
         except Exception:
             continue
-    _MX_CACHE[d] = ok
+    with _MX_LOCK:
+        _MX_CACHE[d] = ok
     return ok
 
 

@@ -7,6 +7,7 @@ broken nav links, >3MB images, and legacy Shopify ScriptTags ahead of March 1, 2
 then emails verified storefront contacts linking to StoreFix ($10 deal, was $49).
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
 import os
@@ -132,9 +133,16 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
     except Exception as exc:
         print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
 
-    # 2. Reliable fallback/supplement: Nominatim retail storefronts (WooCommerce & custom-domain Shopify stores)
+    # 2. High-density single Overpass call for retail shops (Shopify custom domains + WooCommerce storefronts)
+    m_count = len(common.METRO_BBOXES)
+    _, s, w, n_lat, e = common.METRO_BBOXES[page % m_count]
+    ql = f'[out:json][timeout:24];node["shop"]["website"]({s},{w},{n_lat},{e});out tags 180;'
+    for item in common.fetch_overpass_websites(ql, timeout=25):
+        _accept(item["domain"])
+
+    # 3. Reliable fallback: Nominatim retail storefronts
     rot_idx = page % len(RETAIL_ROTATION)
-    for off in range(6):
+    for off in range(4):
         if len(hosts) >= limit_hosts:
             break
         cat, city = RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)]
@@ -330,16 +338,22 @@ def main():
     state["cc_page"] = next_page
     common.save_json_state(STATE_FILE, state)
 
+    to_probe = [h for h in hosts if h.replace("www.", "") not in known_domains]
     hits = []
-    for h in hosts:
-        if h.replace("www.", "") in known_domains:
-            continue
-        diag = diagnose_ecom_store(h)
-        if not diag:
-            continue
-        if diag["domain"] in known_domains or diag["email"] in known_emails:
-            continue
-        hits.append(diag)
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futs = [pool.submit(diagnose_ecom_store, h) for h in to_probe]
+        for fut in as_completed(futs):
+            try:
+                diag = fut.result()
+            except Exception:
+                diag = None
+            if not diag:
+                continue
+            if diag["domain"] in known_domains or diag["email"] in known_emails:
+                continue
+            hits.append(diag)
+
+    for diag in hits:
         subj, body = craft_ecom_fix_email(diag)
         print(f"[+] FOUND PLAY B LEAK: {diag['domain']} ({diag['platform']}) -> {diag['email']} | issues={len(diag['issues'])}")
         if args.send:
