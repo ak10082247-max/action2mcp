@@ -275,10 +275,10 @@ def discover_and_compile_gpt_actions(
     search_errors = []
 
     for q in queries:
-        if len(candidates) >= max(limit * 6, 40):
+        if len(candidates) >= max(limit * 8, 80):
             break
-        for page in (1, 2, 3):
-            if len(candidates) >= max(limit * 6, 40):
+        for page in (1, 2, 3, 4, 5):
+            if len(candidates) >= max(limit * 8, 80):
                 break
             try:
                 url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=100&page={page}"
@@ -395,7 +395,7 @@ def send_smtp_email(to_addr: str, subject: str, body: str) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Action2MCP Custom GPT Action Sniper Finder")
     parser.add_argument("--limit", type=int, default=5, help="Number of compiled repos to find/display (default: 5)")
-    parser.add_argument("--max-emails", type=int, default=20, help="Daily outreach cap (default: 20)")
+    parser.add_argument("--max-emails", type=int, default=50, help="Daily outreach cap (default: 50)")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="Action2MCP URL for live /api/preview compilation")
     parser.add_argument("--send", action="store_true", help="Actually send plain-text proof emails via SMTP")
     args = parser.parse_args()
@@ -448,7 +448,7 @@ def main():
                 sent_today += 1
                 save_state(state)
                 print(f"   [+] Sent migration proof email to {em}")
-                time.sleep(8)
+                time.sleep(6)
             except Exception as exc:
                 print(f"   [-] SMTP failed for {em}: {exc}")
 

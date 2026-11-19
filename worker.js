@@ -625,11 +625,12 @@ export default {
       return new Response(
         JSON.stringify(
           {
-            $schema: "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.json",
+            $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
             name: "io.github.ak10082247-max/action2mcp",
-            description:
-              "Automated OpenAI Custom GPT Action (OpenAPI 3.0/3.1) to Cloudflare Remote MCP Worker & SKILL.md compiler.",
+            title: "Action2MCP Custom GPT Action to Remote MCP Compiler",
+            description: "Compile retiring OpenAI Custom GPT Actions into Cloudflare Remote MCP & SKILL.md ($5/$15).",
             version: "1.0.0",
+            websiteUrl: "https://action2mcp.ak10082247.workers.dev",
             repository: { url: "https://github.com/ak10082247-max/action2mcp", source: "github" },
             remotes: [{ type: "streamable-http", url: `${url.origin}/mcp` }],
           },

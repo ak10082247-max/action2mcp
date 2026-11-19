@@ -1,0 +1,30 @@
+name: Publish Action2MCP to Official MCP Registry
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - server.json
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish_mcp_registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher v1.8.9
+        run: |
+          curl -sSLf "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.9/mcp-publisher_linux_amd64.tar.gz" | tar -xz -C /usr/local/bin mcp-publisher
+          mcp-publisher --version
+
+      - name: Validate & Publish server.json via GitHub OIDC
+        run: |
+          mcp-publisher validate
+          mcp-publisher login github-oidc
+          mcp-publisher publish

@@ -4,6 +4,32 @@
   "license": "MIT",
   "description": "Action2MCP — Automated OpenAI Custom GPT Action to Cloudflare Remote MCP & SKILL.md Compiler for the Dec 11, 2026 Retirement",
   "main": "worker.js",
+  "bin": {
+    "action2mcp": "bin/action2mcp.mjs"
+  },
+  "files": [
+    "bin/",
+    "compiler.js",
+    "yaml_parser.js",
+    "zip_builder.js",
+    "server.json",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "openapi",
+    "custom-gpt",
+    "openai",
+    "cloudflare-workers",
+    "skill-md",
+    "chatgpt-plugins"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ak10082247-max/action2mcp.git"
+  },
+  "homepage": "https://action2mcp.ak10082247.workers.dev",
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
