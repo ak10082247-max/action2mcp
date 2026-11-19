@@ -1,0 +1,179 @@
+{
+  "contacted_repos": [
+    "julien040/anyquery",
+    "Gizra/drupal-starter",
+    "ADS4GPTs/ads4gpts",
+    "zilliztech/Retriever-for-GPTs",
+    "benjcooley/dungeongod-agi",
+    "go-go-golems/go-go-mcp",
+    "TakSec/simple-scraper",
+    "g33kex/ServerWitch-API",
+    "stoerr/JCRActionsForGPT",
+    "ttumiel/arxivXplorerGPT",
+    "slhaf/AgenticGPT",
+    "Reborn14/To-Do-Master",
+    "tinkerologie/unraid-management-agent",
+    "MyLife-Services/mylife-maht",
+    "Xin-Jiaqi/local-codex-bridge",
+    "KasperiP/chatgpt-actions-example",
+    "tatsuiman/GPTs-Actions",
+    "akinfold/yandex-disk-downloads-sort-skill",
+    "realaman90/branding",
+    "CHARM-BDF/charmgpt"
+  ],
+  "contacted_emails": [
+    "contact@julienc.me",
+    "baysaa@gmail.com",
+    "contact@ads4gpts.com",
+    "info@zilliz.com",
+    "benjcooley@gmail.com",
+    "wesen@ruinwesen.com",
+    "michaeljtakahashi@gmail.com",
+    "g33kex@pm.me",
+    "hp.stoerr@ist-software.com",
+    "ttumiel@gmail.com",
+    "slhafzjw@slhaf.work",
+    "854744687@qq.com",
+    "ruaan.deysel@gmail.com",
+    "info@humanremembranceproject.org",
+    "jiaqixin2@bjtu.edu.cn",
+    "kasperi.pohtine@gmail.com",
+    "tatsuya.ito.dev@gmail.com",
+    "akinfold@gmail.com",
+    "aman@fastlanedevs.com",
+    "acrouse.uab@gmail.com"
+  ],
+  "history": [
+    {
+      "repo": "julien040/anyquery",
+      "email": "contact@julienc.me",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T17:33:57.848844+00:00"
+    },
+    {
+      "repo": "Gizra/drupal-starter",
+      "email": "baysaa@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:34:06.786788+00:00"
+    },
+    {
+      "repo": "ADS4GPTs/ads4gpts",
+      "email": "contact@ads4gpts.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:34:15.693498+00:00"
+    },
+    {
+      "repo": "zilliztech/Retriever-for-GPTs",
+      "email": "info@zilliz.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:34:24.573972+00:00"
+    },
+    {
+      "repo": "benjcooley/dungeongod-agi",
+      "email": "benjcooley@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T17:34:33.384166+00:00"
+    },
+    {
+      "repo": "go-go-golems/go-go-mcp",
+      "email": "wesen@ruinwesen.com",
+      "tool_count": 13,
+      "sent_date": "2026-11-19T17:34:42.385546+00:00"
+    },
+    {
+      "repo": "TakSec/simple-scraper",
+      "email": "michaeljtakahashi@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:34:51.270289+00:00"
+    },
+    {
+      "repo": "g33kex/ServerWitch-API",
+      "email": "g33kex@pm.me",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T17:35:00.152278+00:00"
+    },
+    {
+      "repo": "stoerr/JCRActionsForGPT",
+      "email": "hp.stoerr@ist-software.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T17:35:09.115650+00:00"
+    },
+    {
+      "repo": "ttumiel/arxivXplorerGPT",
+      "email": "ttumiel@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:35:17.941925+00:00"
+    },
+    {
+      "repo": "slhaf/AgenticGPT",
+      "email": "slhafzjw@slhaf.work",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:35:26.777838+00:00"
+    },
+    {
+      "repo": "Reborn14/To-Do-Master",
+      "email": "854744687@qq.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T17:35:35.761689+00:00"
+    },
+    {
+      "repo": "tinkerologie/unraid-management-agent",
+      "email": "ruaan.deysel@gmail.com",
+      "tool_count": 19,
+      "sent_date": "2026-11-19T17:35:44.752505+00:00"
+    },
+    {
+      "repo": "MyLife-Services/mylife-maht",
+      "email": "info@humanremembranceproject.org",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T17:35:53.704464+00:00"
+    },
+    {
+      "repo": "Xin-Jiaqi/local-codex-bridge",
+      "email": "jiaqixin2@bjtu.edu.cn",
+      "tool_count": 9,
+      "sent_date": "2026-11-19T17:36:02.655902+00:00"
+    },
+    {
+      "repo": "KasperiP/chatgpt-actions-example",
+      "email": "kasperi.pohtine@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T17:36:11.553996+00:00"
+    },
+    {
+      "repo": "tatsuiman/GPTs-Actions",
+      "email": "tatsuya.ito.dev@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T17:36:20.770081+00:00"
+    },
+    {
+      "repo": "akinfold/yandex-disk-downloads-sort-skill",
+      "email": "akinfold@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T17:36:29.803932+00:00"
+    },
+    {
+      "repo": "realaman90/branding",
+      "email": "aman@fastlanedevs.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T17:36:38.806108+00:00"
+    },
+    {
+      "repo": "CHARM-BDF/charmgpt",
+      "email": "acrouse.uab@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T17:36:47.785765+00:00"
+    }
+  ],
+  "skipped_no_email_repos": [
+    "alexhouse-ua/book-gpt-api",
+    "finmap-org/mcp-server",
+    "hatgit/forex-gpt",
+    "namin/Kappa-ChatGPT",
+    "namin/io-chatgpt.livecode.ch",
+    "nirholas/three.ws",
+    "pokapopo/vps-action-gateway",
+    "strelov1/freehire"
+  ],
+  "updated_at": "2026-11-19T17:36:47.785834+00:00"
+}
