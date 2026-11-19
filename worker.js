@@ -11,6 +11,13 @@ import {
   getDec11Countdown,
 } from "./compiler.js";
 import { createZipArchive } from "./zip_builder.js";
+import { fetchRemoteSchemaText, resolveSchemaFromParams } from "./schema_fetch.js";
+import {
+  CDP_FACILITATOR_URL,
+  CDP_SOLANA_FEE_PAYER,
+  hasCdpCredentials,
+  createCdpRequestHeaders,
+} from "./cdp_auth.js";
 import {
   ACTION2MCP_PLANS,
   resolvePlanTier,
@@ -90,57 +97,11 @@ function corsHeaders(req) {
     "Access-Control-Allow-Origin": req.headers.get("Origin") || "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
     "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-API-Key, PAYMENT-SIGNATURE, X-PAYMENT, Mcp-Session-Id, MCP-Protocol-Version, X-Upstream-Auth",
+      "Content-Type, Authorization, X-API-Key, PAYMENT-SIGNATURE, X-PAYMENT, X-X402-Facilitator, Mcp-Session-Id, MCP-Protocol-Version, X-Upstream-Auth",
     "Access-Control-Expose-Headers":
       "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-Payment-Required, X-Payment-Response, Mcp-Session-Id, MCP-Protocol-Version",
     "Access-Control-Max-Age": "86400",
   };
-}
-
-function isBlockedPrivateHost(hostname) {
-  const h = String(hostname || "").toLowerCase();
-  return (
-    !h ||
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h === "::1" ||
-    h === "0.0.0.0" ||
-    h.endsWith(".local") ||
-    h.endsWith(".internal") ||
-    h.startsWith("10.") ||
-    h.startsWith("192.168.") ||
-    h.startsWith("169.254.") ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-  );
-}
-
-async function fetchRemoteSchemaText(schemaUrl) {
-  let parsed;
-  try {
-    parsed = new URL(String(schemaUrl || "").trim());
-  } catch {
-    throw Object.assign(new Error("Invalid schema_url format."), { httpStatus: 400 });
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw Object.assign(new Error("schema_url must use http or https."), { httpStatus: 400 });
-  }
-  if (isBlockedPrivateHost(parsed.hostname)) {
-    throw Object.assign(new Error("Blocked private or loopback schema_url host (SSRF protection)."), { httpStatus: 403 });
-  }
-  const res = await fetch(parsed.toString(), {
-    headers: { "User-Agent": "Action2MCP-SchemaFetcher/1.0", Accept: "application/json,text/yaml,text/plain,*/*" },
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) {
-    throw Object.assign(new Error(`Failed to fetch schema_url (HTTP ${res.status}).`), {
-      httpStatus: res.status === 404 ? 404 : 502,
-    });
-  }
-  const txt = await res.text();
-  if (!txt || txt.length > 500000) {
-    throw Object.assign(new Error("Fetched schema is empty or exceeds 500KB limit."), { httpStatus: 422 });
-  }
-  return txt;
 }
 
 function buildBazaarExtension(routePath, plan) {
@@ -194,9 +155,48 @@ function buildBazaarExtension(routePath, plan) {
   };
 }
 
-function buildX402ChallengePayload(req, routePath, plan, details = null) {
+function getRequestedFacilitator(req, parsedPayment = null) {
+  const url = new URL(req.url);
+  const raw =
+    req.headers.get("x-x402-facilitator") ||
+    req.headers.get("x-facilitator") ||
+    url.searchParams.get("facilitator") ||
+    parsedPayment?.accepted?.extra?.facilitator ||
+    parsedPayment?.extensions?.facilitator ||
+    "";
+  return String(raw).trim().toLowerCase();
+}
+
+function selectX402Facilitator(req, parsedPayment, isSolana, env) {
+  const cdpReady = hasCdpCredentials(env);
+  const payaiUrl = cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR;
+  const reqFac = getRequestedFacilitator(req, parsedPayment);
+  const solPayer = parsedPayment?.accepted?.extra?.feePayer;
+
+  if (reqFac === "payai") {
+    return { kind: "payai", url: payaiUrl, solanaFeePayer: SOLANA_FEE_PAYER };
+  }
+  if (reqFac === "cdp" || reqFac === "coinbase") {
+    if (!cdpReady) throw new Error("Coinbase CDP facilitator requested but CDP credentials are not configured.");
+    return { kind: "cdp", url: CDP_FACILITATOR_URL, solanaFeePayer: CDP_SOLANA_FEE_PAYER };
+  }
+  if (isSolana) {
+    if (cdpReady && solPayer === CDP_SOLANA_FEE_PAYER) {
+      return { kind: "cdp", url: CDP_FACILITATOR_URL, solanaFeePayer: CDP_SOLANA_FEE_PAYER };
+    }
+    return { kind: "payai", url: payaiUrl, solanaFeePayer: SOLANA_FEE_PAYER };
+  }
+  if (cdpReady) {
+    return { kind: "cdp", url: CDP_FACILITATOR_URL, solanaFeePayer: CDP_SOLANA_FEE_PAYER };
+  }
+  return { kind: "payai", url: payaiUrl, solanaFeePayer: SOLANA_FEE_PAYER };
+}
+
+function buildX402ChallengePayload(req, routePath, plan, details = null, env = null) {
   const url = new URL(req.url);
   const resourceUrl = `${url.origin}${routePath}`;
+  const reqFac = getRequestedFacilitator(req, null);
+  const useCdpSolana = (reqFac === "cdp" || reqFac === "coinbase") && hasCdpCredentials(env);
   const challengeObj = {
     x402Version: 2,
     error: details || `Payment required: ${plan.priceDisplay}`,
@@ -226,7 +226,7 @@ function buildX402ChallengePayload(req, routePath, plan, details = null) {
         extra: {
           name: "USD Coin (Solana)",
           version: "2",
-          feePayer: SOLANA_FEE_PAYER,
+          feePayer: useCdpSolana ? CDP_SOLANA_FEE_PAYER : SOLANA_FEE_PAYER,
           recipientAta: MERCHANT_SOLANA_ATA,
         },
       },
@@ -239,8 +239,8 @@ function buildX402ChallengePayload(req, routePath, plan, details = null) {
   };
 }
 
-function x402Response(req, routePath, plan, details = null) {
-  const { challengeObj, b64 } = buildX402ChallengePayload(req, routePath, plan, details);
+function x402Response(req, routePath, plan, details = null, env = null) {
+  const { challengeObj, b64 } = buildX402ChallengePayload(req, routePath, plan, details, env);
   return new Response(JSON.stringify(challengeObj, null, 2), {
     status: 402,
     headers: {
@@ -254,7 +254,7 @@ function x402Response(req, routePath, plan, details = null) {
   });
 }
 
-async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
+async function verifyX402Payment(req, routePath, rawPaymentHeader, plan, env) {
   let payloadStr = String(rawPaymentHeader || "").trim();
   if (!payloadStr.startsWith("{")) {
     try {
@@ -271,6 +271,7 @@ async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
   const url = new URL(req.url);
   const resourceUrl = `${url.origin}${routePath}`;
   const isSolana = (parsed.accepted?.network || "").toString().startsWith("solana") || Boolean(parsed.payload?.transaction);
+  const selected = selectX402Facilitator(req, parsed, isSolana, env);
 
   const requirements = isSolana
     ? {
@@ -283,7 +284,7 @@ async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
         extra: {
           name: "USD Coin (Solana)",
           version: "2",
-          feePayer: SOLANA_FEE_PAYER,
+          feePayer: selected.solanaFeePayer,
           recipientAta: MERCHANT_SOLANA_ATA,
         },
       }
@@ -297,7 +298,6 @@ async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
         extra: { name: "USD Coin", version: "2" },
       };
 
-  const facilitator = cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR;
   const relayBody = {
     x402Version: 2,
     paymentPayload: {
@@ -310,29 +310,43 @@ async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
     paymentRequirements: requirements,
   };
 
-  const verifyRes = await fetch(`${facilitator}/verify`, {
+  const headers =
+    selected.kind === "cdp"
+      ? await createCdpRequestHeaders(env, "POST", "/verify")
+      : { "Content-Type": "application/json" };
+
+  const verifyRes = await fetch(`${selected.url}/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(relayBody),
     signal: AbortSignal.timeout(15000),
   });
   const verifyData = await verifyRes.json().catch(() => ({}));
   if (!verifyRes.ok || verifyData.isValid !== true) {
-    throw new Error(verifyData.reason || verifyData.error || `PayAI verify rejected (HTTP ${verifyRes.status})`);
+    throw new Error(
+      verifyData.invalidReason || verifyData.reason || verifyData.error || `${selected.kind.toUpperCase()} verify rejected (HTTP ${verifyRes.status})`,
+    );
   }
-  return { relayBody, isSolana, facilitator, resourceUrl, plan };
+  return { relayBody, isSolana, facilitator: selected.url, facilitatorKind: selected.kind, resourceUrl, plan };
 }
 
-async function settlePayAIPayment(prep) {
+async function settleX402Payment(prep, env) {
+  const headers =
+    prep.facilitatorKind === "cdp"
+      ? await createCdpRequestHeaders(env, "POST", "/settle")
+      : { "Content-Type": "application/json" };
+
   const settleRes = await fetch(`${prep.facilitator}/settle`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(prep.relayBody),
     signal: AbortSignal.timeout(30000),
   });
   const settleData = await settleRes.json().catch(() => ({}));
   if (!settleRes.ok || settleData.success !== true || !settleData.transaction) {
-    throw new Error(settleData.error || settleData.message || `PayAI settlement failed (HTTP ${settleRes.status})`);
+    throw new Error(
+      settleData.errorReason || settleData.error || settleData.message || `${prep.facilitatorKind.toUpperCase()} settlement failed (HTTP ${settleRes.status})`,
+    );
   }
   return {
     success: true,
@@ -340,6 +354,7 @@ async function settlePayAIPayment(prep) {
     transaction: settleData.transaction,
     amount: String(prep.plan.amountMicro),
     network: prep.isSolana ? SOLANA_NETWORK : "eip155:8453",
+    facilitator: prep.facilitatorKind,
     resource: prep.resourceUrl,
   };
 }
@@ -629,15 +644,6 @@ function renderFulfillmentConsoleHtml(fulfillment, origin) {
 </html>`;
 }
 
-async function resolveSchemaFromParams(params) {
-  let schemaText = String(params.schema || params.openapi || "").trim();
-  const schemaUrl = String(params.schema_url || params.spec_url || "").trim();
-  if (!schemaText && schemaUrl) {
-    schemaText = await fetchRemoteSchemaText(schemaUrl);
-  }
-  return { schemaText, schemaUrl };
-}
-
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -665,6 +671,8 @@ export default {
             dec11_countdown: getDec11Countdown(),
             merchant_base: MERCHANT_BASE,
             merchant_solana_ata: MERCHANT_SOLANA_ATA,
+            cdp_bazaar_enabled: hasCdpCredentials(env),
+            facilitators: hasCdpCredentials(env) ? ["coinbase-cdp", "payai"] : ["payai"],
             plans: ACTION2MCP_PLANS,
           },
           null,
@@ -702,7 +710,14 @@ export default {
             name: "Action2MCP",
             merchantAddressBase: MERCHANT_BASE,
             merchantAddressSolana: MERCHANT_SOLANA_ATA,
-            facilitator: cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR,
+            facilitator: hasCdpCredentials(env)
+              ? CDP_FACILITATOR_URL
+              : cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR,
+            facilitators: hasCdpCredentials(env)
+              ? [CDP_FACILITATOR_URL, cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR]
+              : [cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR],
+            cdpSolanaFeePayer: CDP_SOLANA_FEE_PAYER,
+            payaiSolanaFeePayer: SOLANA_FEE_PAYER,
             endpoints: [
               {
                 path: "/api/buy?tier=bundle",
@@ -938,7 +953,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       const routeKey = `${path}?tier=${plan.id}`;
       const paymentHdr = req.headers.get("PAYMENT-SIGNATURE") || req.headers.get("X-PAYMENT") || req.headers.get("payment-signature");
       if (!paymentHdr) {
-        return x402Response(req, routeKey, plan);
+        return x402Response(req, routeKey, plan, null, env);
       }
 
       if (!hasSigningSecretConfigured(env)) {
@@ -950,9 +965,9 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
 
       let paymentPrep;
       try {
-        paymentPrep = await verifyPayAIPayment(req, routeKey, paymentHdr, plan, env);
+        paymentPrep = await verifyX402Payment(req, routeKey, paymentHdr, plan, env);
       } catch (err) {
-        return x402Response(req, routeKey, plan, `Payment validation rejected: ${err.message}`);
+        return x402Response(req, routeKey, plan, `Payment validation rejected: ${err.message}`, env);
       }
 
       // Pre-compile buyer's OpenAPI schema BEFORE settling so invalid schemas never charge
@@ -979,7 +994,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
 
       let receipt;
       try {
-        receipt = await settlePayAIPayment(paymentPrep);
+        receipt = await settleX402Payment(paymentPrep, env);
       } catch (settleErr) {
         return new Response(JSON.stringify({ error: "settlement_failed", charged: false, message: settleErr.message }), {
           status: 502,

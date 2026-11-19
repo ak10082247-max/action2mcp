@@ -34,10 +34,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           KUROX_SIGNING_SECRET: ${{ secrets.KUROX_SIGNING_SECRET }}
+          CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
+          CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
         run: |
           if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
             printf '%s' "$STRIPE_SECRET_KEY" | npx --yes wrangler@3 secret put STRIPE_SECRET_KEY >/dev/null
           fi
           if [ -n "${KUROX_SIGNING_SECRET:-}" ]; then
             printf '%s' "$KUROX_SIGNING_SECRET" | npx --yes wrangler@3 secret put KUROX_SIGNING_SECRET >/dev/null
+          fi
+          if [ -n "${CDP_API_KEY_ID:-}" ]; then
+            printf '%s' "$CDP_API_KEY_ID" | npx --yes wrangler@3 secret put CDP_API_KEY_ID >/dev/null
+          fi
+          if [ -n "${CDP_API_KEY_SECRET:-}" ]; then
+            printf '%s' "$CDP_API_KEY_SECRET" | npx --yes wrangler@3 secret put CDP_API_KEY_SECRET >/dev/null
           fi

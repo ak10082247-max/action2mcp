@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import worker from "./worker.js";
 import { compileOpenApiToMcp, generateStandaloneWorkerJs, buildDeployableBundle } from "./compiler.js";
 import { createZipArchive } from "./zip_builder.js";
+import { compileForApify, runActorMain, APIFY_PPE_EVENT } from "./apify_main.mjs";
+import { signCdpJwt } from "./cdp_auth.js";
 
 const ENV = {
   MERCHANT_BASE_ADDRESS: "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6",
@@ -361,4 +364,167 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
   } finally {
     globalThis.fetch = origFetch;
   }
+});
+
+test("Coinbase CDP Facilitator Base routing with ES256 JWT + PayAI override", async () => {
+  const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const pkcs8Pem = privateKey.export({ format: "pem", type: "pkcs8" });
+  const CDP_ENV = {
+    ...FULL_ENV,
+    CDP_API_KEY_ID: "organizations/test-org/apiKeys/test-key-1",
+    CDP_API_KEY_SECRET: pkcs8Pem.replace(/\n/g, "\\n"),
+  };
+
+  const healthRes = await worker.fetch(new Request("https://action2mcp.ak10082247.workers.dev/health"), CDP_ENV);
+  assert.equal(healthRes.status, 200);
+  const hJson = await healthRes.json();
+  assert.equal(hJson.cdp_bazaar_enabled, true);
+  assert.deepEqual(hJson.facilitators, ["coinbase-cdp", "payai"]);
+
+  const jwtSample = await signCdpJwt({
+    apiKeyId: CDP_ENV.CDP_API_KEY_ID,
+    apiKeySecret: CDP_ENV.CDP_API_KEY_SECRET,
+    requestMethod: "POST",
+    requestPath: "/platform/v2/x402/verify",
+  });
+  assert.equal(jwtSample.split(".").length, 3);
+
+  const origFetch = globalThis.fetch;
+  let cdpVerifyAuth = "";
+  let cdpVerifyExt = null;
+  let cdpSettleCalls = 0;
+  let payaiOverrideCalls = 0;
+
+  globalThis.fetch = async (url, init) => {
+    const u = String(url);
+    if (u === "https://api.cdp.coinbase.com/platform/v2/x402/verify") {
+      cdpVerifyAuth = init?.headers?.Authorization || "";
+      cdpVerifyExt = JSON.parse(String(init?.body || "{}")).paymentPayload?.extensions || null;
+      return new Response(JSON.stringify({ isValid: true }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (u === "https://api.cdp.coinbase.com/platform/v2/x402/settle") {
+      cdpSettleCalls += 1;
+      return new Response(JSON.stringify({ success: true, payer: "0x2222", transaction: "0xcdpsettle999" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (u === "https://facilitator.payai.network/verify") {
+      payaiOverrideCalls += 1;
+      return new Response(JSON.stringify({ isValid: true }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (u === "https://facilitator.payai.network/settle") {
+      return new Response(JSON.stringify({ success: true, payer: "0x3333", transaction: "0xpayaisettle" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    throw new Error(`Unexpected fetch in CDP test: ${u}`);
+  };
+
+  try {
+    const chRes = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", { method: "POST" }),
+      CDP_ENV,
+    );
+    const ch = await chRes.json();
+    const baseOpt = ch.accepts.find((a) => a.network === "eip155:8453");
+    const sig = Buffer.from(
+      JSON.stringify({ x402Version: 2, resource: ch.resource, accepted: baseOpt, payload: { signature: "0x99" } }),
+    ).toString("base64");
+
+    const paidCdp = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig },
+        body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
+      }),
+      CDP_ENV,
+    );
+    assert.equal(paidCdp.status, 200);
+    assert.match(cdpVerifyAuth, /^Bearer eyJ/);
+    assert.equal(cdpVerifyExt?.bazaar?.discoverable, true);
+    assert.equal(cdpSettleCalls, 1);
+    const paidJson = await paidCdp.json();
+    assert.equal(paidJson.tx_hash, "0xcdpsettle999");
+
+    const paidOverride = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig, "X-X402-Facilitator": "payai" },
+        body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
+      }),
+      CDP_ENV,
+    );
+    assert.equal(paidOverride.status, 200);
+    assert.equal(payaiOverrideCalls, 1);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Apify PPE entrypoint compiles OpenAPI -> MCP + ZIP before charging and rejects invalid inputs uncharged", async () => {
+  const { record, zipBytes } = await compileForApify({ schema: MULTI_ENDPOINT_YAML, instructions: "Stock helper" });
+  assert.equal(record.status, "success");
+  assert.equal(record.event_name, APIFY_PPE_EVENT);
+  assert.equal(record.tool_count, 2);
+  assert.equal(record.consequential_count, 1);
+  assert.match(record.skill_md, /Stock helper/);
+  assert.equal(zipBytes[0], 0x50);
+  assert.equal(zipBytes[1], 0x4b);
+
+  const kvStore = {};
+  const pushed = [];
+  const charges = [];
+  let failedMsg = "";
+  let exited = false;
+
+  const mockActor = {
+    Actor: {
+      init: async () => {},
+      getInput: async () => ({ schema: MULTI_ENDPOINT_YAML }),
+      setValue: async (k, v) => {
+        kvStore[k] = v;
+      },
+      charge: async (ev) => {
+        charges.push(ev);
+      },
+      pushData: async (d) => {
+        pushed.push(d);
+      },
+      exit: async () => {
+        exited = true;
+      },
+      fail: async (m) => {
+        failedMsg = m;
+      },
+    },
+  };
+
+  await runActorMain({ actorModule: mockActor });
+  assert.equal(exited, true);
+  assert.equal(failedMsg, "");
+  assert.deepEqual(charges, [{ eventName: "action2mcp-compile", count: 1 }]);
+  assert.ok(kvStore["bundle.zip"]);
+  assert.equal(pushed.length, 1);
+
+  const badCharges = [];
+  let badFailed = "";
+  await runActorMain({
+    actorModule: {
+      Actor: {
+        init: async () => {},
+        getInput: async () => ({ schema_url: "http://127.0.0.1/secret.yaml" }),
+        setValue: async () => {},
+        charge: async (ev) => badCharges.push(ev),
+        pushData: async () => {},
+        exit: async () => {},
+        fail: async (m) => {
+          badFailed = m;
+        },
+      },
+    },
+  });
+  assert.equal(badCharges.length, 0);
+  assert.match(badFailed, /SSRF protection/i);
 });

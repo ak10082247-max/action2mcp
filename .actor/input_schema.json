@@ -1,0 +1,47 @@
+{
+  "title": "Action2MCP Input Schema",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "schema_url": {
+      "title": "Public OpenAPI JSON / YAML URL",
+      "type": "string",
+      "description": "Public HTTP/HTTPS URL to an OpenAPI 3.0 or 3.1 JSON/YAML schema (used when inline schema is empty)",
+      "editor": "textfield",
+      "default": "https://raw.githubusercontent.com/julien040/anyquery/main/other/llm/openapi.yaml"
+    },
+    "schema": {
+      "title": "Inline OpenAPI JSON / YAML Schema",
+      "type": "string",
+      "description": "Optional raw OpenAPI 3.0/3.1 JSON or YAML string (overrides schema_url when provided)",
+      "editor": "textarea"
+    },
+    "instructions": {
+      "title": "Custom GPT Instructions",
+      "type": "string",
+      "description": "Optional Custom GPT system instructions embedded into the generated SKILL.md",
+      "editor": "textarea"
+    },
+    "auth_type": {
+      "title": "Upstream Auth Mode",
+      "type": "string",
+      "description": "Authentication scheme for the generated Cloudflare MCP server",
+      "editor": "select",
+      "default": "auto",
+      "enum": ["auto", "none", "bearer", "api_key_header"],
+      "enumTitles": ["Auto-detect from OpenAPI securitySchemes", "None (Public API)", "Bearer Token", "API Key Header"]
+    },
+    "auth_header": {
+      "title": "Custom Auth Header Name",
+      "type": "string",
+      "description": "Optional header name when auth_type is api_key_header (default X-API-Key)",
+      "editor": "textfield"
+    },
+    "include_zip": {
+      "title": "Generate bundle.zip Archive",
+      "type": "boolean",
+      "description": "Save a ready-to-deploy bundle.zip into the run Key-Value Store",
+      "default": true
+    }
+  }
+}

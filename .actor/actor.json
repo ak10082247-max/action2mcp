@@ -1,0 +1,23 @@
+{
+  "actorSpecification": 1,
+  "name": "action2mcp",
+  "title": "Action2MCP: OpenAI Custom GPT Action to Remote MCP & SKILL.md Compiler",
+  "description": "Convert retiring OpenAI Custom GPT OpenAPI 3.0/3.1 JSON & YAML schemas into verified MCP tools/list schemas (preserving x-openai-isConsequential), SKILL.md, and a deployable Cloudflare Worker ZIP bundle.",
+  "version": "1.0",
+  "dockerfile": "../Dockerfile",
+  "readme": "../README.md",
+  "payPerEvent": {
+    "events": {
+      "action2mcp-compile": {
+        "eventTitle": "OpenAPI to Remote MCP Bundle Compilation",
+        "eventDescription": "Compiles an OpenAPI 3.0/3.1 JSON or YAML spec into MCP tools/list definitions, SKILL.md, standalone Cloudflare Worker code, and downloadable bundle.zip.",
+        "eventPriceUsd": 0.01
+      }
+    }
+  },
+  "input": "./input_schema.json",
+  "output": "./output_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  }
+}

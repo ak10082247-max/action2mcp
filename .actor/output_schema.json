@@ -1,0 +1,20 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Action2MCP Output Schema",
+  "description": "Compiled MCP tools/list schemas, portable SKILL.md, deployable Cloudflare Worker files, and ZIP download link",
+  "type": "object",
+  "properties": {
+    "dataset": {
+      "type": "string",
+      "title": "Compiled MCP Bundles Dataset",
+      "description": "Structured compilation output including mcp_tools, skill_md, files, and bundle_zip_url",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    },
+    "bundle_zip": {
+      "type": "string",
+      "title": "Deployable Worker ZIP",
+      "description": "Downloadable Cloudflare Remote MCP Worker + SKILL.md ZIP archive",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/bundle.zip"
+    }
+  }
+}

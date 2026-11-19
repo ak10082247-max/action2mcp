@@ -12,6 +12,8 @@
     "compiler.js",
     "yaml_parser.js",
     "zip_builder.js",
+    "schema_fetch.js",
+    "cdp_auth.js",
     "server.json",
     "README.md"
   ],
