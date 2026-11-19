@@ -1,16 +1,22 @@
 {
-  "cc_page": 8,
+  "cc_page": 13,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
     "everpetalflorist.com.au",
-    "grfxp.myshopify.com"
+    "grfxp.myshopify.com",
+    "ruceru.com",
+    "pagepublications.co",
+    "pagesofthenight.myshopify.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
     "info@greyhorsecandles.com",
     "info@everpetalflorist.com.au",
-    "sales@grfxp.com"
+    "sales@grfxp.com",
+    "marketing@ruceru.com",
+    "info@pagepublications.co",
+    "pagesofthenight@yahoo.com"
   ],
   "history": [
     {
@@ -32,7 +38,22 @@
       "domain": "grfxp.myshopify.com",
       "email": "sales@grfxp.com",
       "sent_date": "2026-11-19T22:21:26.136024+00:00"
+    },
+    {
+      "domain": "ruceru.com",
+      "email": "marketing@ruceru.com",
+      "sent_date": "2026-11-19T22:41:00.708655+00:00"
+    },
+    {
+      "domain": "pagepublications.co",
+      "email": "info@pagepublications.co",
+      "sent_date": "2026-11-19T22:41:10.672053+00:00"
+    },
+    {
+      "domain": "pagesofthenight.myshopify.com",
+      "email": "pagesofthenight@yahoo.com",
+      "sent_date": "2026-11-19T22:41:26.387900+00:00"
     }
   ],
-  "updated_at": "2026-11-19T22:21:26.136107+00:00"
+  "updated_at": "2026-11-19T22:41:26.387976+00:00"
 }
