@@ -7,6 +7,9 @@ import { compileOpenApiToMcp, generateStandaloneWorkerJs, buildDeployableBundle 
 import { createZipArchive } from "./zip_builder.js";
 import { compileForApify, runActorMain, APIFY_PPE_EVENT } from "./apify_main.mjs";
 import { signCdpJwt } from "./cdp_auth.js";
+import siteRescueWorker from "./site_rescue/worker.js";
+import ecomFixWorker from "./ecom_fix/worker.js";
+import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 const ENV = {
   MERCHANT_BASE_ADDRESS: "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6",
@@ -578,4 +581,193 @@ test("Apify PPE entrypoint compiles OpenAPI -> MCP + ZIP before charging and rej
   });
   assert.equal(badCharges.length, 0);
   assert.match(badFailed, /SSRF protection/i);
+});
+
+test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & ZIP recovery download", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u === "http://clinic.example.co.uk/") return new Response("", { status: 200 });
+    if (u === "https://clinic.example.co.uk/") {
+      return new Response('<html><title>Bright Dental Clinic</title><a href="/book-online">Book Appointment</a></html>', { status: 200 });
+    }
+    if (u === "https://clinic.example.co.uk/book-online") return new Response("Not Found", { status: 404 });
+    if (u === "https://api.stripe.com/v1/checkout/sessions") {
+      return new Response(JSON.stringify({ id: "cs_test_sr49", url: "https://checkout.stripe.com/c/pay/cs_test_sr49" }), { status: 200 });
+    }
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_sr_paid")) {
+      return new Response(
+        JSON.stringify({ id: "cs_test_sr_paid", payment_status: "paid", amount_total: 4900, metadata: { tier: "pack", target_domain: "clinic.example.co.uk" } }),
+        { status: 200 },
+      );
+    }
+    throw new Error(`Unexpected fetch in SiteRescue test: ${u}`);
+  };
+
+  try {
+    const hRes = await siteRescueWorker.fetch(new Request("https://site-rescue.ak10082247.workers.dev/health"), FULL_ENV);
+    assert.equal(hRes.status, 200);
+    const hJson = await hRes.json();
+    assert.equal(hJson.plans.pack.amountCents, 4900);
+    assert.equal(hJson.plans.priority.amountCents, 14900);
+
+    const scanRes = await siteRescueWorker.fetch(
+      new Request("https://site-rescue.ak10082247.workers.dev/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: "clinic.example.co.uk", ssl_days_remaining: "5" }),
+      }),
+      FULL_ENV,
+    );
+    assert.equal(scanRes.status, 200);
+    const scanData = await scanRes.json();
+    assert.equal(scanData.broken_links.length, 1);
+    assert.equal(scanData.broken_links[0].status, 404);
+    assert.ok(scanData.issues.some((i) => i.includes("expires in 5 day(s)")));
+
+    const coRes = await siteRescueWorker.fetch(
+      new Request("https://site-rescue.ak10082247.workers.dev/api/checkout?tier=pack&domain=clinic.example.co.uk&format=json", { method: "POST" }),
+      FULL_ENV,
+    );
+    assert.equal(coRes.status, 200);
+    assert.equal((await coRes.json()).amount_cents, 4900);
+
+    const zipRes = await siteRescueWorker.fetch(
+      new Request("https://site-rescue.ak10082247.workers.dev/api/download?session_id=cs_test_sr_paid&format=zip"),
+      FULL_ENV,
+    );
+    assert.equal(zipRes.status, 200);
+    assert.equal(zipRes.headers.get("Content-Type"), "application/zip");
+    const zb = new Uint8Array(await zipRes.arrayBuffer());
+    const checkZip = spawnSync(
+      "python",
+      ["-c", "import io, sys, zipfile; z = zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None; print(','.join(sorted(z.namelist())))"],
+      { input: Buffer.from(zb) },
+    );
+    assert.equal(checkZip.status, 0);
+    assert.match(checkZip.stdout.toString(), /03-redirects\.htaccess/);
+    assert.match(checkZip.stdout.toString(), /04-localbusiness-schema\.jsonld/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & compiles store-fix-kit.zip ($49/$79)", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u === "https://mystore.example.com/") {
+      return new Response(
+        '<html><title>Acme Outdoor Gear</title><script>Shopify.currency={"active":"GBP"}; function asyncLoad(){var urls=["https://legacy.app.io/tag.js"];}</script><a href="/collections/tents">Tents</a></html>',
+        { status: 200 },
+      );
+    }
+    if (u === "https://mystore.example.com/products.json?limit=3") {
+      return new Response(JSON.stringify({ products: [{ title: "Storm Tent", handle: "storm-tent", variants: [{ price: "120.00", sku: "TENT-1" }] }] }), { status: 200 });
+    }
+    if (u === "https://mystore.example.com/products/storm-tent") {
+      return new Response('<html><script type="application/ld+json">{"@type":"Product","name":"Storm Tent","offers":{"price":"99.00"}}</script></html>', { status: 200 });
+    }
+    if (u === "https://mystore.example.com/collections/tents") return new Response("Gone", { status: 404 });
+    if (u === "https://api.stripe.com/v1/checkout/sessions") {
+      return new Response(JSON.stringify({ id: "cs_test_ef79", url: "https://checkout.stripe.com/c/pay/cs_test_ef79" }), { status: 200 });
+    }
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_ef_paid")) {
+      return new Response(
+        JSON.stringify({ id: "cs_test_ef_paid", payment_status: "paid", amount_total: 4900, metadata: { tier: "fix_pack", target_domain: "mystore.example.com" } }),
+        { status: 200 },
+      );
+    }
+    throw new Error(`Unexpected fetch in StoreFix test: ${u}`);
+  };
+
+  try {
+    const auditRes = await ecomFixWorker.fetch(
+      new Request("https://ecom-fix.ak10082247.workers.dev/api/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: "mystore.example.com" }),
+      }),
+      FULL_ENV,
+    );
+    assert.equal(auditRes.status, 200);
+    const audit = await auditRes.json();
+    assert.equal(audit.platform, "shopify");
+    assert.equal(audit.currency, "GBP");
+    assert.equal(audit.broken_links.length, 1);
+    assert.equal(audit.deprecated_script_tags.length, 1);
+    assert.ok(audit.schema_issues.some((i) => i.issue.includes("Price mismatch")));
+
+    const zipRes = await ecomFixWorker.fetch(
+      new Request("https://ecom-fix.ak10082247.workers.dev/api/download?session_id=cs_test_ef_paid&format=zip"),
+      FULL_ENV,
+    );
+    assert.equal(zipRes.status, 200);
+    const zb = new Uint8Array(await zipRes.arrayBuffer());
+    const checkZip = spawnSync(
+      "python",
+      ["-c", "import io, sys, zipfile; z = zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None; print(','.join(sorted(z.namelist())))"],
+      { input: Buffer.from(zb) },
+    );
+    assert.equal(checkZip.status, 0);
+    assert.match(checkZip.stdout.toString(), /01-product-schema\.liquid/);
+    assert.match(checkZip.stdout.toString(), /02-shopify-url-redirects\.csv/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redacts PII", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const u = String(url);
+    if (u === "https://api.stripe.com/v1/balance") {
+      return new Response(JSON.stringify({ available: [{ currency: "usd", amount: 4900 }], pending: [{ currency: "usd", amount: 2500 }] }), { status: 200 });
+    }
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions")) {
+      return new Response(
+        JSON.stringify({
+          data: [
+            { id: "cs_live_1111222233334444", payment_status: "paid", amount_total: 2500, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
+            { id: "cs_live_5555666677778888", payment_status: "paid", amount_total: 4900, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    if (u === "https://mainnet.base.org") return new Response(JSON.stringify({ result: "0x0f4240" }), { status: 200 });
+    if (u === "https://api.mainnet-beta.solana.com") {
+      const b = String(init?.body || "");
+      if (b.includes("getTokenAccountBalance")) return new Response(JSON.stringify({ result: { value: { amount: "500000" } } }), { status: 200 });
+      return new Response(JSON.stringify({ result: [{ signature: "5abc123def", blockTime: 1795000200, confirmationStatus: "finalized", err: null }] }), { status: 200 });
+    }
+    if (u.includes("apify.com/v2/acts")) return new Response(JSON.stringify({ data: { items: [{ name: "action2mcp", stats: { totalRuns: 4 } }] } }), { status: 200 });
+    if (u.includes("apify.com/v2/users/me/limits")) return new Response(JSON.stringify({ data: { current: { monthlyUsageUsd: 0.08 }, limits: { maxMonthlyUsageUsd: 5 } } }), { status: 200 });
+    if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify({ contacted_emails: ["a@b.com"], history: [] }), { status: 200 });
+    return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+  };
+
+  try {
+    const DASH_ENV = { ...FULL_ENV, APIFY_TOKEN: "apify_test_tok", GITHUB_REPO: "ak10082247-max/action2mcp" };
+    const [uiRes, liveRes] = await Promise.all([
+      revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/"), DASH_ENV),
+      revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/live"), DASH_ENV),
+    ]);
+    assert.equal(uiRes.status, 200);
+    assert.match(await uiRes.text(), /Live Money Tally/);
+
+    assert.equal(liveRes.status, 200);
+    const liveText = await liveRes.text();
+    assert.doesNotMatch(liveText, /secret@buyer\.com/);
+    assert.doesNotMatch(liveText, /clinic@buyer\.co\.uk/);
+    const data = JSON.parse(liveText);
+    assert.equal(data.totals.stripe_paid_usd, 74);
+    assert.equal(data.totals.onchain_usdc, 1.5);
+    assert.equal(data.totals.tracked_revenue_usd, 75.5);
+    assert.equal(data.stripe.by_play["Action2MCP"], 25);
+    assert.equal(data.stripe.by_play["Play A: SiteRescue"], 49);
+    assert.equal(data.apify.total_runs, 4);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
 });

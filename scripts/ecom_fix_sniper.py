@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""
+Play B Cron Sniper: Shopify & WooCommerce "Google Shopping & Revenue-Leak" Detector
+Pulls real retail domains from Common Crawl (myshopify.com subdomains) + Nominatim storefronts,
+verifies live /products.json or /wp-json/wc/store/v1/products inventory, inspects Product JSON-LD,
+broken nav links, >3MB images, and legacy Shopify ScriptTags ahead of March 1, 2027,
+then emails verified storefront contacts linking to StoreFix ($49 / $79).
+"""
+import argparse
+from datetime import datetime, timezone
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(SCRIPTS_DIR)
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+
+import outreach_common as common
+
+common.load_workspace_env(REPO_ROOT)
+
+STATE_FILE = os.path.join(REPO_ROOT, "data", "ecom_fix_state.json")
+DEFAULT_ECOM_FIX_URL = os.environ.get("ECOM_FIX_BASE_URL") or "https://ecom-fix.ak10082247.workers.dev"
+
+LD_RE = re.compile(r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', re.IGNORECASE | re.DOTALL)
+LINK_RE = re.compile(r'<a\b[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
+IMG_RE = re.compile(r'<img\b[^>]*src=["\']([^"\']+)["\']', re.IGNORECASE)
+SCRIPTTAG_RE = re.compile(r'asyncLoad[\s\S]{0,1200}?var\s+urls\s*=\s*\[([\s\S]*?)\]', re.IGNORECASE)
+
+
+def audit_product_jsonld(html: str, expected_price: float | None, product_url: str) -> list[str]:
+    issues = []
+    products = []
+    for raw in LD_RE.findall(html or ""):
+        try:
+            obj = json.loads(raw.strip())
+            nodes = obj if isinstance(obj, list) else (obj.get("@graph") or [obj])
+            for n in nodes:
+                t = n.get("@type")
+                types = t if isinstance(t, list) else [t]
+                if "Product" in [str(x) for x in types]:
+                    products.append(n)
+        except Exception:
+            continue
+    if not products:
+        issues.append(f"Missing Product JSON-LD on {product_url} (blocks Google Shopping price snippets)")
+        return issues
+
+    prod = products[0]
+    offers = prod.get("offers")
+    if isinstance(offers, list) and offers:
+        offers = offers[0]
+    if not isinstance(offers, dict):
+        issues.append(f"Product JSON-LD missing 'offers' object on {product_url}")
+    else:
+        if offers.get("price") in (None, ""):
+            issues.append(f"Missing required offers.price on {product_url}")
+        elif expected_price is not None:
+            try:
+                ld_p = float(re.sub(r"[^0-9.]", "", str(offers["price"])))
+                if abs(ld_p - expected_price) > 0.05:
+                    issues.append(f"Google Shopping price mismatch on {product_url}: schema={ld_p} vs store={expected_price}")
+            except Exception:
+                pass
+        if not offers.get("priceCurrency"):
+            issues.append(f"Missing offers.priceCurrency on {product_url}")
+        if not offers.get("availability"):
+            issues.append(f"Missing offers.availability on {product_url}")
+    if not prod.get("sku") and not prod.get("gtin") and not prod.get("mpn") and not (isinstance(offers, dict) and offers.get("sku")):
+        issues.append(f"Missing Product sku/gtin identifier on {product_url}")
+    return issues
+
+
+def fetch_store_candidates(cc_page: int = 1, limit_hosts: int = 35) -> tuple[list[str], int]:
+    hosts = []
+    seen = set()
+    try:
+        colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
+        cdx_api = colls[0]["cdx-api"]
+        u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=80&page={cc_page}&fl=url,status&filter=status:200"
+        st, _, _, raw = common.http_fetch(u, timeout=20, verify_ssl=False)
+        if st == 200:
+            for line in raw.decode("utf-8", "replace").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    item_url = json.loads(line).get("url") or ""
+                    h = (urllib.parse.urlparse(item_url).hostname or "").lower()
+                    if not h or h == "myshopify.com" or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.")):
+                        continue
+                    if h not in seen:
+                        seen.add(h)
+                        hosts.append(h)
+                except Exception:
+                    continue
+    except Exception as exc:
+        print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
+    return hosts[:limit_hosts], (cc_page + 1) % 50
+
+
+def diagnose_ecom_store(candidate_host: str) -> dict | None:
+    try:
+        st, home_url, _, raw_home = common.http_fetch(f"https://{candidate_host}/", timeout=9, verify_ssl=False)
+    except Exception:
+        return None
+    if st >= 400 or "/password" in home_url:
+        return None
+    parsed_home = urllib.parse.urlparse(home_url)
+    base_origin = f"{parsed_home.scheme}://{parsed_home.netloc}"
+    bare_domain = (parsed_home.hostname or candidate_host).lower().replace("www.", "")
+    home_html = raw_home.decode("utf-8", "replace")
+
+    platform = None
+    sample_product_url = None
+    sample_price = None
+    currency = "USD"
+
+    # Check Shopify /products.json
+    try:
+        sp_json = common.http_get_json(f"{base_origin}/products.json?limit=3", timeout=7)
+        prods = sp_json.get("products") or []
+        if prods:
+            platform = "shopify"
+            p0 = prods[0]
+            sample_product_url = f"{base_origin}/products/{p0['handle']}"
+            v0 = (p0.get("variants") or [{}])[0]
+            if v0.get("price"):
+                try:
+                    sample_price = float(v0["price"])
+                except Exception:
+                    sample_price = None
+    except Exception:
+        pass
+
+    # Fallback WooCommerce /wp-json/wc/store/v1/products
+    if not platform:
+        try:
+            wc_json = common.http_get_json(f"{base_origin}/wp-json/wc/store/v1/products?per_page=3", timeout=7)
+            if isinstance(wc_json, list) and wc_json:
+                platform = "woocommerce"
+                p0 = wc_json[0]
+                sample_product_url = p0.get("permalink") or f"{base_origin}/product/{p0.get('slug')}"
+                pr = p0.get("prices") or {}
+                currency = pr.get("currency_code") or "USD"
+                if pr.get("price"):
+                    sample_price = int(pr["price"]) / (10 ** int(pr.get("currency_minor_unit") or 2))
+        except Exception:
+            pass
+
+    if not platform or not sample_product_url:
+        return None
+
+    m_curr = re.search(r'"active"\s*:\s*"([A-Z]{3})"', home_html)
+    if m_curr:
+        currency = m_curr.group(1)
+
+    issues = []
+    # 1. Product JSON-LD check
+    try:
+        pst, _, _, praw = common.http_fetch(sample_product_url, timeout=8, verify_ssl=False)
+        if pst == 200:
+            issues.extend(audit_product_jsonld(praw.decode("utf-8", "replace"), sample_price, sample_product_url))
+    except Exception:
+        pass
+
+    # 2. Legacy Shopify ScriptTags ahead of March 1, 2027
+    script_tags = []
+    stm = SCRIPTTAG_RE.search(home_html)
+    if stm:
+        for um in re.findall(r'["\']([^"\']+)["\']', stm.group(1)):
+            script_tags.append(um.replace("\\/", "/"))
+    if script_tags:
+        issues.append(f"{len(script_tags)} legacy Shopify ScriptTag(s) active (breaks March 1, 2027)")
+
+    # 3. Broken nav / collection links
+    broken_links = []
+    checked = 0
+    for href, _ in LINK_RE.findall(home_html):
+        if checked >= 4:
+            break
+        if not any(seg in href.lower() for seg in ("/collections/", "/products/", "/pages/")):
+            continue
+        full = urllib.parse.urljoin(base_origin, href)
+        if bare_domain not in full.lower():
+            continue
+        checked += 1
+        try:
+            nst, _, _, _ = common.http_fetch(full, timeout=5, verify_ssl=False)
+            if nst in (404, 410) or nst >= 500:
+                broken_links.append(f"{full} (HTTP {nst})")
+                issues.append(f"Broken storefront URL returning HTTP {nst}: {full}")
+        except Exception:
+            continue
+
+    # 4. Large >3MB image check
+    for src in IMG_RE.findall(home_html)[:3]:
+        img_u = urllib.parse.urljoin(base_origin, src)
+        try:
+            ist, _, ihdrs, _ = common.http_fetch(img_u, method="HEAD", timeout=4, verify_ssl=False)
+            cl = int(ihdrs.get("Content-Length") or ihdrs.get("content-length") or 0)
+            if ist == 200 and cl > 3_000_000:
+                issues.append(f"Unoptimized hero/banner image >3MB ({round(cl / 1e6, 1)}MB): {img_u}")
+                break
+        except Exception:
+            continue
+
+    if not issues:
+        return None
+
+    emails = common.extract_deliverable_emails(home_html, bare_domain)
+    if not emails:
+        for cp in ("/pages/contact", "/pages/contact-us", "/contact"):
+            try:
+                cst, _, _, craw = common.http_fetch(f"{base_origin}{cp}", timeout=6, verify_ssl=False)
+                if cst < 400:
+                    emails = common.extract_deliverable_emails(craw.decode("utf-8", "replace"), bare_domain)
+                    if emails:
+                        break
+            except Exception:
+                continue
+    if not emails:
+        return None
+
+    return {
+        "domain": bare_domain,
+        "platform": platform,
+        "currency": currency,
+        "email": emails[0],
+        "sample_product_url": sample_product_url,
+        "issues": issues,
+    }
+
+
+def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> tuple[str, str]:
+    dom = target["domain"]
+    audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom})}"
+    top_issues = "\n".join(f"- {i}" for i in target["issues"][:3])
+    subject = f"Google Shopping / theme issues flagged on {dom}"[:96]
+    body = (
+        f"Hi {dom} team,\n\n"
+        f"While running an automated storefront audit on {dom} ({target['platform']}), we caught these live conversion/Google Shopping issues:\n"
+        f"{top_issues}\n\n"
+        f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and 404/legacy scripts hurt checkout conversion.\n\n"
+        f"Inspect the live store diagnostic and download a pre-built Store Fix Bundle ($49 one-time — includes a paste-ready "
+        f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
+        f"Shopify URL redirects CSV, and March 1, 2027 ScriptTag checklist) at:\n"
+        f"{audit_link}\n\n"
+        f"Best,\nArman\n"
+        f"---\nReply 'unsubscribe' to opt out.\n"
+    )
+    return subject, body
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Play B: Shopify & WooCommerce Revenue-Leak Sniper")
+    parser.add_argument("--limit", type=int, default=35, help="Max store candidates per run")
+    parser.add_argument("--max-emails", type=int, default=15, help="Daily send cap")
+    parser.add_argument("--send", action="store_true", help="Send verified store alerts via SMTP")
+    args = parser.parse_args()
+
+    state = common.load_json_state(STATE_FILE, {"cc_page": 1, "contacted_domains": [], "contacted_emails": [], "history": []})
+    sent_today = common.count_sent_today(state.get("history") or [])
+    known_domains = set(state.get("contacted_domains") or [])
+    known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
+
+    if args.send and sent_today >= args.max_emails:
+        print(f"[!] Daily cap ({sent_today}/{args.max_emails}) reached; exiting.")
+        return
+
+    hosts, next_page = fetch_store_candidates(int(state.get("cc_page") or 1), args.limit)
+    state["cc_page"] = next_page
+    common.save_json_state(STATE_FILE, state)
+
+    hits = []
+    for h in hosts:
+        if h.replace("www.", "") in known_domains:
+            continue
+        diag = diagnose_ecom_store(h)
+        if not diag:
+            continue
+        if diag["domain"] in known_domains or diag["email"] in known_emails:
+            continue
+        hits.append(diag)
+        subj, body = craft_ecom_fix_email(diag)
+        print(f"[+] FOUND PLAY B LEAK: {diag['domain']} ({diag['platform']}) -> {diag['email']} | issues={len(diag['issues'])}")
+        if args.send:
+            if sent_today >= args.max_emails:
+                break
+            try:
+                common.send_smtp_email(diag["email"], subj, body, sender_name="Arman (StoreFix Audit)")
+                known_domains.add(diag["domain"])
+                known_emails.add(diag["email"])
+                state["contacted_domains"].append(diag["domain"])
+                state["contacted_emails"].append(diag["email"])
+                state["history"].append({"domain": diag["domain"], "email": diag["email"], "sent_date": datetime.now(timezone.utc).isoformat()})
+                sent_today += 1
+                common.save_json_state(STATE_FILE, state)
+                print(f"    -> Sent alert to {diag['email']}")
+                time.sleep(5)
+            except Exception as exc:
+                print(f"    [-] SMTP failed: {exc}")
+
+    print(f"[=] Play B Summary: candidates={len(hosts)} verified_leaks={len(hits)} sent_today={sent_today}")
+
+
+if __name__ == "__main__":
+    main()

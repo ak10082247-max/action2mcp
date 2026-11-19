@@ -1,4 +1,4 @@
-name: Deploy Action2MCP to Cloudflare Workers
+name: Deploy Action2MCP, SiteRescue, StoreFix & Revenue Dashboard
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy_worker:
+  deploy_all_workers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,10 +16,17 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Run Action2MCP Worker Unit Tests
-        run: node --test test_worker.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Deploy Worker to Cloudflare
+      - name: Run Worker & Sniper Unit Tests
+        run: |
+          node --test test_worker.mjs
+          python scripts/test_sniper.py
+          python scripts/test_all_snipers.py
+
+      - name: Deploy Action2MCP Primary Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
@@ -28,7 +35,16 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
 
-      - name: Sync Runtime Billing Secrets
+      - name: Deploy SiteRescue, StoreFix & Revenue Dashboard Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 deploy --config site_rescue/wrangler.toml
+          npx --yes wrangler@3 deploy --config ecom_fix/wrangler.toml
+          npx --yes wrangler@3 deploy --config revenue_dashboard/wrangler.toml
+
+      - name: Sync Runtime Secrets Across All Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -36,16 +52,24 @@ jobs:
           KUROX_SIGNING_SECRET: ${{ secrets.KUROX_SIGNING_SECRET }}
           CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
           CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: |
-          if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
-            printf '%s' "$STRIPE_SECRET_KEY" | npx --yes wrangler@3 secret put STRIPE_SECRET_KEY >/dev/null
-          fi
-          if [ -n "${KUROX_SIGNING_SECRET:-}" ]; then
-            printf '%s' "$KUROX_SIGNING_SECRET" | npx --yes wrangler@3 secret put KUROX_SIGNING_SECRET >/dev/null
-          fi
-          if [ -n "${CDP_API_KEY_ID:-}" ]; then
-            printf '%s' "$CDP_API_KEY_ID" | npx --yes wrangler@3 secret put CDP_API_KEY_ID >/dev/null
-          fi
-          if [ -n "${CDP_API_KEY_SECRET:-}" ]; then
-            printf '%s' "$CDP_API_KEY_SECRET" | npx --yes wrangler@3 secret put CDP_API_KEY_SECRET >/dev/null
+          for cfg in wrangler.toml site_rescue/wrangler.toml ecom_fix/wrangler.toml revenue_dashboard/wrangler.toml; do
+            if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
+              printf '%s' "$STRIPE_SECRET_KEY" | npx --yes wrangler@3 secret put STRIPE_SECRET_KEY --config "$cfg" >/dev/null
+            fi
+            if [ -n "${KUROX_SIGNING_SECRET:-}" ]; then
+              printf '%s' "$KUROX_SIGNING_SECRET" | npx --yes wrangler@3 secret put KUROX_SIGNING_SECRET --config "$cfg" >/dev/null
+            fi
+          done
+          for cfg in wrangler.toml site_rescue/wrangler.toml ecom_fix/wrangler.toml; do
+            if [ -n "${CDP_API_KEY_ID:-}" ]; then
+              printf '%s' "$CDP_API_KEY_ID" | npx --yes wrangler@3 secret put CDP_API_KEY_ID --config "$cfg" >/dev/null
+            fi
+            if [ -n "${CDP_API_KEY_SECRET:-}" ]; then
+              printf '%s' "$CDP_API_KEY_SECRET" | npx --yes wrangler@3 secret put CDP_API_KEY_SECRET --config "$cfg" >/dev/null
+            fi
+          done
+          if [ -n "${APIFY_TOKEN:-}" ]; then
+            printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@3 secret put APIFY_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
           fi
