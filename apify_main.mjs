@@ -34,7 +34,7 @@ export async function compileForApify(rawInput = {}, opts = {}) {
       status: "success",
       event_name: APIFY_PPE_EVENT,
       timestamp_ms: Date.now(),
-      title: compiled.title,
+      server_title: compiled.title,
       openapi_version: compiled.openapi_version,
       base_url: compiled.base_url,
       spec_url: resolved.schemaUrl || null,

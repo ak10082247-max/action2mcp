@@ -1,67 +1,80 @@
 {
   "actorSpecification": 1,
-  "title": "Action2MCP Dataset Schema",
-  "description": "Compiled MCP server metadata, tool schemas, SKILL.md, and deployable Cloudflare Worker source files",
   "fields": {
-    "status": {
-      "type": "string",
-      "title": "Status",
-      "description": "Compilation status",
-      "example": "success",
-      "nullable": false
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "Compilation status",
+        "example": "success"
+      },
+      "event_name": {
+        "type": "string",
+        "title": "Charged Event",
+        "description": "Apify Pay-Per-Event identifier",
+        "example": "action2mcp-compile"
+      },
+      "server_title": {
+        "type": "string",
+        "title": "Compiled Server Title",
+        "description": "OpenAPI info.title of the migrated GPT Action"
+      },
+      "tool_count": {
+        "type": "number",
+        "title": "MCP Tool Count",
+        "description": "Number of compiled MCP tools"
+      },
+      "consequential_count": {
+        "type": "number",
+        "title": "Consequential Tool Count",
+        "description": "Operations preserving x-openai-isConsequential destructiveHint=true"
+      },
+      "skill_md": {
+        "type": "string",
+        "title": "Generated SKILL.md",
+        "description": "Portable SKILL.md for Claude Code, Cursor, Codex, and OpenClaw"
+      },
+      "bundle_zip_url": {
+        "type": "string",
+        "title": "Bundle ZIP URL",
+        "description": "Key-Value store URL for bundle.zip"
+      }
     },
-    "event_name": {
-      "type": "string",
-      "title": "Charged Event",
-      "description": "Apify Pay-Per-Event identifier",
-      "example": "action2mcp-compile",
-      "nullable": false
-    },
-    "title": {
-      "type": "string",
-      "title": "Compiled Server Title",
-      "description": "OpenAPI info.title of the migrated GPT Action",
-      "nullable": false
-    },
-    "tool_count": {
-      "type": "number",
-      "title": "MCP Tool Count",
-      "description": "Number of compiled MCP tools",
-      "nullable": false
-    },
-    "consequential_count": {
-      "type": "number",
-      "title": "Consequential Tool Count",
-      "description": "Operations preserving x-openai-isConsequential destructiveHint=true",
-      "nullable": false
-    },
-    "skill_md": {
-      "type": "string",
-      "title": "Generated SKILL.md",
-      "description": "Portable SKILL.md for Claude Code, Cursor, Codex, and OpenClaw",
-      "nullable": false
-    },
-    "bundle_zip_url": {
-      "type": "string",
-      "title": "Bundle ZIP URL",
-      "description": "Key-Value store URL for bundle.zip",
-      "nullable": true
-    }
+    "additionalProperties": true
   },
   "views": {
     "overview": {
       "title": "Overview",
+      "description": "Compiled MCP server metadata, tool counts, and portable SKILL.md output",
       "transformation": {
-        "fields": ["status", "title", "tool_count", "consequential_count", "event_name"]
+        "fields": [
+          "status",
+          "server_title",
+          "tool_count",
+          "consequential_count",
+          "event_name"
+        ]
       },
       "display": {
         "component": "table",
         "properties": {
-          "status": { "label": "Status" },
-          "title": { "label": "API Title" },
-          "tool_count": { "label": "Tools" },
-          "consequential_count": { "label": "Consequential" },
-          "event_name": { "label": "Event" }
+          "status": {
+            "label": "Status"
+          },
+          "server_title": {
+            "label": "API Title"
+          },
+          "tool_count": {
+            "label": "Tools"
+          },
+          "consequential_count": {
+            "label": "Consequential"
+          },
+          "event_name": {
+            "label": "Event"
+          }
         }
       }
     }

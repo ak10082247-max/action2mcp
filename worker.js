@@ -324,7 +324,12 @@ async function verifyX402Payment(req, routePath, rawPaymentHeader, plan, env) {
   const verifyData = await verifyRes.json().catch(() => ({}));
   if (!verifyRes.ok || verifyData.isValid !== true) {
     throw new Error(
-      verifyData.invalidReason || verifyData.reason || verifyData.error || `${selected.kind.toUpperCase()} verify rejected (HTTP ${verifyRes.status})`,
+      verifyData.invalidMessage ||
+        verifyData.errorMessage ||
+        verifyData.invalidReason ||
+        verifyData.reason ||
+        verifyData.error ||
+        `${selected.kind.toUpperCase()} verify rejected (HTTP ${verifyRes.status})`,
     );
   }
   return { relayBody, isSolana, facilitator: selected.url, facilitatorKind: selected.kind, resourceUrl, plan };
