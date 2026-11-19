@@ -7,7 +7,7 @@ OpenAI retires Custom GPTs on **December 11, 2026** (FedRAMP/approved Enterprise
 ## Features
 - **Free Live Compiler (`POST /api/preview` & Web UI):** Parses OpenAPI 3.0/3.1 JSON or YAML, resolves local `$ref` pointers, converts path/query/header/`requestBody` schemas into MCP `tools/list` JSON Schema, maps `x-openai-isConsequential` to `destructiveHint` / `readOnlyHint`, flags 100k-char payload risks, and generates portable `SKILL.md` frontmatter.
 - **100% Free DIY Cloudflare Worker ZIP (`POST /api/download-free`):** Immediately compiles and downloads standalone `worker.js` (JSON-RPC 2.0 `initialize`, `ping`, `tools/list`, `tools/call` + Bearer/API-key auth forwarding), `wrangler.toml`, `package.json`, `.github/workflows/deploy.yml`, `SKILL.md`, and `SETUP_CHATGPT_PLUGIN.md` with zero checkout or email wall.
-- **$25 One-Time Instant Hosted MCP URL (`/mcp/h/:token`):** Zero-terminal multi-tenant Hosted Remote MCP endpoint signed via HMAC-SHA256 (Stripe Card Checkout or x402 Base/Solana USDC) plus the full compiled ZIP bundle.
+- **$10 Launch Deal (was $25) Instant Hosted MCP URL (`/mcp/h/:token`):** Zero-terminal multi-tenant Hosted Remote MCP endpoint signed via HMAC-SHA256 (Stripe Card Checkout or x402 Base/Solana USDC) plus the full compiled ZIP bundle.
 - **Remote MCP Server (`POST /mcp`):** Exposes `convert_openapi_to_mcp` cleanly (`server.json` included).
 - **Custom GPT Sniper (`scripts/gpt_action_sniper.py`):** Queries GitHub Code Search for public Custom GPT OpenAPI schemas containing `x-openai-isConsequential` or `chatgpt.com/g/g-` + `openapi`, test-compiles them via `/api/preview`, and drafts proof-first outreach emails.
 

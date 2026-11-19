@@ -226,7 +226,7 @@ export function buildSiteRecoveryBundle(diag, tier = "pack") {
   const handoffTxt = [
     `====================================================================`,
     `CUSTOM SITE RECOVERY PACK — ${biz.toUpperCase()} (${domain})`,
-    `Tier: ${tier === "priority" ? "Priority Async Site Recovery ($149)" : "Custom Site Recovery Pack ($49)"}`,
+    `Tier: ${tier === "priority" ? "Priority Async Site Recovery ($29 Deal, was $149)" : "Custom Site Recovery Pack ($10 Deal, was $49)"}`,
     `====================================================================`,
     ``,
     `1. WHAT WAS DETECTED`,

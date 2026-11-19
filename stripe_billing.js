@@ -10,14 +10,16 @@ export const ACTION2MCP_PLANS = {
   hosted: {
     id: "hosted",
     sku: "action2mcp-hosted-v1",
-    name: "Action2MCP Instant Hosted Remote MCP URL ($25 One-Time)",
+    name: "Action2MCP Instant Hosted Remote MCP URL — $10 Deal (was $25)",
     description:
-      "Instant hosted Remote MCP URL (/mcp/h/<token>) to paste directly into ChatGPT Plugins -> Add custom MCP server, plus the full compiled Cloudflare Worker ZIP & SKILL.md bundle.",
-    amountCents: 2500,
-    amountMicro: 25000000, // $25.00 USDC
-    priceDisplay: "$25 USD / USDC",
+      "Limited-time $10 Deal (normally $25): Instant hosted Remote MCP URL (/mcp/h/<token>) to paste directly into ChatGPT Plugins -> Add custom MCP server, plus the full compiled Cloudflare Worker ZIP & SKILL.md bundle.",
+    amountCents: 1000,
+    amountMicro: 10000000, // $10.00 USDC deal (was $25.00)
+    originalCents: 2500,
+    originalDisplay: "$25",
+    priceDisplay: "$10 USD / USDC (was $25)",
     ttlSeconds: 365 * 24 * 60 * 60,
-    tier: "hosted_25",
+    tier: "hosted_10",
   },
 };
 

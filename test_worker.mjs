@@ -170,7 +170,8 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   assert.match(homeHtml, /Action2MCP/);
   assert.match(homeHtml, /Download Free Worker ZIP/);
   assert.match(homeHtml, /\/api\/download-free/);
-  assert.match(homeHtml, /\$25 One-Time/);
+  assert.match(homeHtml, /\$25/);
+  assert.match(homeHtml, /\$10 Deal/);
   assert.match(homeHtml, /spec_url/);
 
   assert.equal(previewRes.status, 200);
@@ -194,7 +195,7 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   assert.equal(x4.merchantAddressSolana, "DD3A7jaXFeHcif9eYj6Vhomuxypat5Yxi8ow6wxz27yL");
 });
 
-test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted Stripe & x402 flows", async () => {
+test("Free ZIP download (/api/download-free), removed bundle paywall, $10 Hosted Deal (was $25) Stripe & x402 flows", async () => {
   const origFetch = globalThis.fetch;
   let verifyCalls = 0;
   let settleCalls = 0;
@@ -203,16 +204,16 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     const u = String(url);
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
       return new Response(
-        JSON.stringify({ id: "cs_test_2500", url: "https://checkout.stripe.com/c/pay/cs_test_2500" }),
+        JSON.stringify({ id: "cs_test_1000", url: "https://checkout.stripe.com/c/pay/cs_test_1000" }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
-    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_25")) {
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_10")) {
       return new Response(
         JSON.stringify({
-          id: "cs_test_paid_25",
+          id: "cs_test_paid_10",
           payment_status: "paid",
-          amount_total: 2500,
+          amount_total: 1000,
           currency: "usd",
           customer_details: { email: "buyer@corp.io" },
           metadata: { tier: "hosted", spec_url: "https://raw.example.com/action.yaml" },
@@ -290,8 +291,8 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     );
     assert.equal(oldBuy.status, 410);
 
-    // 1. $25 One-Time Hosted Stripe Checkout creation
-    const co25 = await worker.fetch(
+    // 1. $10 Deal (was $25) Hosted Stripe Checkout creation
+    const co10 = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -299,15 +300,15 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
       }),
       FULL_ENV,
     );
-    assert.equal(co25.status, 200);
-    const j25 = await co25.json();
-    assert.equal(j25.amount_cents, 2500);
-    assert.equal(j25.tier, "hosted");
-    assert.match(j25.url, /^https:\/\/checkout\.stripe\.com/);
+    assert.equal(co10.status, 200);
+    const j10 = await co10.json();
+    assert.equal(j10.amount_cents, 1000);
+    assert.equal(j10.tier, "hosted");
+    assert.match(j10.url, /^https:\/\/checkout\.stripe\.com/);
 
-    // 2. Paid $25 Stripe session preserves spec_url, compiles remote ZIP & mints Hosted MCP Bridge
+    // 2. Paid $10 Stripe session preserves spec_url, compiles remote ZIP & mints Hosted MCP Bridge
     const fulHtmlRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_10"),
       FULL_ENV,
     );
     assert.equal(fulHtmlRes.status, 200);
@@ -316,7 +317,7 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     assert.match(fulHtml, /Direct Download Compiled ZIP/);
 
     const zipRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25&format=zip"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_10&format=zip"),
       FULL_ENV,
     );
     assert.equal(zipRes.status, 200);
@@ -325,23 +326,23 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     assert.equal(zb[0], 0x50);
     assert.equal(zb[1], 0x4b);
 
-    // 3. Paid $25 Stripe JSON mints HMAC management token -> registers live hosted MCP bridge
-    const ful25 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25&format=json"),
+    // 3. Paid $10 Stripe JSON mints HMAC management token -> registers live hosted MCP bridge
+    const ful10 = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_10&format=json"),
       FULL_ENV,
     );
-    assert.equal(ful25.status, 200);
-    const f25 = await ful25.json();
-    assert.equal(f25.fulfillment.amount_total_cents, 2500);
-    assert.ok(f25.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
-    assert.match(f25.fulfillment.hosted_bridge_url, /\/mcp\/h\/a2m_bridge_v1\./);
+    assert.equal(ful10.status, 200);
+    const f10 = await ful10.json();
+    assert.equal(f10.fulfillment.amount_total_cents, 1000);
+    assert.ok(f10.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
+    assert.match(f10.fulfillment.hosted_bridge_url, /\/mcp\/h\/a2m_bridge_v1\./);
 
     const regRes = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/hosted/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${f25.fulfillment.management_token}`,
+          Authorization: `Bearer ${f10.fulfillment.management_token}`,
         },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
       }),
@@ -370,7 +371,7 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     assert.equal(hostedCallData.result.isError, false);
     assert.match(hostedCallData.result.content[0].text, /"in_stock": 42/);
 
-    // 4. x402 HTTP 402 $25 USDC (25000000 atomic units) + settlement + pre-settlement fail-closed on broken schema
+    // 4. x402 HTTP 402 $10 USDC (10000000 atomic units) + settlement + pre-settlement fail-closed on broken schema
     const unp402 = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", { method: "POST" }),
       FULL_ENV,
@@ -379,8 +380,8 @@ test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted
     const ch402 = JSON.parse(Buffer.from(unp402.headers.get("PAYMENT-REQUIRED"), "base64").toString("utf8"));
     const baseOpt = ch402.accepts.find((a) => a.network === "eip155:8453");
     const solOpt = ch402.accepts.find((a) => a.network.startsWith("solana:"));
-    assert.equal(baseOpt.amount, "25000000");
-    assert.equal(solOpt.amount, "25000000");
+    assert.equal(baseOpt.amount, "10000000");
+    assert.equal(solOpt.amount, "10000000");
     assert.equal(ch402.extensions?.bazaar?.discoverable, true);
     assert.ok(ch402.extensions?.bazaar?.schema);
 
@@ -583,7 +584,7 @@ test("Apify PPE entrypoint compiles OpenAPI -> MCP + ZIP before charging and rej
   assert.match(badFailed, /SSRF protection/i);
 });
 
-test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & ZIP recovery download", async () => {
+test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Priority (was $149) Stripe Checkout & ZIP recovery download", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const u = String(url);
@@ -593,11 +594,11 @@ test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & 
     }
     if (u === "https://clinic.example.co.uk/book-online") return new Response("Not Found", { status: 404 });
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
-      return new Response(JSON.stringify({ id: "cs_test_sr49", url: "https://checkout.stripe.com/c/pay/cs_test_sr49" }), { status: 200 });
+      return new Response(JSON.stringify({ id: "cs_test_sr10", url: "https://checkout.stripe.com/c/pay/cs_test_sr10" }), { status: 200 });
     }
     if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_sr_paid")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_sr_paid", payment_status: "paid", amount_total: 4900, metadata: { tier: "pack", target_domain: "clinic.example.co.uk" } }),
+        JSON.stringify({ id: "cs_test_sr_paid", payment_status: "paid", amount_total: 1000, metadata: { tier: "pack", target_domain: "clinic.example.co.uk" } }),
         { status: 200 },
       );
     }
@@ -608,8 +609,15 @@ test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & 
     const hRes = await siteRescueWorker.fetch(new Request("https://site-rescue.ak10082247.workers.dev/health"), FULL_ENV);
     assert.equal(hRes.status, 200);
     const hJson = await hRes.json();
-    assert.equal(hJson.plans.pack.amountCents, 4900);
-    assert.equal(hJson.plans.priority.amountCents, 14900);
+    assert.equal(hJson.plans.pack.amountCents, 1000);
+    assert.equal(hJson.plans.pack.originalCents, 4900);
+    assert.equal(hJson.plans.priority.amountCents, 2900);
+    assert.equal(hJson.plans.priority.originalCents, 14900);
+
+    const uiRes = await siteRescueWorker.fetch(new Request("https://site-rescue.ak10082247.workers.dev/"), FULL_ENV);
+    const uiHtml = await uiRes.text();
+    assert.match(uiHtml, /\$49/);
+    assert.match(uiHtml, /\$10 Deal/);
 
     const scanRes = await siteRescueWorker.fetch(
       new Request("https://site-rescue.ak10082247.workers.dev/api/scan", {
@@ -630,7 +638,7 @@ test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & 
       FULL_ENV,
     );
     assert.equal(coRes.status, 200);
-    assert.equal((await coRes.json()).amount_cents, 4900);
+    assert.equal((await coRes.json()).amount_cents, 1000);
 
     const zipRes = await siteRescueWorker.fetch(
       new Request("https://site-rescue.ak10082247.workers.dev/api/download?session_id=cs_test_sr_paid&format=zip"),
@@ -652,7 +660,7 @@ test("Play A (SiteRescue): live broken booking scan, $49/$149 Stripe Checkout & 
   }
 });
 
-test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & compiles store-fix-kit.zip ($49/$79)", async () => {
+test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & compiles store-fix-kit.zip ($10 Deal was $49 / $25 Pro was $79)", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const u = String(url);
@@ -670,11 +678,11 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
     }
     if (u === "https://mystore.example.com/collections/tents") return new Response("Gone", { status: 404 });
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
-      return new Response(JSON.stringify({ id: "cs_test_ef79", url: "https://checkout.stripe.com/c/pay/cs_test_ef79" }), { status: 200 });
+      return new Response(JSON.stringify({ id: "cs_test_ef10", url: "https://checkout.stripe.com/c/pay/cs_test_ef10" }), { status: 200 });
     }
     if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_ef_paid")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_ef_paid", payment_status: "paid", amount_total: 4900, metadata: { tier: "fix_pack", target_domain: "mystore.example.com" } }),
+        JSON.stringify({ id: "cs_test_ef_paid", payment_status: "paid", amount_total: 1000, metadata: { tier: "fix_pack", target_domain: "mystore.example.com" } }),
         { status: 200 },
       );
     }
@@ -682,6 +690,21 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
   };
 
   try {
+    const hRes = await ecomFixWorker.fetch(new Request("https://ecom-fix.ak10082247.workers.dev/health"), FULL_ENV);
+    assert.equal(hRes.status, 200);
+    const hJson = await hRes.json();
+    assert.equal(hJson.plans.fix_pack.amountCents, 1000);
+    assert.equal(hJson.plans.fix_pack.originalCents, 4900);
+    assert.equal(hJson.plans.pro_kit.amountCents, 2500);
+    assert.equal(hJson.plans.pro_kit.originalCents, 7900);
+
+    const coRes = await ecomFixWorker.fetch(
+      new Request("https://ecom-fix.ak10082247.workers.dev/api/checkout?tier=fix_pack&domain=mystore.example.com&format=json", { method: "POST" }),
+      FULL_ENV,
+    );
+    assert.equal(coRes.status, 200);
+    assert.equal((await coRes.json()).amount_cents, 1000);
+
     const auditRes = await ecomFixWorker.fetch(
       new Request("https://ecom-fix.ak10082247.workers.dev/api/audit", {
         method: "POST",
@@ -728,8 +751,8 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
       return new Response(
         JSON.stringify({
           data: [
-            { id: "cs_live_1111222233334444", payment_status: "paid", amount_total: 2500, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
-            { id: "cs_live_5555666677778888", payment_status: "paid", amount_total: 4900, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
+            { id: "cs_live_1111222233334444", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
+            { id: "cs_live_5555666677778888", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
           ],
         }),
         { status: 200 },
@@ -765,11 +788,11 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
     assert.doesNotMatch(liveText, /secret@buyer\.com/);
     assert.doesNotMatch(liveText, /clinic@buyer\.co\.uk/);
     const data = JSON.parse(liveText);
-    assert.equal(data.totals.stripe_paid_usd, 74);
+    assert.equal(data.totals.stripe_paid_usd, 20);
     assert.equal(data.totals.onchain_usdc, 1.5);
-    assert.equal(data.totals.tracked_revenue_usd, 75.5);
-    assert.equal(data.stripe.by_play["Action2MCP"], 25);
-    assert.equal(data.stripe.by_play["Play A: SiteRescue"], 49);
+    assert.equal(data.totals.tracked_revenue_usd, 21.5);
+    assert.equal(data.stripe.by_play["Action2MCP"], 10);
+    assert.equal(data.stripe.by_play["Play A: SiteRescue"], 10);
     assert.equal(data.apify.total_runs, 4);
   } finally {
     globalThis.fetch = origFetch;

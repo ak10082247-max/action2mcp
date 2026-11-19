@@ -19,24 +19,28 @@ export const SITE_RESCUE_PLANS = {
   pack: {
     id: "pack",
     sku: "siterescue-pack-v1",
-    name: "Custom Site Recovery Pack (Broken Booking Links, Redirects, Schema & SSL Checklist)",
+    name: "Custom Site Recovery Pack — $10 Deal (was $49)",
     description:
-      "Instant downloadable Site Recovery ZIP tailored to your business domain: broken-link audit CSV, ready-to-paste Apache .htaccess & Nginx 301 redirects, valid Google LocalBusiness JSON-LD, SSL renewal guide, and 3-step IT handoff sheet.",
-    amountCents: 4900,
-    amountMicro: 49000000,
-    priceDisplay: "$49 USD / USDC",
-    tier: "pack_49",
+      "Limited-time $10 Deal (normally $49): Instant downloadable Site Recovery ZIP tailored to your business domain: broken-link audit CSV, ready-to-paste Apache .htaccess & Nginx 301 redirects, valid Google LocalBusiness JSON-LD, SSL renewal guide, and 3-step IT handoff sheet.",
+    amountCents: 1000,
+    amountMicro: 10000000,
+    originalCents: 4900,
+    originalDisplay: "$49",
+    priceDisplay: "$10 USD / USDC (was $49)",
+    tier: "pack_10",
   },
   priority: {
     id: "priority",
     sku: "siterescue-priority-v1",
-    name: "Priority Async Site Recovery + Custom Patch Kit ($149)",
+    name: "Priority Async Site Recovery + Custom Patch Kit — $29 Deal (was $149)",
     description:
-      "Instant downloadable Site Recovery Pack ZIP PLUS priority async email review and custom host/redirect troubleshooting for clinics, law firms, and agencies.",
-    amountCents: 14900,
-    amountMicro: 149000000,
-    priceDisplay: "$149 USD / USDC",
-    tier: "priority_149",
+      "Limited-time $29 Deal (normally $149): Instant downloadable Site Recovery Pack ZIP PLUS priority async email review and custom host/redirect troubleshooting for clinics, law firms, and agencies.",
+    amountCents: 2900,
+    amountMicro: 29000000,
+    originalCents: 14900,
+    originalDisplay: "$149",
+    priceDisplay: "$29 USD / USDC (was $149)",
+    tier: "priority_29",
   },
 };
 
@@ -82,19 +86,19 @@ function renderLanding(origin) {
       <div class="tier" style="margin-top:0.75rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Custom Site Recovery Pack (.zip)</strong>
-          <span class="price">$49</span>
+          <span class="price"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$49</span>$10 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes full broken-link CSV audit, tailored Apache <code>.htaccess</code> &amp; Nginx 301 redirects, pre-filled Google <code>LocalBusiness</code> JSON-LD, SSL renewal guide, and 3-step plain-English IT handoff sheet.</p>
-        <button class="btn btn-green" onclick="buyStripe('pack')">Download Recovery Pack ($49 Card / Stripe)</button>
+        <button class="btn btn-green" onclick="buyStripe('pack')">Download Recovery Pack ($10 Deal — was $49)</button>
       </div>
 
       <div class="tier" style="margin-bottom:0;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Priority Async Recovery</strong>
-          <span class="price" style="color:#fbbf24;">$149</span>
+          <span class="price" style="color:#fbbf24;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$149</span>$29 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Instant Custom Recovery Pack ZIP PLUS priority async email fix verification for your web host or developer.</p>
-        <button class="btn btn-amber" onclick="buyStripe('priority')">Get Priority Async Recovery ($149 Card / Stripe)</button>
+        <button class="btn btn-amber" onclick="buyStripe('priority')">Get Priority Async Recovery ($29 Deal — was $149)</button>
       </div>
     </div>
   </div>

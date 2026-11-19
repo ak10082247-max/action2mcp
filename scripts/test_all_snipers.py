@@ -40,6 +40,8 @@ class MultiPlaySniperTests(unittest.TestCase):
         subj, body = play_a.craft_site_rescue_email(res)
         self.assertIn("brightdental.co.uk", subj)
         self.assertIn("HTTP 404", body)
+        self.assertIn("$10", body)
+        self.assertIn("$49", body)
         self.assertIn("https://site-rescue.ak10082247.workers.dev/", body)
 
     def test_play_b_ecom_fix_diagnostics_and_email(self):
@@ -74,6 +76,8 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertTrue(any("ScriptTag" in i for i in res["issues"]))
         subj, body = play_b.craft_ecom_fix_email(res)
         self.assertIn("oakgoods.com", subj)
+        self.assertIn("$10", body)
+        self.assertIn("$49", body)
         self.assertIn("https://ecom-fix.ak10082247.workers.dev/", body)
 
 

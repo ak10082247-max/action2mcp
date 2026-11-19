@@ -18,24 +18,28 @@ export const ECOM_FIX_PLANS = {
   fix_pack: {
     id: "fix_pack",
     sku: "ecomfix-bundle-v1",
-    name: "Store Fix Bundle (Google Shopping Product JSON-LD, Redirect CSV & Install Guide)",
+    name: "Store Fix Bundle — $10 Deal (was $49)",
     description:
-      "Instant store-tailored ZIP containing valid Google Merchant Product JSON-LD (Liquid/WooCommerce), ready-to-import Shopify url-redirects.csv, revenue-leak audit CSV, and March 2027 ScriptTag checklist.",
-    amountCents: 4900,
-    amountMicro: 49000000,
-    priceDisplay: "$49 USD / USDC",
-    tier: "fix_pack_49",
+      "Limited-time $10 Deal (normally $49): Instant store-tailored ZIP containing valid Google Merchant Product JSON-LD (Liquid/WooCommerce), ready-to-import Shopify url-redirects.csv, revenue-leak audit CSV, and March 2027 ScriptTag checklist.",
+    amountCents: 1000,
+    amountMicro: 10000000,
+    originalCents: 4900,
+    originalDisplay: "$49",
+    priceDisplay: "$10 USD / USDC (was $49)",
+    tier: "fix_pack_10",
   },
   pro_kit: {
     id: "pro_kit",
     sku: "ecomfix-pro-v1",
-    name: "Store Fix Kit Pro ($79 Complete Audit + Full Schema & ScriptTag Kit)",
+    name: "Store Fix Kit Pro — $25 Deal (was $79)",
     description:
-      "Full Store Fix Bundle ZIP PLUS exported catalog Product JSON-LD diagnostic manifest and priority async implementation notes.",
-    amountCents: 7900,
-    amountMicro: 79000000,
-    priceDisplay: "$79 USD / USDC",
-    tier: "pro_kit_79",
+      "Limited-time $25 Deal (normally $79): Full Store Fix Bundle ZIP PLUS exported catalog Product JSON-LD diagnostic manifest and priority async implementation notes.",
+    amountCents: 2500,
+    amountMicro: 25000000,
+    originalCents: 7900,
+    originalDisplay: "$79",
+    priceDisplay: "$25 USD / USDC (was $79)",
+    tier: "pro_kit_25",
   },
 };
 
@@ -81,19 +85,19 @@ function renderLanding(origin) {
       <div class="tier" style="margin-top:0.75rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Store Fix Bundle (.zip)</strong>
-          <span class="price">$49</span>
+          <span class="price"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$49</span>$10 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes store-tailored Shopify <code>product-schema.liquid</code> (or WooCommerce PHP snippet), ready-to-import <code>shopify-url-redirects.csv</code>, broken-asset report, and ScriptTag migration steps.</p>
-        <button class="btn btn-green" onclick="buyStripe('fix_pack')">Download Store Fix Bundle ($49 Card / Stripe)</button>
+        <button class="btn btn-green" onclick="buyStripe('fix_pack')">Download Store Fix Bundle ($10 Deal — was $49)</button>
       </div>
 
       <div class="tier" style="margin-bottom:0;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Store Fix Kit Pro</strong>
-          <span class="price" style="color:#fbbf24;">$79</span>
+          <span class="price" style="color:#fbbf24;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$79</span>$25 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Everything in the Store Fix Bundle PLUS full diagnostic JSON manifest and priority async implementation check.</p>
-        <button class="btn btn-amber" onclick="buyStripe('pro_kit')">Get Store Fix Kit Pro ($79 Card / Stripe)</button>
+        <button class="btn btn-amber" onclick="buyStripe('pro_kit')">Get Store Fix Kit Pro ($25 Deal — was $79)</button>
       </div>
     </div>
   </div>

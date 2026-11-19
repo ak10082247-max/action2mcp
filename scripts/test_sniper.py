@@ -79,6 +79,7 @@ paths:
         self.assertIn("100% free", body)
         self.assertIn("/?spec_url=", body)
         self.assertIn("/api/checkout?tier=hosted&spec_url=", body)
+        self.assertIn("$10", body)
         self.assertIn("$25", body)
         self.assertNotIn("tier=bundle", body)
 

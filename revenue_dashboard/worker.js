@@ -11,9 +11,9 @@ import { MERCHANT_BASE, BASE_USDC, MERCHANT_SOLANA_ATA, buildCorsHeaders, jsonRe
 const BASE_RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com"];
 const SOLANA_RPCS = ["https://solana-rpc.publicnode.com", "https://api.mainnet-beta.solana.com"];
 const FLEET_ENDPOINTS = [
-  { id: "action2mcp", name: "Action2MCP ($25 Hosted + Free ZIP)", url: "https://action2mcp.ak10082247.workers.dev/health", binding: "ACTION2MCP_SVC" },
-  { id: "site_rescue", name: "Play A: SiteRescue ($49 / $149)", url: "https://site-rescue.ak10082247.workers.dev/health", binding: "SITE_RESCUE_SVC" },
-  { id: "ecom_fix", name: "Play B: StoreFix ($49 / $79)", url: "https://ecom-fix.ak10082247.workers.dev/health", binding: "ECOM_FIX_SVC" },
+  { id: "action2mcp", name: "Action2MCP ($10 Deal, was $25 + Free ZIP)", url: "https://action2mcp.ak10082247.workers.dev/health", binding: "ACTION2MCP_SVC" },
+  { id: "site_rescue", name: "Play A: SiteRescue ($10 Deal, was $49)", url: "https://site-rescue.ak10082247.workers.dev/health", binding: "SITE_RESCUE_SVC" },
+  { id: "ecom_fix", name: "Play B: StoreFix ($10 Deal, was $49)", url: "https://ecom-fix.ak10082247.workers.dev/health", binding: "ECOM_FIX_SVC" },
   { id: "agentfuel402", name: "AgentFuel402 Data Factory", url: "https://agentfuel402.ak10082247.workers.dev/health", binding: "AGENTFUEL_SVC" },
   { id: "canaryguard", name: "CanaryGuard 402 Firewall", url: "https://canaryguard-402.onrender.com/health" },
   { id: "rugshield", name: "RugShield 402 Simulator", url: "https://rugshield-402.onrender.com/health" },
@@ -123,7 +123,7 @@ async function fetchOnChainBalances() {
         method: "POST",
         headers: { "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getAccountInfo", params: [MERCHANT_SOLANA_ATA, { encoding: "base64" }] }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(7000),
       });
       const bj = await balR.json().catch(() => ({}));
       const b64 = bj?.result?.value?.data?.[0];
@@ -212,7 +212,8 @@ async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
   await Promise.all(
     files.map(async (f) => {
       try {
-        const r = await fetch(`https://raw.githubusercontent.com/${repoSlug}/main/${f.path}`, {
+        const cacheBuster = Math.floor(Date.now() / 15000);
+        const r = await fetch(`https://raw.githubusercontent.com/${repoSlug}/main/${f.path}?t=${cacheBuster}`, {
           headers: { "User-Agent": "KuroxDashboard/1.0" },
           signal: AbortSignal.timeout(5000),
         });
@@ -325,9 +326,9 @@ function renderDashboardHtml() {
     <div class="brand">Kurox Cockpit</div>
     <button class="nav-btn active" onclick="showTab('overview', this)">1. Live Money Tally</button>
     <button class="nav-btn" onclick="showTab('ledger', this)">2. Sales &amp; Chain Ledger</button>
-    <button class="nav-btn" onclick="showTab('playa', this)">3. Play A: SiteRescue ($49)</button>
-    <button class="nav-btn" onclick="showTab('playb', this)">4. Play B: StoreFix ($49)</button>
-    <button class="nav-btn" onclick="showTab('action2mcp', this)">5. Action2MCP ($25)</button>
+    <button class="nav-btn" onclick="showTab('playa', this)">3. Play A: SiteRescue ($10)</button>
+    <button class="nav-btn" onclick="showTab('playb', this)">4. Play B: StoreFix ($10)</button>
+    <button class="nav-btn" onclick="showTab('action2mcp', this)">5. Action2MCP ($10)</button>
     <button class="nav-btn" onclick="showTab('fleet', this)">6. Apify &amp; Fleet Health</button>
   </nav>
 
@@ -388,7 +389,7 @@ function renderDashboardHtml() {
     <div id="tab-playa" class="tab-pane">
       <div class="card">
         <h3>Play A: Local Business Broken-Link &amp; SSL Rescue</h3>
-        <p style="color:var(--muted);">Targets dental clinics, med-spas, solicitors &amp; agencies via Nominatim/Overpass -> catches broken booking links &amp; SSL cliffs -> sells $49 Recovery Pack ZIP &amp; $149 Priority Recovery.</p>
+        <p style="color:var(--muted);">Targets dental clinics, med-spas, solicitors &amp; agencies via Nominatim/Overpass -&gt; catches broken booking links &amp; SSL cliffs -&gt; sells <strong>$10 Deal</strong> (<s>$49</s>) Recovery Pack ZIP &amp; <strong>$29 Deal</strong> (<s>$149</s>) Priority Recovery.</p>
         <a class="btn btn-green" href="https://site-rescue.ak10082247.workers.dev" target="_blank">Open SiteRescue Storefront</a>
       </div>
     </div>
@@ -396,15 +397,15 @@ function renderDashboardHtml() {
     <div id="tab-playb" class="tab-pane">
       <div class="card">
         <h3>Play B: Shopify &amp; WooCommerce Revenue-Leak Kit</h3>
-        <p style="color:var(--muted);">Discovers active stores via Common Crawl &amp; live inventory APIs -> detects invalid Google Shopping JSON-LD, 404 nav links &amp; March 2027 ScriptTags -> sells $49 Fix Bundle &amp; $79 Pro Kit.</p>
+        <p style="color:var(--muted);">Discovers active stores via Common Crawl &amp; live inventory APIs -&gt; detects invalid Google Shopping JSON-LD, 404 nav links &amp; March 2027 ScriptTags -&gt; sells <strong>$10 Deal</strong> (<s>$49</s>) Fix Bundle &amp; <strong>$25 Deal</strong> (<s>$79</s>) Pro Kit.</p>
         <a class="btn btn-green" href="https://ecom-fix.ak10082247.workers.dev" target="_blank">Open StoreFix Storefront</a>
       </div>
     </div>
 
     <div id="tab-action2mcp" class="tab-pane">
       <div class="card">
-        <h3>Action2MCP: Free Cloudflare MCP ZIP + $25 Instant Hosted URL</h3>
-        <p style="color:var(--muted);">100% free OpenAPI-to-Cloudflare-MCP ZIP exporter + $25 one-time Hosted URL (Stripe + Coinbase CDP Bazaar x402) + Apify Pay-Per-Event Actor.</p>
+        <h3>Action2MCP: Free Cloudflare MCP ZIP + $10 Deal Hosted URL (was $25)</h3>
+        <p style="color:var(--muted);">100% free OpenAPI-to-Cloudflare-MCP ZIP exporter + <strong>$10 Deal</strong> (<s>$25</s>) Hosted URL (Stripe + Coinbase CDP Bazaar x402) + Apify Pay-Per-Event Actor.</p>
         <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
           <a class="btn" href="https://action2mcp.ak10082247.workers.dev" target="_blank">Open Action2MCP</a>
           <a class="btn btn-green" href="https://apify.com/kuroxreal/action2mcp" target="_blank">Open Apify Actor</a>

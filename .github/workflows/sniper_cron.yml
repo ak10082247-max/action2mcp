@@ -29,7 +29,7 @@ jobs:
         run: |
           python scripts/test_sniper.py
           if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
-            python scripts/gpt_action_sniper.py --limit 35 --max-emails 50 --send
+            python scripts/gpt_action_sniper.py --limit 40 --max-emails 85 --send
           else
             echo "SMTP_USER/SMTP_PASS secrets not set; skipping --send."
           fi

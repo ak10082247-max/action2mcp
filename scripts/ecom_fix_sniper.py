@@ -4,7 +4,7 @@ Play B Cron Sniper: Shopify & WooCommerce "Google Shopping & Revenue-Leak" Detec
 Pulls real retail domains from Common Crawl (myshopify.com subdomains) + Nominatim storefronts,
 verifies live /products.json or /wp-json/wc/store/v1/products inventory, inspects Product JSON-LD,
 broken nav links, >3MB images, and legacy Shopify ScriptTags ahead of March 1, 2027,
-then emails verified storefront contacts linking to StoreFix ($49 / $79).
+then emails verified storefront contacts linking to StoreFix ($10 deal, was $49).
 """
 import argparse
 from datetime import datetime, timezone
@@ -81,19 +81,37 @@ RETAIL_ROTATION = [
     ("coffee roaster", "Portland"), ("bicycle shop", "Bristol"), ("pet shop", "Chicago"),
     ("gift shop", "Edinburgh"), ("bakery", "Seattle"), ("skincare shop", "Los Angeles"),
     ("homeware shop", "Brighton"), ("outdoor gear shop", "Denver"), ("florist", "Boston"),
+    ("record store", "Nashville"), ("bookshop", "Oxford"), ("furniture store", "Melbourne"),
+    ("surf shop", "San Diego"), ("tea shop", "Toronto"), ("candle shop", "Brooklyn"),
+    ("shoe store", "Leeds"), ("vintage clothing", "Glasgow"), ("sporting goods", "Denver"),
+    ("wine shop", "San Francisco"), ("toy shop", "Bath"), ("ceramic shop", "Vancouver"),
 ]
 
 
-def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 35) -> tuple[list[str], int]:
+def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_domains: set[str] | None = None) -> tuple[list[str], int]:
     hosts = []
     seen = set()
+    excl = {d.lower().replace("www.", "") for d in (exclude_domains or set())}
     page = max(2, int(cc_page or 2))
 
-    # 1. Common Crawl Shopify storefronts (small limit=30 across recent collections to avoid 504)
+    def _accept(host_raw: str) -> bool:
+        h = host_raw.lower().strip()
+        bare = h.replace("www.", "")
+        if not h or "." not in h or bare in excl or h in seen:
+            return False
+        if h in ("myshopify.com", "www.myshopify.com") or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.", "partners.")):
+            return False
+        if any(b in h for b in ("facebook.com", "instagram.com", "linkedin.com", "yell.com")):
+            return False
+        seen.add(h)
+        hosts.append(h)
+        return True
+
+    # 1. Common Crawl Shopify storefronts across multiple mirrors/pages
     try:
         colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
-        for coll in colls[:3]:
-            if len(hosts) >= 20:
+        for coll in colls[:5]:
+            if len(hosts) >= limit_hosts:
                 break
             cdx_api = coll["cdx-api"]
             u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=30&page={page}&fl=url"
@@ -105,27 +123,22 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 35) -> tuple[lis
                             continue
                         try:
                             item_url = json.loads(line).get("url") or ""
-                            h = (urllib.parse.urlparse(item_url).hostname or "").lower()
-                            if not h or h in ("myshopify.com", "www.myshopify.com") or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.", "partners.")):
-                                continue
-                            if h not in seen:
-                                seen.add(h)
-                                hosts.append(h)
+                            _accept(urllib.parse.urlparse(item_url).hostname or "")
                         except Exception:
                             continue
             except Exception:
                 continue
-            page = 2 if page >= 50 else page + 1
+            page = 2 if page >= 60 else page + 1
     except Exception as exc:
         print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
 
-    # 2. Reliable fallback/supplement: Nominatim retail storefronts (catches WooCommerce & custom-domain Shopify stores)
+    # 2. Reliable fallback/supplement: Nominatim retail storefronts (WooCommerce & custom-domain Shopify stores)
     rot_idx = page % len(RETAIL_ROTATION)
-    for off in range(2):
+    for off in range(6):
         if len(hosts) >= limit_hosts:
             break
         cat, city = RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)]
-        nom_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(cat + ' ' + city)}&format=json&extratags=1&limit=25"
+        nom_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(cat + ' ' + city)}&format=json&extratags=1&limit=30"
         try:
             items = common.http_get_json(nom_url, timeout=12)
             for it in items:
@@ -135,10 +148,7 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 35) -> tuple[lis
                     continue
                 if not web.startswith(("http://", "https://")):
                     web = "https://" + web
-                h = (urllib.parse.urlparse(web).hostname or "").lower()
-                if h and "." in h and h not in seen and not any(b in h for b in ("facebook.com", "instagram.com", "yell.com")):
-                    seen.add(h)
-                    hosts.append(h)
+                _accept(urllib.parse.urlparse(web).hostname or "")
             time.sleep(1.1)
         except Exception:
             continue
@@ -289,7 +299,8 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
         f"While running an automated storefront audit on {dom} ({target['platform']}), we caught these live conversion/Google Shopping issues:\n"
         f"{top_issues}\n\n"
         f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and 404/legacy scripts hurt checkout conversion.\n\n"
-        f"Inspect the live store diagnostic and download a pre-built Store Fix Bundle ($49 one-time — includes a paste-ready "
+        f"Inspect the live store diagnostic and grab a pre-built Store Fix Bundle at our $10 launch deal "
+        f"(normally $49 one-time — includes a paste-ready "
         f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
         f"Shopify URL redirects CSV, and March 1, 2027 ScriptTag checklist) at:\n"
         f"{audit_link}\n\n"
@@ -301,12 +312,12 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
 
 def main():
     parser = argparse.ArgumentParser(description="Play B: Shopify & WooCommerce Revenue-Leak Sniper")
-    parser.add_argument("--limit", type=int, default=35, help="Max store candidates per run")
-    parser.add_argument("--max-emails", type=int, default=15, help="Daily send cap")
+    parser.add_argument("--limit", type=int, default=75, help="Max store candidates per run")
+    parser.add_argument("--max-emails", type=int, default=35, help="Daily send cap")
     parser.add_argument("--send", action="store_true", help="Send verified store alerts via SMTP")
     args = parser.parse_args()
 
-    state = common.load_json_state(STATE_FILE, {"cc_page": 1, "contacted_domains": [], "contacted_emails": [], "history": []})
+    state = common.load_json_state(STATE_FILE, {"cc_page": 2, "contacted_domains": [], "contacted_emails": [], "history": []})
     sent_today = common.count_sent_today(state.get("history") or [])
     known_domains = set(state.get("contacted_domains") or [])
     known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
@@ -315,7 +326,7 @@ def main():
         print(f"[!] Daily cap ({sent_today}/{args.max_emails}) reached; exiting.")
         return
 
-    hosts, next_page = fetch_store_candidates(int(state.get("cc_page") or 1), args.limit)
+    hosts, next_page = fetch_store_candidates(int(state.get("cc_page") or 2), args.limit, exclude_domains=known_domains)
     state["cc_page"] = next_page
     common.save_json_state(STATE_FILE, state)
 

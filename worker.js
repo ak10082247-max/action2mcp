@@ -438,7 +438,7 @@ function renderLandingHtml(origin) {
   </div>
 
   <h1>Action2MCP</h1>
-  <p class="sub">Paste your Custom GPT OpenAPI 3.0/3.1 JSON or YAML Action schema below to preview ChatGPT Plugin MCP <code>tools/list</code> definitions &amp; portable <code>SKILL.md</code>, download your standalone Cloudflare Worker ZIP 100% free, or launch an instant Hosted Remote MCP URL for $25 one-time.</p>
+  <p class="sub">Paste your Custom GPT OpenAPI 3.0/3.1 JSON or YAML Action schema below to preview ChatGPT Plugin MCP <code>tools/list</code> definitions &amp; portable <code>SKILL.md</code>, download your standalone Cloudflare Worker ZIP 100% free, or lock in an instant Hosted Remote MCP URL for our <strong>$10 launch deal</strong> (<s>$25</s> original).</p>
 
   <div class="grid">
     <div class="card">
@@ -494,13 +494,13 @@ function renderLandingHtml(origin) {
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
                 <strong>Instant Hosted MCP URL</strong>
-                <span class="price" style="color:#fbbf24;">$25 One-Time</span>
+                <span class="price" style="color:#fbbf24;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$25</span>$10 Deal</span>
               </div>
-              <p style="font-size:0.84rem;color:#cbd5e1;margin:0.45rem 0 0.75rem;">Zero terminal, zero Cloudflare setup. Pay once, get your live <code>/mcp/h/&lt;token&gt;</code> URL instantly, paste it into ChatGPT <code>Plugins &rarr; Add custom MCP server</code>, and beat the Dec 11 shutdown in 60 seconds.</p>
+              <p style="font-size:0.84rem;color:#cbd5e1;margin:0.45rem 0 0.75rem;">Zero terminal, zero Cloudflare setup. Pay once ($10 deal, normally $25), get your live <code>/mcp/h/&lt;token&gt;</code> URL instantly, paste it into ChatGPT <code>Plugins &rarr; Add custom MCP server</code>, and beat the Dec 11 shutdown in 60 seconds.</p>
             </div>
             <div class="cta-stack">
-              <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Get Instant Hosted MCP ($25 Card / Stripe)</button>
-              <button class="btn" onclick="inspectX402('hosted')">Pay $25.00 USDC (Base / Solana x402)</button>
+              <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Get Instant Hosted MCP ($10 Deal — was $25)</button>
+              <button class="btn" onclick="inspectX402('hosted')">Pay $10.00 USDC (was $25, Base / Solana x402)</button>
             </div>
           </div>
         </div>
@@ -772,7 +772,7 @@ export default {
             $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
             name: "io.github.ak10082247-max/action2mcp",
             title: "Action2MCP Custom GPT Action to Remote MCP Compiler",
-            description: "Compile OpenAI Custom GPT Actions into free Cloudflare MCP ZIPs or a $25 Hosted MCP URL.",
+            description: "Compile OpenAI Custom GPT Actions into free Cloudflare MCP ZIPs or a $10 Hosted MCP URL (was $25).",
             version: "1.0.1",
             websiteUrl: "https://action2mcp.ak10082247.workers.dev",
             repository: { url: "https://github.com/ak10082247-max/action2mcp", source: "github" },
@@ -845,7 +845,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
 - Free preview: \`POST ${url.origin}/api/preview\`
 - Free Worker ZIP + SKILL.md download: \`POST ${url.origin}/api/download-free\`
 - Remote MCP endpoint: \`POST ${url.origin}/mcp\` (tool: \`convert_openapi_to_mcp\`)
-- Instant Hosted MCP URL ($25 one-time): \`${url.origin}/api/checkout?tier=hosted\` (Stripe) or \`POST ${url.origin}/api/buy?tier=hosted\` ($25 USDC)
+- Instant Hosted MCP URL ($10 deal, was $25): \`${url.origin}/api/checkout?tier=hosted\` (Stripe) or \`POST ${url.origin}/api/buy?tier=hosted\` ($10 USDC)
 `,
         { status: 200, headers: { ...cors, "Content-Type": "text/markdown; charset=utf-8" } },
       );
@@ -861,8 +861,8 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
             paths: {
               "/api/preview": { post: { summary: "Compile OpenAPI JSON/YAML into MCP tools/list & SKILL.md preview (free)" } },
               "/api/download-free": { post: { summary: "Compile OpenAPI JSON/YAML and download standalone Cloudflare Worker + SKILL.md ZIP (free)" } },
-              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $25 one-time Instant Hosted MCP URL" } },
-              "/api/buy": { post: { summary: "Purchase $25 one-time Instant Hosted MCP URL via Base/Solana USDC x402 V2" } },
+              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $10 deal (was $25) Instant Hosted MCP URL" } },
+              "/api/buy": { post: { summary: "Purchase $10 deal (was $25) Instant Hosted MCP URL via Base/Solana USDC x402 V2" } },
               "/api/download": { get: { summary: "Download compiled Cloudflare Worker ZIP or Hosted Bridge fulfillment" } },
             },
           },
@@ -975,7 +975,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 2. STRIPE CHECKOUT: GET|POST /api/checkout?tier=hosted ($25 one-time)
+    // 2. STRIPE CHECKOUT: GET|POST /api/checkout?tier=hosted ($10 deal, was $25)
     // -----------------------------------------------------------------------
     if (path === "/api/checkout") {
       if (req.method !== "GET" && req.method !== "POST") {
@@ -1051,7 +1051,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 3. X402 V2 CRYPTO PURCHASE: POST /api/buy?tier=hosted ($25 one-time)
+    // 3. X402 V2 CRYPTO PURCHASE: POST /api/buy?tier=hosted ($10 deal, was $25)
     // -----------------------------------------------------------------------
     if (path === "/api/buy" || path === "/api/checkout/x402") {
       if (req.method !== "POST" && req.method !== "GET") {
@@ -1299,7 +1299,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 5. $25 ONE-TIME HOSTED MULTI-TENANT BRIDGE & MCP ENDPOINT
+    // 5. $10 DEAL (WAS $25) HOSTED MULTI-TENANT BRIDGE & MCP ENDPOINT
     // -----------------------------------------------------------------------
     if (path === "/api/hosted/register") {
       if (req.method !== "POST") {
@@ -1312,7 +1312,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       const mgmtTok = authHdr.startsWith("Bearer ") ? authHdr.slice(7).trim() : "";
       const payload = await verifyToken(mgmtTok, env.KUROX_SIGNING_SECRET, "a2m_mgmt_v1");
       if (!payload || payload.tier !== "hosted") {
-        return new Response(JSON.stringify({ error: "Valid $25 Hosted Management Token required" }), {
+        return new Response(JSON.stringify({ error: "Valid Hosted Management Token required" }), {
           status: 401,
           headers: { ...cors, "Content-Type": "application/json" },
         });

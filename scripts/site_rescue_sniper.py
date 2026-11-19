@@ -3,7 +3,7 @@
 Play A Cron Sniper: Local Business "Dead Booking Link & SSL Cliff" Detector
 Discovers UK/US high-margin service businesses via OpenStreetMap Nominatim (+ Overpass fallback),
 checks live SSL expiry (<= 14 days / expired) + live 404/5xx broken booking/contact URLs,
-extracts verified public contact emails, and emails proof-first alerts linking to SiteRescue ($49 / $149).
+extracts verified public contact emails, and emails proof-first alerts linking to SiteRescue ($10 deal, was $49).
 """
 import argparse
 from datetime import datetime, timezone
@@ -35,6 +35,12 @@ SEARCH_ROTATION = [
     ("dental clinic", "Seattle"), ("veterinary clinic", "Denver"), ("physiotherapy", "Leeds"),
     ("chiropractor", "Boston"), ("family lawyer", "Dallas"), ("cosmetic clinic", "London"),
     ("dentist", "San Diego"), ("estate agent", "Glasgow"), ("accounting firm", "Atlanta"),
+    ("orthodontist", "Cardiff"), ("optometrist", "Portland"), ("dermatologist", "Phoenix"),
+    ("dental clinic", "Toronto"), ("solicitor", "Liverpool"), ("plastic surgeon", "Houston"),
+    ("chiropractor", "Austin"), ("physiotherapy", "Sheffield"), ("med spa", "Scottsdale"),
+    ("veterinary clinic", "Bristol"), ("family lawyer", "Orlando"), ("dentist", "Newcastle"),
+    ("accounting firm", "Charlotte"), ("podiatrist", "Cambridge"), ("estate agent", "Bath"),
+    ("cosmetic clinic", "Manchester"), ("law firm", "Philadelphia"), ("optician", "York"),
 ]
 
 BOOKING_RE = re.compile(r'<a\b[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
@@ -210,11 +216,11 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
         f"Automated health checks flagged an active customer-facing issue on {dom} right now:\n"
         + "\n".join(proof_lines)
         + "\n\nWhen a prospective client clicks a broken link or hits an SSL warning, they leave immediately.\n\n"
-        f"You can verify the live diagnostic and download a pre-built Site Recovery Pack ($49 one-time — "
-        f"includes your broken-link CSV audit, paste-ready .htaccess/Nginx 301 redirect rules, Google LocalBusiness JSON-LD, "
-        f"and a plain-English 3-step handoff sheet for your web host) at:\n"
+        f"You can verify the live diagnostic and grab a custom pre-built Site Recovery Pack at our $10 launch deal "
+        f"(normally $49 one-time — includes your broken-link CSV audit, paste-ready .htaccess/Nginx 301 redirect rules, "
+        f"Google LocalBusiness JSON-LD, and a plain-English 3-step handoff sheet for your web host) at:\n"
         f"{audit_link}\n\n"
-        f"(Priority async email fix verification is also available there if you prefer hands-off handling.)\n\n"
+        f"(Priority async email fix verification is also discounted to $29 there, normally $149, if you prefer hands-off handling.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -223,9 +229,9 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
 
 def main():
     parser = argparse.ArgumentParser(description="Play A: Local Business Broken-Link & SSL Cliff Sniper")
-    parser.add_argument("--queries", type=int, default=3, help="Nominatim city/category queries per run")
-    parser.add_argument("--limit", type=int, default=30, help="Max sites to probe per run")
-    parser.add_argument("--max-emails", type=int, default=15, help="Daily send cap")
+    parser.add_argument("--queries", type=int, default=10, help="Nominatim city/category queries per run")
+    parser.add_argument("--limit", type=int, default=80, help="Max sites to probe per run")
+    parser.add_argument("--max-emails", type=int, default=35, help="Daily send cap")
     parser.add_argument("--send", action="store_true", help="Send verified alerts via SMTP")
     args = parser.parse_args()
 

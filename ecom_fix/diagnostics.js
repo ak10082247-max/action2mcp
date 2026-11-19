@@ -300,7 +300,7 @@ add_action('wp_head', function () {
 
   const installGuide = [
     `# Store Fix Kit Installation Guide — ${diag.store_name || domain}`,
-    `Detected platform: **${diag.platform}** | Currency: **${currency}** | Tier: **${tier === "pro_kit" ? "Store Fix Kit Pro ($79)" : "Store Fix Bundle ($49)"}**`,
+    `Detected platform: **${diag.platform}** | Currency: **${currency}** | Tier: **${tier === "pro_kit" ? "Store Fix Kit Pro ($25 Deal, was $79)" : "Store Fix Bundle ($10 Deal, was $49)"}**`,
     ``,
     `## 1. Fix Google Shopping Product Rich Results (2 Minutes)`,
     isWoo
@@ -323,7 +323,7 @@ add_action('wp_head', function () {
     "04-INSTALL-GUIDE.md": installGuide,
   };
   if (tier === "pro_kit") {
-    files["05-pro-store-diagnostic.json"] = JSON.stringify({ tier: "pro_79", domain, platform: diag.platform, currency, diagnostic: diag }, null, 2);
+    files["05-pro-store-diagnostic.json"] = JSON.stringify({ tier: "pro_25", domain, platform: diag.platform, currency, diagnostic: diag }, null, 2);
   }
   return files;
 }

@@ -19,4 +19,4 @@ OpenAI retires Custom GPTs on **December 11, 2026** (FedRAMP/Enterprise Feb 11, 
 
 ## Instant Hosted Remote MCP URL
 
-- **Instant Hosted `/mcp/h/<token>` URL (`$25` one-time):** `https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted` (Stripe) or `POST https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted` (x402 Base/Solana USDC)
+- **Instant Hosted `/mcp/h/<token>` URL (`$10` deal, was `$25`):** `https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted` (Stripe) or `POST https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted` ($10 USDC)

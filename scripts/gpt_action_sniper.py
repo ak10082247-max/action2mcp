@@ -367,7 +367,7 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"{tools_preview}\n\n"
         f"You can inspect the compiled MCP tools/list + SKILL.md and download the full Cloudflare Worker + SKILL.md ZIP 100% free (no account, checkout, or email wall) at:\n"
         f"{public_service_url}/?spec_url={spec_q}\n\n"
-        f"(If you prefer not to touch Wrangler or set up a Cloudflare account at all, there is also an optional $25 one-time hosted MCP URL shortcut at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}.)\n\n"
+        f"(If you prefer not to touch Wrangler or set up a Cloudflare account at all, the optional hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -393,8 +393,8 @@ def send_smtp_email(to_addr: str, subject: str, body: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Action2MCP Custom GPT Action Sniper Finder")
-    parser.add_argument("--limit", type=int, default=5, help="Number of compiled repos to find/display (default: 5)")
-    parser.add_argument("--max-emails", type=int, default=50, help="Daily outreach cap (default: 50)")
+    parser.add_argument("--limit", type=int, default=40, help="Number of compiled repos to find/display (default: 40)")
+    parser.add_argument("--max-emails", type=int, default=85, help="Daily outreach cap (default: 85)")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="Action2MCP URL for live /api/preview compilation")
     parser.add_argument("--send", action="store_true", help="Actually send plain-text proof emails via SMTP")
     args = parser.parse_args()
