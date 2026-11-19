@@ -143,6 +143,57 @@ async function fetchRemoteSchemaText(schemaUrl) {
   return txt;
 }
 
+function buildBazaarExtension(routePath, plan) {
+  return {
+    bazaar: {
+      discoverable: true,
+      info: {
+        input: {
+          type: "http",
+          method: "POST",
+          bodyType: "json",
+          body: {
+            tier: plan.id,
+            schema_url: "https://raw.githubusercontent.com/julien040/anyquery/main/other/llm/openapi.yaml",
+          },
+        },
+        output: {
+          type: "json",
+          example: {
+            paid: true,
+            sku: plan.sku,
+            tool_count: 3,
+            download_zip_url: "https://action2mcp.ak10082247.workers.dev/api/download?token=dl_v1...",
+          },
+        },
+      },
+      schema: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties: {
+          input: {
+            type: "object",
+            properties: {
+              tier: { type: "string", enum: ["bundle", "hosted"], default: plan.id },
+              schema: { type: "string", description: "OpenAPI 3.0/3.1 JSON or YAML spec text" },
+              schema_url: { type: "string", format: "uri", description: "Public HTTPS OpenAPI spec URL" },
+            },
+          },
+          output: {
+            type: "object",
+            properties: {
+              paid: { type: "boolean" },
+              tool_count: { type: "integer" },
+              download_zip_url: { type: "string" },
+            },
+          },
+        },
+      },
+      routePath,
+    },
+  };
+}
+
 function buildX402ChallengePayload(req, routePath, plan, details = null) {
   const url = new URL(req.url);
   const resourceUrl = `${url.origin}${routePath}`;
@@ -154,6 +205,7 @@ function buildX402ChallengePayload(req, routePath, plan, details = null) {
       description: plan.description,
       mimeType: "application/json",
     },
+    extensions: buildBazaarExtension(routePath, plan),
     accepts: [
       {
         scheme: "exact",
@@ -253,6 +305,7 @@ async function verifyPayAIPayment(req, routePath, rawPaymentHeader, plan, env) {
       resource: { url: resourceUrl, description: plan.description, mimeType: "application/json" },
       accepted: requirements,
       payload: parsed.payload || parsed,
+      extensions: buildBazaarExtension(routePath, plan),
     },
     paymentRequirements: requirements,
   };

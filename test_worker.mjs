@@ -325,6 +325,8 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     const solOpt = ch402.accepts.find((a) => a.network.startsWith("solana:"));
     assert.equal(baseOpt.amount, "5000000");
     assert.equal(solOpt.amount, "5000000");
+    assert.equal(ch402.extensions?.bazaar?.discoverable, true);
+    assert.ok(ch402.extensions?.bazaar?.schema);
 
     const sig = Buffer.from(
       JSON.stringify({ x402Version: 2, resource: ch402.resource, accepted: baseOpt, payload: { signature: "0x11" } }),
