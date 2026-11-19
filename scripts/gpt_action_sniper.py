@@ -249,14 +249,18 @@ def discover_and_compile_gpt_actions(
     exclude_repos: set[str] | None = None,
     require_email: bool = False,
     no_email_out: set[str] | None = None,
+    exclude_emails: set[str] | None = None,
 ) -> list[dict]:
     """Search GitHub for Custom GPT OpenAPI specs, download raw schemas, and compile via Action2MCP."""
     tok = gh_token or resolve_gh_token()
+    if not tok:
+        print("   [!] WARNING: No GH_PAT / GITHUB_TOKEN found; GitHub Code Search requires authentication.", flush=True)
     gh_hdrs = {"Accept": "application/vnd.github.v3+json"}
     if tok:
         gh_hdrs["Authorization"] = f"Bearer {tok}"
 
     excl = {r.lower() for r in (exclude_repos or set())} | EXCLUDED_REPOS
+    excl_emails = {e.lower().strip() for e in (exclude_emails or set())}
     queries = [
         '"x-openai-isConsequential" "paths" extension:yaml',
         '"x-openai-isConsequential" "paths" extension:yml',
@@ -267,27 +271,41 @@ def discover_and_compile_gpt_actions(
 
     candidates = []
     seen_repos = set()
+    search_ok = 0
+    search_errors = []
 
     for q in queries:
-        if len(candidates) >= limit * 6:
+        if len(candidates) >= max(limit * 6, 40):
             break
-        try:
-            url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=100"
-            res = _http_get_json(url, headers=gh_hdrs, timeout=12)
-            for item in res.get("items") or []:
-                repo_full = ((item.get("repository") or {}).get("full_name") or "").strip()
-                rf_low = repo_full.lower()
-                if not repo_full or rf_low in excl or rf_low in seen_repos:
-                    continue
-                if any(tok_bad in rf_low for tok_bad in ("awesome-plugins", "prompt", "backup", "kiota")):
-                    continue
-                path_low = (item.get("path") or "").lower()
-                if not path_low.endswith((".json", ".yaml", ".yml")):
-                    continue
-                seen_repos.add(rf_low)
-                candidates.append(item)
-        except Exception:
-            continue
+        for page in (1, 2, 3):
+            if len(candidates) >= max(limit * 6, 40):
+                break
+            try:
+                url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=100&page={page}"
+                res = _http_get_json(url, headers=gh_hdrs, timeout=12)
+                search_ok += 1
+                items = res.get("items") or []
+                for item in items:
+                    repo_full = ((item.get("repository") or {}).get("full_name") or "").strip()
+                    rf_low = repo_full.lower()
+                    if not repo_full or rf_low in excl or rf_low in seen_repos:
+                        continue
+                    if any(tok_bad in rf_low for tok_bad in ("awesome-plugins", "prompt", "backup", "kiota")):
+                        continue
+                    path_low = (item.get("path") or "").lower()
+                    if not path_low.endswith((".json", ".yaml", ".yml")):
+                        continue
+                    seen_repos.add(rf_low)
+                    candidates.append(item)
+                if len(items) < 100:
+                    break
+            except Exception as exc:
+                search_errors.append(f"{q[:38]} (p{page}): {exc}")
+                print(f"   [!] GitHub search error ({q[:38]} p{page}): {exc}", flush=True)
+                break
+
+    if search_ok == 0 and search_errors:
+        raise RuntimeError(f"All GitHub Code Search queries failed (first: {search_errors[0]})")
 
     compiled_targets = []
     for item in candidates:
@@ -307,6 +325,10 @@ def discover_and_compile_gpt_actions(
                     no_email_out.add(repo_full)
                 if require_email:
                     continue
+            elif email.lower().strip() in excl_emails:
+                continue
+            else:
+                excl_emails.add(email.lower().strip())
             compiled_targets.append({
                 "repo": repo_full,
                 "repo_url": f"https://github.com/{repo_full}",
@@ -396,6 +418,7 @@ def main():
         exclude_repos=known_repos | no_email_repos,
         require_email=args.send,
         no_email_out=new_no_email,
+        exclude_emails=known_emails,
     )
     if args.send and new_no_email:
         state["skipped_no_email_repos"] = sorted(no_email_repos | new_no_email)
