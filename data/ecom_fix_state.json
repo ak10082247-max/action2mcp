@@ -1,7 +1,38 @@
 {
-  "cc_page": 5,
-  "contacted_domains": [],
-  "contacted_emails": [],
-  "history": [],
-  "updated_at": "2026-11-19T22:16:54.572192+00:00"
+  "cc_page": 8,
+  "contacted_domains": [
+    "greybandit.com",
+    "greyhorsewholesale.myshopify.com",
+    "everpetalflorist.com.au",
+    "grfxp.myshopify.com"
+  ],
+  "contacted_emails": [
+    "help@greybandit.com",
+    "info@greyhorsecandles.com",
+    "info@everpetalflorist.com.au",
+    "sales@grfxp.com"
+  ],
+  "history": [
+    {
+      "domain": "greybandit.com",
+      "email": "help@greybandit.com",
+      "sent_date": "2026-11-19T22:20:47.644960+00:00"
+    },
+    {
+      "domain": "greyhorsewholesale.myshopify.com",
+      "email": "info@greyhorsecandles.com",
+      "sent_date": "2026-11-19T22:20:56.015738+00:00"
+    },
+    {
+      "domain": "everpetalflorist.com.au",
+      "email": "info@everpetalflorist.com.au",
+      "sent_date": "2026-11-19T22:21:18.314985+00:00"
+    },
+    {
+      "domain": "grfxp.myshopify.com",
+      "email": "sales@grfxp.com",
+      "sent_date": "2026-11-19T22:21:26.136024+00:00"
+    }
+  ],
+  "updated_at": "2026-11-19T22:21:26.136107+00:00"
 }
