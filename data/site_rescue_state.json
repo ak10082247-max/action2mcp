@@ -1,17 +1,31 @@
 {
-  "cursor": 14,
+  "cursor": 24,
   "contacted_domains": [
-    "maidavaledentist.co.uk"
+    "maidavaledentist.co.uk",
+    "aerodentistry.com",
+    "piercefamilydental.com"
   ],
   "contacted_emails": [
-    "info@maidavaledentist.co.uk"
+    "info@maidavaledentist.co.uk",
+    "info@aerodentistry.com",
+    "info@piercefamilydental.com"
   ],
   "history": [
     {
       "domain": "maidavaledentist.co.uk",
       "email": "info@maidavaledentist.co.uk",
       "sent_date": "2026-11-19T22:14:02+00:00"
+    },
+    {
+      "domain": "aerodentistry.com",
+      "email": "info@aerodentistry.com",
+      "sent_date": "2026-11-19T23:01:10.651923+00:00"
+    },
+    {
+      "domain": "piercefamilydental.com",
+      "email": "info@piercefamilydental.com",
+      "sent_date": "2026-11-19T23:01:16.706317+00:00"
     }
   ],
-  "updated_at": "2026-11-19T22:55:32.919847+00:00"
+  "updated_at": "2026-11-19T23:01:16.706404+00:00"
 }
