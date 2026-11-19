@@ -124,6 +124,7 @@ function buildBazaarExtension(routePath, plan) {
             paid: true,
             sku: plan.sku,
             tool_count: 3,
+            hosted_bridge_url: "https://action2mcp.ak10082247.workers.dev/mcp/h/a2m_bridge_v1...",
             download_zip_url: "https://action2mcp.ak10082247.workers.dev/api/download?token=dl_v1...",
           },
         },
@@ -135,7 +136,7 @@ function buildBazaarExtension(routePath, plan) {
           input: {
             type: "object",
             properties: {
-              tier: { type: "string", enum: ["bundle", "hosted"], default: plan.id },
+              tier: { type: "string", enum: ["hosted"], default: plan.id },
               schema: { type: "string", description: "OpenAPI 3.0/3.1 JSON or YAML spec text" },
               schema_url: { type: "string", format: "uri", description: "Public HTTPS OpenAPI spec URL" },
             },
@@ -145,6 +146,7 @@ function buildBazaarExtension(routePath, plan) {
             properties: {
               paid: { type: "boolean" },
               tool_count: { type: "integer" },
+              hosted_bridge_url: { type: "string" },
               download_zip_url: { type: "string" },
             },
           },
@@ -364,6 +366,37 @@ async function settleX402Payment(prep, env) {
   };
 }
 
+async function compileBundleFromParams(bodyParams, fallbackSample = false) {
+  const resolved = await resolveSchemaFromParams(bodyParams || {});
+  const schemaToCompile = resolved.schemaText || (fallbackSample ? SAMPLE_CUSTOM_GPT_SCHEMA : "");
+  if (!schemaToCompile) {
+    throw Object.assign(new Error("Provide 'schema' (OpenAPI JSON/YAML) or 'schema_url'."), { httpStatus: 400 });
+  }
+  const compiled = compileOpenApiToMcp({
+    schemaText: schemaToCompile,
+    instructions: bodyParams?.instructions || "",
+    authType: bodyParams?.auth_type || "auto",
+    authHeaderName: bodyParams?.auth_header || "",
+  });
+  const files = buildDeployableBundle(compiled);
+  return { compiled, files, specUrlUsed: resolved.schemaUrl };
+}
+
+function zipBundleResponse(files, cors, extraHeaders = {}) {
+  const zipBytes = createZipArchive(files);
+  return new Response(zipBytes, {
+    status: 200,
+    headers: {
+      ...cors,
+      "Content-Type": "application/zip",
+      "Content-Disposition": 'attachment; filename="action2mcp-worker-bundle.zip"',
+      "Content-Length": String(zipBytes.byteLength),
+      "Cache-Control": "no-store",
+      ...extraHeaders,
+    },
+  });
+}
+
 function renderLandingHtml(origin) {
   const countdown = getDec11Countdown();
   return `<!DOCTYPE html>
@@ -374,12 +407,14 @@ function renderLandingHtml(origin) {
   <title>Action2MCP — Convert Retiring OpenAI Custom GPT Actions to Remote MCP Before Dec 11</title>
   <style>
     :root { color-scheme: dark; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090b10; color: #f8fafc; margin: 0 auto; max-width: 1080px; padding: 1.5rem 1rem 4rem; line-height: 1.55; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090b10; color: #f8fafc; margin: 0 auto; max-width: 1120px; padding: 1.5rem 1rem 4rem; line-height: 1.55; }
     .banner { background: linear-gradient(90deg, #7c2d12, #991b1b); border: 1px solid #f87171; border-radius: 10px; padding: 0.8rem 1.1rem; margin-bottom: 1.4rem; font-weight: 600; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; }
     h1 { color: #38bdf8; margin: 0; font-size: 2.1rem; }
     .sub { color: #cbd5e1; margin: 0.45rem 0 1.25rem; font-size: 1.02rem; }
-    .grid { display: grid; grid-template-columns: 1.25fr 0.95fr; gap: 1.25rem; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; }
+    .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-top: 0.75rem; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .tier-grid { grid-template-columns: 1fr; } }
     .card { background: #131722; border: 1px solid #242d42; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
     label { display: block; font-size: 0.85rem; color: #94a3b8; margin: 0.6rem 0 0.25rem; font-weight: 600; }
     textarea, input, select { width: 100%; box-sizing: border-box; background: #070a12; color: #f8fafc; border: 1px solid #334155; border-radius: 8px; padding: 0.65rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.84rem; }
@@ -403,7 +438,7 @@ function renderLandingHtml(origin) {
   </div>
 
   <h1>Action2MCP</h1>
-  <p class="sub">Paste your Custom GPT OpenAPI 3.0/3.1 JSON or YAML Action schema below to preview valid ChatGPT Plugin MCP <code>tools/list</code> definitions &amp; portable <code>SKILL.md</code> free, then export a deployable Cloudflare Worker or instant hosted MCP URL.</p>
+  <p class="sub">Paste your Custom GPT OpenAPI 3.0/3.1 JSON or YAML Action schema below to preview ChatGPT Plugin MCP <code>tools/list</code> definitions &amp; portable <code>SKILL.md</code>, download your standalone Cloudflare Worker ZIP 100% free, or launch an instant Hosted Remote MCP URL for $25 one-time.</p>
 
   <div class="grid">
     <div class="card">
@@ -425,7 +460,7 @@ function renderLandingHtml(origin) {
           </select>
         </div>
         <div>
-          <label for="schemaUrl">Or Public Schema URL (optional, for $15 Hosted Bridge)</label>
+          <label for="schemaUrl">Or Public Schema URL (optional, auto-loaded for Hosted MCP URL)</label>
           <input id="schemaUrl" type="url" placeholder="https://raw.githubusercontent.com/.../openapi.yaml" />
         </div>
       </div>
@@ -441,34 +476,40 @@ function renderLandingHtml(origin) {
     <div>
       <div class="card">
         <strong>2. Export Your Working Remote MCP Server</strong>
-        <div class="tier" style="margin-top:0.75rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Deployable Worker Bundle</strong>
-            <span class="price">$5</span>
+        <div class="tier-grid">
+          <div class="tier" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                <strong>DIY Developer Export</strong>
+                <span class="price">Free</span>
+              </div>
+              <p style="font-size:0.84rem;color:#cbd5e1;margin:0.45rem 0 0.75rem;">Download the compiled Cloudflare Worker ZIP (<code>worker.js</code>, <code>wrangler.toml</code>, <code>deploy.yml</code>, <code>SKILL.md</code>, <code>SETUP_CHATGPT_PLUGIN.md</code>) and deploy it on your own Cloudflare account.</p>
+            </div>
+            <div class="cta-stack">
+              <button class="btn btn-green" onclick="downloadFreeZip()">Download Free Worker ZIP</button>
+            </div>
           </div>
-          <p style="font-size:0.86rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Instant <code>.zip</code> containing standalone Cloudflare Worker (<code>worker.js</code>), <code>wrangler.toml</code>, <code>deploy.yml</code>, <code>SKILL.md</code> &amp; ChatGPT Plugin Setup Guide. Runs free on your Cloudflare account.</p>
-          <div class="cta-stack">
-            <button class="btn btn-green" onclick="checkoutStripe('bundle')">Buy Bundle ($5 Card / Stripe)</button>
-            <button class="btn" onclick="inspectX402('bundle')">Pay $5.00 USDC (Base / Solana x402)</button>
-          </div>
-        </div>
 
-        <div class="tier">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Hosted Rescue Bridge + Bundle</strong>
-            <span class="price">$15</span>
-          </div>
-          <p style="font-size:0.86rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes everything in the $5 Bundle PLUS an instant multi-tenant hosted <code>/mcp/h/...</code> URL to paste straight into ChatGPT Plugins + priority async support.</p>
-          <div class="cta-stack">
-            <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Buy Hosted Rescue ($15 Card / Stripe)</button>
-            <button class="btn" onclick="inspectX402('hosted')">Pay $15.00 USDC (Base / Solana x402)</button>
+          <div class="tier" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                <strong>Instant Hosted MCP URL</strong>
+                <span class="price" style="color:#fbbf24;">$25 One-Time</span>
+              </div>
+              <p style="font-size:0.84rem;color:#cbd5e1;margin:0.45rem 0 0.75rem;">Zero terminal, zero Cloudflare setup. Pay once, get your live <code>/mcp/h/&lt;token&gt;</code> URL instantly, paste it into ChatGPT <code>Plugins &rarr; Add custom MCP server</code>, and beat the Dec 11 shutdown in 60 seconds.</p>
+            </div>
+            <div class="cta-stack">
+              <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Get Instant Hosted MCP ($25 Card / Stripe)</button>
+              <button class="btn" onclick="inspectX402('hosted')">Pay $25.00 USDC (Base / Solana x402)</button>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="card" style="font-size:0.84rem;color:#94a3b8;">
         <strong>Agent / CLI Endpoints:</strong><br>
-        &bull; Free Compiler API: <code>POST ${escapeHtml(origin)}/api/preview</code><br>
+        &bull; Free ZIP Download API: <code>POST ${escapeHtml(origin)}/api/download-free</code><br>
+        &bull; Free Compiler Preview API: <code>POST ${escapeHtml(origin)}/api/preview</code><br>
         &bull; Remote MCP Tool (<code>convert_openapi_to_mcp</code>): <code>POST ${escapeHtml(origin)}/mcp</code><br>
         &bull; <a href="/server.json">server.json</a> &bull; <a href="/openapi.json">openapi.json</a> &bull; <a href="/skill.md">skill.md</a>
       </div>
@@ -511,6 +552,43 @@ function renderLandingHtml(origin) {
           })
         });
         out.textContent = JSON.stringify(await res.json(), null, 2);
+      } catch (e) {
+        out.textContent = "Error: " + e.message;
+      }
+    }
+    async function downloadFreeZip() {
+      persistDraft();
+      const out = document.getElementById("previewOut");
+      const st = document.getElementById("schemaText").value.trim();
+      const su = document.getElementById("schemaUrl").value.trim();
+      if (!st && !su) {
+        out.textContent = "Paste an OpenAPI 3.0/3.1 JSON/YAML schema, enter a schema URL, or click 'Load Example Schema' above first.";
+        return;
+      }
+      out.textContent = "Compiling free Cloudflare Worker ZIP...";
+      try {
+        const res = await fetch("/api/download-free", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            schema: st || undefined,
+            schema_url: su || undefined,
+            instructions: document.getElementById("instructions").value,
+            auth_type: document.getElementById("authType").value
+          })
+        });
+        if (!res.ok) {
+          out.textContent = "Download failed (HTTP " + res.status + "):\\n" + await res.text();
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "action2mcp-worker-bundle.zip";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        out.textContent = "Compiled and downloaded action2mcp-worker-bundle.zip (" + blob.size + " bytes).";
       } catch (e) {
         out.textContent = "Error: " + e.message;
       }
@@ -694,7 +772,7 @@ export default {
             $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
             name: "io.github.ak10082247-max/action2mcp",
             title: "Action2MCP Custom GPT Action to Remote MCP Compiler",
-            description: "Compile retiring OpenAI Custom GPT Actions into Cloudflare Remote MCP & SKILL.md ($5/$15).",
+            description: "Compile retiring OpenAI Custom GPT Actions into a free Cloudflare Remote MCP Worker ZIP + SKILL.md, or $25 one-time Instant Hosted MCP URL.",
             version: "1.0.0",
             websiteUrl: "https://action2mcp.ak10082247.workers.dev",
             repository: { url: "https://github.com/ak10082247-max/action2mcp", source: "github" },
@@ -724,12 +802,6 @@ export default {
             cdpSolanaFeePayer: CDP_SOLANA_FEE_PAYER,
             payaiSolanaFeePayer: SOLANA_FEE_PAYER,
             endpoints: [
-              {
-                path: "/api/buy?tier=bundle",
-                name: ACTION2MCP_PLANS.bundle.name,
-                priceUsdc: (ACTION2MCP_PLANS.bundle.amountMicro / 1e6).toFixed(2),
-                amountMicro: ACTION2MCP_PLANS.bundle.amountMicro,
-              },
               {
                 path: "/api/buy?tier=hosted",
                 name: ACTION2MCP_PLANS.hosted.name,
@@ -771,9 +843,9 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
 # Action2MCP
 
 - Free preview: \`POST ${url.origin}/api/preview\`
+- Free Worker ZIP + SKILL.md download: \`POST ${url.origin}/api/download-free\`
 - Remote MCP endpoint: \`POST ${url.origin}/mcp\` (tool: \`convert_openapi_to_mcp\`)
-- $5 Bundle Checkout: \`${url.origin}/api/checkout?tier=bundle\` or \`POST ${url.origin}/api/buy?tier=bundle\` (USDC)
-- $15 Hosted Rescue Bridge: \`${url.origin}/api/checkout?tier=hosted\` or \`POST ${url.origin}/api/buy?tier=hosted\` (USDC)
+- Instant Hosted MCP URL ($25 one-time): \`${url.origin}/api/checkout?tier=hosted\` (Stripe) or \`POST ${url.origin}/api/buy?tier=hosted\` ($25 USDC)
 `,
         { status: 200, headers: { ...cors, "Content-Type": "text/markdown; charset=utf-8" } },
       );
@@ -787,10 +859,11 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
             info: { title: "Action2MCP API", version: "1.0.0" },
             servers: [{ url: url.origin }],
             paths: {
-              "/api/preview": { post: { summary: "Compile OpenAPI JSON/YAML into MCP tools/list & SKILL.md preview" } },
-              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $5 bundle or $15 hosted rescue" } },
-              "/api/buy": { post: { summary: "Purchase $5 bundle or $15 hosted rescue via Base/Solana USDC x402 V2" } },
-              "/api/download": { get: { summary: "Download compiled Cloudflare Worker ZIP or JSON bundle" } },
+              "/api/preview": { post: { summary: "Compile OpenAPI JSON/YAML into MCP tools/list & SKILL.md preview (free)" } },
+              "/api/download-free": { post: { summary: "Compile OpenAPI JSON/YAML and download standalone Cloudflare Worker + SKILL.md ZIP (free)" } },
+              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $25 one-time Instant Hosted MCP URL" } },
+              "/api/buy": { post: { summary: "Purchase $25 one-time Instant Hosted MCP URL via Base/Solana USDC x402 V2" } },
+              "/api/download": { get: { summary: "Download compiled Cloudflare Worker ZIP or Hosted Bridge fulfillment" } },
             },
           },
           null,
@@ -863,7 +936,46 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 2. STRIPE CHECKOUT: GET|POST /api/checkout?tier=bundle|hosted
+    // 1B. FREE DIY WORKER ZIP DOWNLOAD: POST|GET /api/download-free
+    // -----------------------------------------------------------------------
+    if (path === "/api/download-free") {
+      if (req.method !== "POST" && req.method !== "GET") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      let bodyParams = {};
+      if (req.method === "POST") {
+        try {
+          bodyParams = await req.json();
+        } catch {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid JSON request body." }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        bodyParams = {
+          schema_url: url.searchParams.get("spec_url") || url.searchParams.get("schema_url") || "",
+          auth_type: url.searchParams.get("auth_type") || "auto",
+          auth_header: url.searchParams.get("auth_header") || "",
+          instructions: url.searchParams.get("instructions") || "",
+        };
+      }
+      try {
+        const { files } = await compileBundleFromParams(bodyParams, false);
+        return zipBundleResponse(files, cors);
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: err.httpStatus || 422,
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. STRIPE CHECKOUT: GET|POST /api/checkout?tier=hosted ($25 one-time)
     // -----------------------------------------------------------------------
     if (path === "/api/checkout") {
       if (req.method !== "GET" && req.method !== "POST") {
@@ -880,7 +992,17 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
           bodyParams = {};
         }
       }
-      const tierKey = url.searchParams.get("tier") || bodyParams.tier || "bundle";
+      const tierKey = url.searchParams.get("tier") || bodyParams.tier || "hosted";
+      if (String(tierKey).trim().toLowerCase() === "bundle" || String(tierKey).trim().toLowerCase() === "bundle_5") {
+        return new Response(
+          JSON.stringify({
+            error: "bundle_tier_now_free",
+            message: "The DIY Cloudflare Worker + SKILL.md ZIP is now 100% free with no checkout required.",
+            free_download_url: `${url.origin}/api/download-free`,
+          }),
+          { status: 410, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
       const plan = resolvePlanTier(tierKey);
       if (!plan) {
         return new Response(JSON.stringify({ error: "invalid_tier", available: Object.keys(ACTION2MCP_PLANS) }), {
@@ -929,7 +1051,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 3. X402 V2 CRYPTO PURCHASE: POST /api/buy?tier=bundle|hosted
+    // 3. X402 V2 CRYPTO PURCHASE: POST /api/buy?tier=hosted ($25 one-time)
     // -----------------------------------------------------------------------
     if (path === "/api/buy" || path === "/api/checkout/x402") {
       if (req.method !== "POST" && req.method !== "GET") {
@@ -946,7 +1068,18 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
           bodyParams = {};
         }
       }
-      const tierKey = url.searchParams.get("tier") || bodyParams.tier || "bundle";
+      const tierKey = url.searchParams.get("tier") || bodyParams.tier || "hosted";
+      if (String(tierKey).trim().toLowerCase() === "bundle" || String(tierKey).trim().toLowerCase() === "bundle_5") {
+        return new Response(
+          JSON.stringify({
+            error: "bundle_tier_now_free",
+            charged: false,
+            message: "The DIY Cloudflare Worker + SKILL.md ZIP is now 100% free with no payment required.",
+            free_download_url: `${url.origin}/api/download-free`,
+          }),
+          { status: 410, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
       const plan = resolvePlanTier(tierKey);
       if (!plan) {
         return new Response(JSON.stringify({ error: "invalid_tier", available: Object.keys(ACTION2MCP_PLANS), charged: false }), {
@@ -980,16 +1113,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       let files;
       let specUrlUsed = "";
       try {
-        const resolved = await resolveSchemaFromParams(bodyParams);
-        specUrlUsed = resolved.schemaUrl;
-        const schemaToCompile = resolved.schemaText || SAMPLE_CUSTOM_GPT_SCHEMA;
-        compiled = compileOpenApiToMcp({
-          schemaText: schemaToCompile,
-          instructions: bodyParams.instructions || "",
-          authType: bodyParams.auth_type || "auto",
-          authHeaderName: bodyParams.auth_header || "",
-        });
-        files = buildDeployableBundle(compiled);
+        ({ compiled, files, specUrlUsed } = await compileBundleFromParams(bodyParams, true));
       } catch (compileErr) {
         return new Response(
           JSON.stringify({ error: `OpenAPI compile failed before settlement: ${compileErr.message}`, charged: false }, null, 2),
@@ -1106,7 +1230,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
             headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
           });
         }
-        const plan = resolvePlanTier(payload.tier) || ACTION2MCP_PLANS.bundle;
+        const plan = resolvePlanTier(payload.tier) || ACTION2MCP_PLANS.hosted;
         fulfillment = {
           paid: true,
           session_id: payload.sid,
@@ -1141,17 +1265,16 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       }
 
       try {
-        const { schemaText } = await resolveSchemaFromParams({
-          schema: bodyParams.schema,
-          schema_url: bodyParams.schema_url || url.searchParams.get("spec_url") || fulfillment.specUrl,
-        });
-        const compiled = compileOpenApiToMcp({
-          schemaText: schemaText || SAMPLE_CUSTOM_GPT_SCHEMA,
-          instructions: bodyParams.instructions || "",
-          authType: bodyParams.auth_type || "auto",
-          authHeaderName: bodyParams.auth_header || "",
-        });
-        const files = buildDeployableBundle(compiled);
+        const { compiled, files } = await compileBundleFromParams(
+          {
+            schema: bodyParams.schema,
+            schema_url: bodyParams.schema_url || url.searchParams.get("spec_url") || fulfillment.specUrl,
+            instructions: bodyParams.instructions || "",
+            auth_type: bodyParams.auth_type || "auto",
+            auth_header: bodyParams.auth_header || "",
+          },
+          true,
+        );
 
         if (reqFormat === "zip" || req.method === "POST") {
           if (reqFormat === "json") {
@@ -1160,17 +1283,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
               headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
             });
           }
-          const zipBytes = createZipArchive(files);
-          return new Response(zipBytes, {
-            status: 200,
-            headers: {
-              ...cors,
-              "Content-Type": "application/zip",
-              "Content-Disposition": 'attachment; filename="action2mcp-worker-bundle.zip"',
-              "Content-Length": String(zipBytes.byteLength),
-              "Cache-Control": "no-store",
-            },
-          });
+          return zipBundleResponse(files, cors);
         }
 
         return new Response(JSON.stringify({ ok: true, fulfillment, compiled, files }, null, 2), {
@@ -1186,7 +1299,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 5. $15 HOSTED MULTI-TENANT BRIDGE REGISTRATION & MCP ENDPOINT
+    // 5. $25 ONE-TIME HOSTED MULTI-TENANT BRIDGE & MCP ENDPOINT
     // -----------------------------------------------------------------------
     if (path === "/api/hosted/register") {
       if (req.method !== "POST") {
@@ -1199,7 +1312,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       const mgmtTok = authHdr.startsWith("Bearer ") ? authHdr.slice(7).trim() : "";
       const payload = await verifyToken(mgmtTok, env.KUROX_SIGNING_SECRET, "a2m_mgmt_v1");
       if (!payload || payload.tier !== "hosted") {
-        return new Response(JSON.stringify({ error: "Valid $15 Hosted Management Token required" }), {
+        return new Response(JSON.stringify({ error: "Valid $25 Hosted Management Token required" }), {
           status: 401,
           headers: { ...cors, "Content-Type": "application/json" },
         });
@@ -1232,7 +1345,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
         } else if (schemaText.length <= 12000) {
           bridgePayload = { typ: "a2m_bridge", schema: schemaText, authType: compiled.auth.authType, authHeader: compiled.auth.headerName, iat: now, exp: now + 365 * 86400 };
         } else {
-          return new Response(JSON.stringify({ error: "Inline schema exceeds 12KB stateless token size; provide a public schema_url or deploy via the $5 Worker ZIP." }), {
+          return new Response(JSON.stringify({ error: "Inline schema exceeds 12KB stateless token size; provide a public schema_url or deploy via the free Worker ZIP (/api/download-free)." }), {
             status: 413,
             headers: { ...cors, "Content-Type": "application/json" },
           });
@@ -1410,8 +1523,10 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
                         dec11_countdown: compiled.dec11_countdown,
                         tools: compiled.mcp_tools,
                         skill_md: compiled.skill_md,
-                        bundle_checkout_url: `${url.origin}/api/checkout?tier=bundle`,
+                        free_download_zip_url: `${url.origin}/api/download-free`,
                         hosted_checkout_url: `${url.origin}/api/checkout?tier=hosted`,
+                        hosted_x402_url: `${url.origin}/api/buy?tier=hosted`,
+                        hosted_price_usd: 25,
                       },
                       null,
                       2,

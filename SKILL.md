@@ -14,9 +14,9 @@ OpenAI retires Custom GPTs on **December 11, 2026** (FedRAMP/Enterprise Feb 11, 
 
 - **Remote MCP Server:** `POST https://action2mcp.ak10082247.workers.dev/mcp` (tool: `convert_openapi_to_mcp`)
 - **HTTP Preview API:** `POST https://action2mcp.ak10082247.workers.dev/api/preview` (`{"schema": "..."}` or `{"schema_url": "https://..."}`)
+- **Free Worker ZIP Download:** `POST https://action2mcp.ak10082247.workers.dev/api/download-free` (`{"schema": "..."}` or `{"schema_url": "https://..."}`)
 - **Zero-Dep CLI:** `npx action2mcp <schema-file-or-url> [--json]`
 
-## Export & Hosted Endpoints
+## Instant Hosted Remote MCP URL
 
-- **Deployable Worker ZIP Bundle (`$5`):** `https://action2mcp.ak10082247.workers.dev/api/checkout?tier=bundle` (Stripe) or `POST https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle` (x402 Base/Solana USDC)
-- **Hosted `/mcp/h/...` Bridge + Bundle (`$15`):** `https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted` (Stripe) or `POST https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted` (x402 Base/Solana USDC)
+- **Instant Hosted `/mcp/h/<token>` URL (`$25` one-time):** `https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted` (Stripe) or `POST https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted` (x402 Base/Solana USDC)

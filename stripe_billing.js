@@ -7,34 +7,22 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 export const ACTION2MCP_PLANS = {
-  bundle: {
-    id: "bundle",
-    sku: "action2mcp-bundle-v1",
-    name: "Action2MCP Deployable Cloudflare Worker + SKILL.md Bundle",
-    description:
-      "Pre-compiled standalone Cloudflare Workers Remote MCP Server (worker.js, wrangler.toml, deploy.yml, SKILL.md, ChatGPT Plugin Setup Guide) compiled from your Custom GPT OpenAPI schema.",
-    amountCents: 500,
-    amountMicro: 5000000, // $5.00 USDC
-    priceDisplay: "$5 USD / USDC",
-    ttlSeconds: 30 * 24 * 60 * 60,
-    tier: "bundle_5",
-  },
   hosted: {
     id: "hosted",
     sku: "action2mcp-hosted-v1",
-    name: "Action2MCP Done-For-You Hosted Remote MCP Bridge + Bundle",
+    name: "Action2MCP Instant Hosted Remote MCP URL ($25 One-Time)",
     description:
-      "Deployable Cloudflare Worker ZIP bundle PLUS multi-tenant Hosted Remote MCP Bridge URL (/mcp/h/...) with pre-signed HMAC management token & priority async setup support.",
-    amountCents: 1500,
-    amountMicro: 15000000, // $15.00 USDC
-    priceDisplay: "$15 USD / USDC",
+      "Instant hosted Remote MCP URL (/mcp/h/<token>) to paste directly into ChatGPT Plugins -> Add custom MCP server, plus the full compiled Cloudflare Worker ZIP & SKILL.md bundle.",
+    amountCents: 2500,
+    amountMicro: 25000000, // $25.00 USDC
+    priceDisplay: "$25 USD / USDC",
     ttlSeconds: 365 * 24 * 60 * 60,
-    tier: "hosted_15",
+    tier: "hosted_25",
   },
 };
 
 export function resolvePlanTier(rawTierOrSku) {
-  const key = String(rawTierOrSku || "bundle").trim().toLowerCase();
+  const key = String(rawTierOrSku || "hosted").trim().toLowerCase();
   if (ACTION2MCP_PLANS[key]) return ACTION2MCP_PLANS[key];
   return Object.values(ACTION2MCP_PLANS).find((p) => p.sku.toLowerCase() === key) || null;
 }
@@ -191,8 +179,8 @@ export async function verifyStripeSessionAndMint(sessionId, origin, env) {
     });
   }
 
-  const tierId = session.metadata?.tier || (session.amount_total >= 1500 ? "hosted" : "bundle");
-  const plan = resolvePlanTier(tierId) || ACTION2MCP_PLANS.bundle;
+  const tierId = session.metadata?.tier || "hosted";
+  const plan = resolvePlanTier(tierId) || ACTION2MCP_PLANS.hosted;
   const now = Math.floor(Date.now() / 1000);
   const specUrl = (session.metadata?.spec_url || "").trim();
 

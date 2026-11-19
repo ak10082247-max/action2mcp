@@ -165,6 +165,9 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   const homeHtml = await homeRes.text();
   assert.match(homeHtml, /Dec 11, 2026/);
   assert.match(homeHtml, /Action2MCP/);
+  assert.match(homeHtml, /Download Free Worker ZIP/);
+  assert.match(homeHtml, /\/api\/download-free/);
+  assert.match(homeHtml, /\$25 One-Time/);
   assert.match(homeHtml, /spec_url/);
 
   assert.equal(previewRes.status, 200);
@@ -188,7 +191,7 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   assert.equal(x4.merchantAddressSolana, "DD3A7jaXFeHcif9eYj6Vhomuxypat5Yxi8ow6wxz27yL");
 });
 
-test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settlement flows", async () => {
+test("Free ZIP download (/api/download-free), removed bundle paywall, $25 Hosted Stripe & x402 flows", async () => {
   const origFetch = globalThis.fetch;
   let verifyCalls = 0;
   let settleCalls = 0;
@@ -196,27 +199,26 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
   globalThis.fetch = async (url, init) => {
     const u = String(url);
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
-      const formBody = String(init?.body || "");
-      const amt = formBody.includes("1500") ? 1500 : 500;
       return new Response(
-        JSON.stringify({ id: `cs_test_${amt}`, url: `https://checkout.stripe.com/c/pay/cs_test_${amt}` }),
+        JSON.stringify({ id: "cs_test_2500", url: "https://checkout.stripe.com/c/pay/cs_test_2500" }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
-    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_5")) {
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_25")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_paid_5", payment_status: "paid", amount_total: 500, currency: "usd", metadata: { tier: "bundle", spec_url: "https://raw.example.com/action.yaml" } }),
+        JSON.stringify({
+          id: "cs_test_paid_25",
+          payment_status: "paid",
+          amount_total: 2500,
+          currency: "usd",
+          customer_details: { email: "buyer@corp.io" },
+          metadata: { tier: "hosted", spec_url: "https://raw.example.com/action.yaml" },
+        }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
     if (u === "https://raw.example.com/action.yaml") {
       return new Response(MULTI_ENDPOINT_YAML, { status: 200, headers: { "content-type": "text/yaml" } });
-    }
-    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_15")) {
-      return new Response(
-        JSON.stringify({ id: "cs_test_paid_15", payment_status: "paid", amount_total: 1500, currency: "usd", customer_details: { email: "buyer@corp.io" }, metadata: { tier: "hosted" } }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      );
     }
     if (u === "https://facilitator.payai.network/verify") {
       verifyCalls += 1;
@@ -233,17 +235,60 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
   };
 
   try {
-    // 1. Stripe Checkout creation ($5 & $15)
-    const co5 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=bundle&format=json"),
+    // 0. 100% Free DIY Cloudflare Worker ZIP download (no checkout or email wall)
+    const missingRes = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download-free", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }),
       FULL_ENV,
     );
-    assert.equal(co5.status, 200);
-    const j5 = await co5.json();
-    assert.equal(j5.amount_cents, 500);
-    assert.match(j5.url, /^https:\/\/checkout\.stripe\.com/);
+    assert.equal(missingRes.status, 400);
 
-    const co15 = await worker.fetch(
+    const freeZipRes = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download-free", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML, instructions: "Always check SKU first." }),
+      }),
+      FULL_ENV,
+    );
+    assert.equal(freeZipRes.status, 200);
+    assert.equal(freeZipRes.headers.get("Content-Type"), "application/zip");
+    const freeZipBytes = new Uint8Array(await freeZipRes.arrayBuffer());
+    assert.equal(freeZipBytes[0], 0x50);
+    assert.equal(freeZipBytes[1], 0x4b);
+    const freeZipList = spawnSync(
+      "python",
+      [
+        "-c",
+        "import io, sys, zipfile; z = zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None; print(','.join(sorted(z.namelist())))",
+      ],
+      { input: Buffer.from(freeZipBytes) },
+    );
+    assert.equal(freeZipList.status, 0, freeZipList.stderr?.toString());
+    const freeNames = freeZipList.stdout.toString();
+    assert.match(freeNames, /worker\.js/);
+    assert.match(freeNames, /wrangler\.toml/);
+    assert.match(freeNames, /deploy\.yml/);
+    assert.match(freeNames, /SKILL\.md/);
+    assert.match(freeNames, /SETUP_CHATGPT_PLUGIN\.md/);
+
+    // Bundle paywall removed cleanly
+    const oldCheckout = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=bundle"),
+      FULL_ENV,
+    );
+    assert.equal(oldCheckout.status, 410);
+    const oldBuy = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", { method: "POST" }),
+      FULL_ENV,
+    );
+    assert.equal(oldBuy.status, 410);
+
+    // 1. $25 One-Time Hosted Stripe Checkout creation
+    const co25 = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,12 +296,15 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
       }),
       FULL_ENV,
     );
-    assert.equal(co15.status, 200);
-    assert.equal((await co15.json()).amount_cents, 1500);
+    assert.equal(co25.status, 200);
+    const j25 = await co25.json();
+    assert.equal(j25.amount_cents, 2500);
+    assert.equal(j25.tier, "hosted");
+    assert.match(j25.url, /^https:\/\/checkout\.stripe\.com/);
 
-    // 2. Paid $5 Stripe session preserves spec_url in fulfillment HTML & compiles remote ZIP cleanly
+    // 2. Paid $25 Stripe session preserves spec_url, compiles remote ZIP & mints Hosted MCP Bridge
     const fulHtmlRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_5"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25"),
       FULL_ENV,
     );
     assert.equal(fulHtmlRes.status, 200);
@@ -265,7 +313,7 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     assert.match(fulHtml, /Direct Download Compiled ZIP/);
 
     const zipRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_5&format=zip"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25&format=zip"),
       FULL_ENV,
     );
     assert.equal(zipRes.status, 200);
@@ -274,21 +322,23 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     assert.equal(zb[0], 0x50);
     assert.equal(zb[1], 0x4b);
 
-    // 3. Paid $15 Stripe session mints HMAC management token -> registers live hosted MCP bridge
-    const ful15 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_15&format=json"),
+    // 3. Paid $25 Stripe JSON mints HMAC management token -> registers live hosted MCP bridge
+    const ful25 = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_25&format=json"),
       FULL_ENV,
     );
-    assert.equal(ful15.status, 200);
-    const f15 = await ful15.json();
-    assert.ok(f15.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
+    assert.equal(ful25.status, 200);
+    const f25 = await ful25.json();
+    assert.equal(f25.fulfillment.amount_total_cents, 2500);
+    assert.ok(f25.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
+    assert.match(f25.fulfillment.hosted_bridge_url, /\/mcp\/h\/a2m_bridge_v1\./);
 
     const regRes = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/hosted/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${f15.fulfillment.management_token}`,
+          Authorization: `Bearer ${f25.fulfillment.management_token}`,
         },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
       }),
@@ -317,17 +367,17 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     assert.equal(hostedCallData.result.isError, false);
     assert.match(hostedCallData.result.content[0].text, /"in_stock": 42/);
 
-    // 4. x402 HTTP 402 fallback + settlement + pre-settlement fail-closed on broken schema
+    // 4. x402 HTTP 402 $25 USDC (25000000 atomic units) + settlement + pre-settlement fail-closed on broken schema
     const unp402 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", { method: "POST" }),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", { method: "POST" }),
       FULL_ENV,
     );
     assert.equal(unp402.status, 402);
     const ch402 = JSON.parse(Buffer.from(unp402.headers.get("PAYMENT-REQUIRED"), "base64").toString("utf8"));
     const baseOpt = ch402.accepts.find((a) => a.network === "eip155:8453");
     const solOpt = ch402.accepts.find((a) => a.network.startsWith("solana:"));
-    assert.equal(baseOpt.amount, "5000000");
-    assert.equal(solOpt.amount, "5000000");
+    assert.equal(baseOpt.amount, "25000000");
+    assert.equal(solOpt.amount, "25000000");
     assert.equal(ch402.extensions?.bazaar?.discoverable, true);
     assert.ok(ch402.extensions?.bazaar?.schema);
 
@@ -336,7 +386,7 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     ).toString("base64");
 
     const badSchemaRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig },
         body: JSON.stringify({ schema: "{invalid json" }),
@@ -347,7 +397,7 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     assert.equal(settleCalls, 0);
 
     const paidX402 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
@@ -359,6 +409,7 @@ test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settl
     assert.equal(settleCalls, 1);
     const paidBody = await paidX402.json();
     assert.equal(paidBody.paid, true);
+    assert.equal(paidBody.tier, "hosted");
     assert.equal(paidBody.tool_count, 2);
     assert.ok(paidBody.files["worker.js"]);
   } finally {
@@ -424,7 +475,7 @@ test("Coinbase CDP Facilitator Base routing with ES256 JWT + PayAI override", as
 
   try {
     const chRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", { method: "POST" }),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", { method: "POST" }),
       CDP_ENV,
     );
     const ch = await chRes.json();
@@ -434,7 +485,7 @@ test("Coinbase CDP Facilitator Base routing with ES256 JWT + PayAI override", as
     ).toString("base64");
 
     const paidCdp = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
@@ -449,7 +500,7 @@ test("Coinbase CDP Facilitator Base routing with ES256 JWT + PayAI override", as
     assert.equal(paidJson.tx_hash, "0xcdpsettle999");
 
     const paidOverride = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=bundle", {
+      new Request("https://action2mcp.ak10082247.workers.dev/api/buy?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json", "PAYMENT-SIGNATURE": sig, "X-X402-Facilitator": "payai" },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),

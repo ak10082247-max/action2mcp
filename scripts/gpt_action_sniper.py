@@ -365,10 +365,9 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"OpenAI retires Custom GPTs on December 11, 2026 and its Plugin migration drops Custom Actions.\n\n"
         f"I spotted your OpenAPI Action schema in {target['repo']} ({target['file_path']}) and test-compiled all {count} endpoints cleanly into ChatGPT Plugin MCP tools:\n"
         f"{tools_preview}\n\n"
-        f"Inspect the live compiled MCP tools/list + SKILL.md for your schema free at:\n"
+        f"You can inspect the compiled MCP tools/list + SKILL.md and download the full Cloudflare Worker + SKILL.md ZIP 100% free (no account, checkout, or email wall) at:\n"
         f"{public_service_url}/?spec_url={spec_q}\n\n"
-        f"Or download the pre-compiled Cloudflare Remote MCP Worker + SKILL.md ZIP bundle for $5 one-time (runs free on Cloudflare Workers, no subscription; $15 hosted /mcp URL & Base/Solana USDC also available):\n"
-        f"{public_service_url}/api/checkout?tier=bundle&spec_url={spec_q}\n\n"
+        f"(If you prefer not to touch Wrangler or set up a Cloudflare account at all, there is also an optional $25 one-time hosted MCP URL shortcut at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
