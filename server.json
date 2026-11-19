@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ak10082247-max/action2mcp",
   "title": "Action2MCP Custom GPT Action to Remote MCP Compiler",
-  "description": "Compile OpenAI Custom GPT Actions into free Cloudflare MCP ZIPs or a $10 Deal (was $25) Hosted MCP URL.",
-  "version": "1.0.1",
+  "description": "Compile Custom GPT Actions into free MCP ZIPs or a $10 Hosted MCP URL (was $25).",
+  "version": "1.0.2",
   "websiteUrl": "https://action2mcp.ak10082247.workers.dev",
   "repository": {
     "url": "https://github.com/ak10082247-max/action2mcp",
