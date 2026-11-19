@@ -101,6 +101,64 @@ def fetch_overpass_websites(ql_query: str, timeout: int = 18) -> list[dict]:
     return out
 
 
+def fetch_photon_osm_websites(queries: list[str], limit_per_query: int = 50, timeout: int = 10) -> list[dict]:
+    """Discover real business/shop websites via Komoot Photon + official OSM batch nodes/ways API."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for q in queries:
+        try:
+            pdata = http_get_json(
+                f"https://photon.komoot.io/api/?q={urllib.parse.quote(q)}&limit={limit_per_query}",
+                timeout=timeout,
+            )
+            node_ids: list[str] = []
+            way_ids: list[str] = []
+            for feat in pdata.get("features") or []:
+                props = feat.get("properties") or {}
+                oid = props.get("osm_id")
+                otype = props.get("osm_type")
+                if not oid:
+                    continue
+                if otype == "N" and len(node_ids) < 50:
+                    node_ids.append(str(oid))
+                elif otype == "W" and len(way_ids) < 35:
+                    way_ids.append(str(oid))
+
+            elements: list[dict] = []
+            if node_ids:
+                try:
+                    nd = http_get_json(f"https://api.openstreetmap.org/api/0.6/nodes.json?nodes={','.join(node_ids)}", timeout=timeout)
+                    elements.extend(nd.get("elements") or [])
+                except Exception:
+                    pass
+            if way_ids:
+                try:
+                    wd = http_get_json(f"https://api.openstreetmap.org/api/0.6/ways.json?ways={','.join(way_ids)}", timeout=timeout)
+                    elements.extend(wd.get("elements") or [])
+                except Exception:
+                    pass
+
+            for el in elements:
+                tags = el.get("tags") or {}
+                web = (tags.get("website") or tags.get("contact:website") or tags.get("url") or "").strip()
+                if not web:
+                    continue
+                if not web.startswith(("http://", "https://")):
+                    web = "https://" + web
+                host = (urllib.parse.urlparse(web).hostname or "").lower().replace("www.", "")
+                if not host or "." not in host or host in seen:
+                    continue
+                if any(b in host for b in DIRECTORY_BLOCKLIST):
+                    continue
+                seen.add(host)
+                name = (tags.get("name") or tags.get("brand") or host).strip()[:80]
+                hint_em = (tags.get("email") or tags.get("contact:email") or "").strip().lower()
+                out.append({"name": name, "website": web, "domain": host, "hint_email": hint_em, "query": q})
+        except Exception:
+            continue
+    return out
+
+
 def load_workspace_env(repo_root: str) -> None:
     for candidate in (
         os.path.join(repo_root, ".env"),

@@ -96,53 +96,42 @@ def extract_candidate_booking_links(html: str, base_url: str) -> list[tuple[str,
     return out
 
 
-def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 3) -> tuple[list[dict], int]:
+def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 8) -> tuple[list[dict], int]:
     candidates = []
     seen_domains = set()
+    n = len(SEARCH_ROTATION)
+    q_count = max(4, min(10, limit_queries))
+    batch_queries = [f"{SEARCH_ROTATION[(cursor + off) % n][0]} {SEARCH_ROTATION[(cursor + off) % n][1]}" for off in range(q_count)]
 
-    # 1. Primary: Single clean Overpass metro call (avoids multi-call IP throttling) to fetch 150+ clinics/lawyers/vets
-    m_count = len(common.METRO_BBOXES)
-    city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
-    ql = (
-        f'[out:json][timeout:24];('
-        f'node["amenity"~"dentist|clinic|veterinary|doctors"]["website"]({s},{w},{n_lat},{e});'
-        f'node["office"~"lawyer|solicitor|accountant|estate_agent"]["website"]({s},{w},{n_lat},{e});'
-        f');out tags 180;'
-    )
-    for item in common.fetch_overpass_websites(ql, timeout=25):
+    # 1. Primary: High-speed Photon + OSM batch nodes/ways API (150-250 websites in seconds, zero Overpass 502 bottlenecks)
+    for item in common.fetch_photon_osm_websites(batch_queries, limit_per_query=50):
         if item["domain"] in seen_domains:
             continue
         seen_domains.add(item["domain"])
-        candidates.append({**item, "category": "local_service", "city": city})
+        parts = item.get("query", "").rsplit(" ", 1)
+        candidates.append({
+            **item,
+            "category": parts[0] if parts else "local_service",
+            "city": parts[1] if len(parts) > 1 else "Metro",
+        })
 
-    # 2. Fallback / supplement: Nominatim category search
-    n = len(SEARCH_ROTATION)
-    nom_queries = max(2, min(5, limit_queries))
-    for offset in range(nom_queries):
-        cat, city = SEARCH_ROTATION[(cursor + offset) % n]
-        q = f"{cat} {city}"
-        url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(q)}&format=json&extratags=1&limit=40"
-        try:
-            items = common.http_get_json(url, timeout=15)
-            for it in items:
-                ext = it.get("extratags") or {}
-                web = (ext.get("website") or ext.get("contact:website") or ext.get("url") or "").strip()
-                if not web:
-                    continue
-                if not web.startswith(("http://", "https://")):
-                    web = "https://" + web
-                host = (urllib.parse.urlparse(web).hostname or "").lower().replace("www.", "")
-                if not host or "." not in host or host in seen_domains:
-                    continue
-                if any(big in host for big in common.DIRECTORY_BLOCKLIST):
-                    continue
-                seen_domains.add(host)
-                name = str(it.get("display_name") or host).split(",")[0].strip()[:80]
-                candidates.append({"name": name, "website": web, "domain": host, "category": cat, "city": city})
-            time.sleep(1.1)
-        except Exception as exc:
-            print(f"   [!] Nominatim lookup warning ({q}): {exc}", flush=True)
-    return candidates, (cursor + 1) % max(n, m_count)
+    # 2. Secondary Overpass supplement if Photon yielded < 60 targets
+    m_count = len(common.METRO_BBOXES)
+    if len(candidates) < 60:
+        city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
+        ql = (
+            f'[out:json][timeout:18];('
+            f'node["amenity"~"dentist|clinic|veterinary|doctors"]["website"]({s},{w},{n_lat},{e});'
+            f'node["office"~"lawyer|solicitor|accountant|estate_agent"]["website"]({s},{w},{n_lat},{e});'
+            f');out tags 150;'
+        )
+        for item in common.fetch_overpass_websites(ql, timeout=18):
+            if item["domain"] in seen_domains:
+                continue
+            seen_domains.add(item["domain"])
+            candidates.append({**item, "category": "local_service", "city": city})
+
+    return candidates, (cursor + q_count) % n
 
 
 def diagnose_local_site(cand: dict) -> dict | None:
@@ -183,6 +172,8 @@ def diagnose_local_site(cand: dict) -> dict | None:
                         break
             except Exception:
                 continue
+    if not emails and cand.get("hint_email") and common.is_deliverable_email(cand["hint_email"]):
+        emails = [cand["hint_email"]]
     if not emails:
         return None
 

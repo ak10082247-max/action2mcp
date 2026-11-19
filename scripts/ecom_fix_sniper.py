@@ -108,10 +108,11 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
         hosts.append(h)
         return True
 
-    # 1. Common Crawl Shopify storefronts across multiple mirrors/pages
+    # 1. Common Crawl Shopify storefronts across multiple mirrors (dense pages 2..19)
+    page = 2 + ((max(2, int(cc_page or 2)) - 2) % 18)
     try:
         colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
-        for coll in colls[:5]:
+        for coll in colls[:4]:
             if len(hosts) >= limit_hosts:
                 break
             cdx_api = coll["cdx-api"]
@@ -129,39 +130,29 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
                             continue
             except Exception:
                 continue
-            page = 2 if page >= 60 else page + 1
+            page = 2 if page >= 19 else page + 1
     except Exception as exc:
         print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
 
-    # 2. High-density single Overpass call for retail shops (Shopify custom domains + WooCommerce storefronts)
-    m_count = len(common.METRO_BBOXES)
-    _, s, w, n_lat, e = common.METRO_BBOXES[page % m_count]
-    ql = f'[out:json][timeout:24];node["shop"]["website"]({s},{w},{n_lat},{e});out tags 180;'
-    for item in common.fetch_overpass_websites(ql, timeout=25):
-        _accept(item["domain"])
-
-    # 3. Reliable fallback: Nominatim retail storefronts
+    # 2. Fast Photon + OSM batch retail shop websites (custom Shopify + WooCommerce storefronts)
     rot_idx = page % len(RETAIL_ROTATION)
-    for off in range(4):
+    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(8)]
+    for item in common.fetch_photon_osm_websites(retail_queries, limit_per_query=50):
         if len(hosts) >= limit_hosts:
             break
-        cat, city = RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)]
-        nom_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(cat + ' ' + city)}&format=json&extratags=1&limit=30"
-        try:
-            items = common.http_get_json(nom_url, timeout=12)
-            for it in items:
-                ext = it.get("extratags") or {}
-                web = (ext.get("website") or ext.get("contact:website") or ext.get("url") or "").strip()
-                if not web:
-                    continue
-                if not web.startswith(("http://", "https://")):
-                    web = "https://" + web
-                _accept(urllib.parse.urlparse(web).hostname or "")
-            time.sleep(1.1)
-        except Exception:
-            continue
+        _accept(item["domain"])
 
-    return hosts[:limit_hosts], page
+    # 3. Overpass fallback only if total hosts < 50
+    m_count = len(common.METRO_BBOXES)
+    if len(hosts) < 50:
+        _, s, w, n_lat, e = common.METRO_BBOXES[page % m_count]
+        ql = f'[out:json][timeout:18];node["shop"]["website"]({s},{w},{n_lat},{e});out tags 150;'
+        for item in common.fetch_overpass_websites(ql, timeout=18):
+            if len(hosts) >= limit_hosts:
+                break
+            _accept(item["domain"])
+
+    return hosts[:limit_hosts], page + 1
 
 
 def diagnose_ecom_store(candidate_host: str) -> dict | None:
