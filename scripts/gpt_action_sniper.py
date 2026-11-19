@@ -367,7 +367,7 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"{tools_preview}\n\n"
         f"Inspect the live compiled MCP tools/list + SKILL.md for your schema free at:\n"
         f"{public_service_url}/?spec_url={spec_q}\n\n"
-        f"Or download the pre-compiled Cloudflare Remote MCP Worker + SKILL.md ZIP bundle for $49 one-time (runs free on Cloudflare Workers, no subscription; Base/Solana USDC also accepted):\n"
+        f"Or download the pre-compiled Cloudflare Remote MCP Worker + SKILL.md ZIP bundle for $5 one-time (runs free on Cloudflare Workers, no subscription; $15 hosted /mcp URL & Base/Solana USDC also available):\n"
         f"{public_service_url}/api/checkout?tier=bundle&spec_url={spec_q}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"

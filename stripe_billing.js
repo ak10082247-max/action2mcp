@@ -13,11 +13,11 @@ export const ACTION2MCP_PLANS = {
     name: "Action2MCP Deployable Cloudflare Worker + SKILL.md Bundle",
     description:
       "Pre-compiled standalone Cloudflare Workers Remote MCP Server (worker.js, wrangler.toml, deploy.yml, SKILL.md, ChatGPT Plugin Setup Guide) compiled from your Custom GPT OpenAPI schema.",
-    amountCents: 4900,
-    amountMicro: 49000000, // $49.00 USDC
-    priceDisplay: "$49 USD / USDC",
+    amountCents: 500,
+    amountMicro: 5000000, // $5.00 USDC
+    priceDisplay: "$5 USD / USDC",
     ttlSeconds: 30 * 24 * 60 * 60,
-    tier: "bundle_49",
+    tier: "bundle_5",
   },
   hosted: {
     id: "hosted",
@@ -25,11 +25,11 @@ export const ACTION2MCP_PLANS = {
     name: "Action2MCP Done-For-You Hosted Remote MCP Bridge + Bundle",
     description:
       "Deployable Cloudflare Worker ZIP bundle PLUS multi-tenant Hosted Remote MCP Bridge URL (/mcp/h/...) with pre-signed HMAC management token & priority async setup support.",
-    amountCents: 14900,
-    amountMicro: 149000000, // $149.00 USDC
-    priceDisplay: "$149 USD / USDC",
+    amountCents: 1500,
+    amountMicro: 15000000, // $15.00 USDC
+    priceDisplay: "$15 USD / USDC",
     ttlSeconds: 365 * 24 * 60 * 60,
-    tier: "hosted_149",
+    tier: "hosted_15",
   },
 };
 
@@ -191,7 +191,7 @@ export async function verifyStripeSessionAndMint(sessionId, origin, env) {
     });
   }
 
-  const tierId = session.metadata?.tier || (session.amount_total >= 14900 ? "hosted" : "bundle");
+  const tierId = session.metadata?.tier || (session.amount_total >= 1500 ? "hosted" : "bundle");
   const plan = resolvePlanTier(tierId) || ACTION2MCP_PLANS.bundle;
   const now = Math.floor(Date.now() / 1000);
   const specUrl = (session.metadata?.spec_url || "").trim();

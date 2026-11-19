@@ -78,7 +78,7 @@ paths:
         self.assertIn("get_latest_rates", body)
         self.assertIn("/?spec_url=", body)
         self.assertIn("/api/checkout?tier=bundle&spec_url=", body)
-        self.assertIn("$49", body)
+        self.assertIn("$5", body)
 
 
 if __name__ == "__main__":

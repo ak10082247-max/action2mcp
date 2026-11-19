@@ -185,7 +185,7 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   assert.equal(x4.merchantAddressSolana, "DD3A7jaXFeHcif9eYj6Vhomuxypat5Yxi8ow6wxz27yL");
 });
 
-test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain settlement flows", async () => {
+test("Stripe ($5 & $15), ZIP download, Hosted MCP Bridge & x402 dual-chain settlement flows", async () => {
   const origFetch = globalThis.fetch;
   let verifyCalls = 0;
   let settleCalls = 0;
@@ -194,24 +194,24 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     const u = String(url);
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
       const formBody = String(init?.body || "");
-      const amt = formBody.includes("14900") ? 14900 : 4900;
+      const amt = formBody.includes("1500") ? 1500 : 500;
       return new Response(
         JSON.stringify({ id: `cs_test_${amt}`, url: `https://checkout.stripe.com/c/pay/cs_test_${amt}` }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
-    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_49")) {
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_5")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_paid_49", payment_status: "paid", amount_total: 4900, currency: "usd", metadata: { tier: "bundle", spec_url: "https://raw.example.com/action.yaml" } }),
+        JSON.stringify({ id: "cs_test_paid_5", payment_status: "paid", amount_total: 500, currency: "usd", metadata: { tier: "bundle", spec_url: "https://raw.example.com/action.yaml" } }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
     if (u === "https://raw.example.com/action.yaml") {
       return new Response(MULTI_ENDPOINT_YAML, { status: 200, headers: { "content-type": "text/yaml" } });
     }
-    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_149")) {
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_15")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_paid_149", payment_status: "paid", amount_total: 14900, currency: "usd", customer_details: { email: "buyer@corp.io" }, metadata: { tier: "hosted" } }),
+        JSON.stringify({ id: "cs_test_paid_15", payment_status: "paid", amount_total: 1500, currency: "usd", customer_details: { email: "buyer@corp.io" }, metadata: { tier: "hosted" } }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
@@ -230,17 +230,17 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
   };
 
   try {
-    // 1. Stripe Checkout creation ($49 & $149)
-    const co49 = await worker.fetch(
+    // 1. Stripe Checkout creation ($5 & $15)
+    const co5 = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=bundle&format=json"),
       FULL_ENV,
     );
-    assert.equal(co49.status, 200);
-    const j49 = await co49.json();
-    assert.equal(j49.amount_cents, 4900);
-    assert.match(j49.url, /^https:\/\/checkout\.stripe\.com/);
+    assert.equal(co5.status, 200);
+    const j5 = await co5.json();
+    assert.equal(j5.amount_cents, 500);
+    assert.match(j5.url, /^https:\/\/checkout\.stripe\.com/);
 
-    const co149 = await worker.fetch(
+    const co15 = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/checkout?tier=hosted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,12 +248,12 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
       }),
       FULL_ENV,
     );
-    assert.equal(co149.status, 200);
-    assert.equal((await co149.json()).amount_cents, 14900);
+    assert.equal(co15.status, 200);
+    assert.equal((await co15.json()).amount_cents, 1500);
 
-    // 2. Paid $49 Stripe session preserves spec_url in fulfillment HTML & compiles remote ZIP cleanly
+    // 2. Paid $5 Stripe session preserves spec_url in fulfillment HTML & compiles remote ZIP cleanly
     const fulHtmlRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_49"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_5"),
       FULL_ENV,
     );
     assert.equal(fulHtmlRes.status, 200);
@@ -262,7 +262,7 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     assert.match(fulHtml, /Direct Download Compiled ZIP/);
 
     const zipRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_49&format=zip"),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_5&format=zip"),
       FULL_ENV,
     );
     assert.equal(zipRes.status, 200);
@@ -271,21 +271,21 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     assert.equal(zb[0], 0x50);
     assert.equal(zb[1], 0x4b);
 
-    // 3. Paid $149 Stripe session mints HMAC management token -> registers live hosted MCP bridge
-    const ful149 = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_149&format=json"),
+    // 3. Paid $15 Stripe session mints HMAC management token -> registers live hosted MCP bridge
+    const ful15 = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_15&format=json"),
       FULL_ENV,
     );
-    assert.equal(ful149.status, 200);
-    const f149 = await ful149.json();
-    assert.ok(f149.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
+    assert.equal(ful15.status, 200);
+    const f15 = await ful15.json();
+    assert.ok(f15.fulfillment.management_token.startsWith("a2m_mgmt_v1."));
 
     const regRes = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/hosted/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${f149.fulfillment.management_token}`,
+          Authorization: `Bearer ${f15.fulfillment.management_token}`,
         },
         body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
       }),
@@ -323,8 +323,8 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     const ch402 = JSON.parse(Buffer.from(unp402.headers.get("PAYMENT-REQUIRED"), "base64").toString("utf8"));
     const baseOpt = ch402.accepts.find((a) => a.network === "eip155:8453");
     const solOpt = ch402.accepts.find((a) => a.network.startsWith("solana:"));
-    assert.equal(baseOpt.amount, "49000000");
-    assert.equal(solOpt.amount, "49000000");
+    assert.equal(baseOpt.amount, "5000000");
+    assert.equal(solOpt.amount, "5000000");
 
     const sig = Buffer.from(
       JSON.stringify({ x402Version: 2, resource: ch402.resource, accepted: baseOpt, payload: { signature: "0x11" } }),

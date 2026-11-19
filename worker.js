@@ -352,7 +352,7 @@ function renderLandingHtml(origin) {
           </select>
         </div>
         <div>
-          <label for="schemaUrl">Or Public Schema URL (optional, for $149 Hosted Bridge)</label>
+          <label for="schemaUrl">Or Public Schema URL (optional, for $15 Hosted Bridge)</label>
           <input id="schemaUrl" type="url" placeholder="https://raw.githubusercontent.com/.../openapi.yaml" />
         </div>
       </div>
@@ -371,24 +371,24 @@ function renderLandingHtml(origin) {
         <div class="tier" style="margin-top:0.75rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>Deployable Worker Bundle</strong>
-            <span class="price">$49</span>
+            <span class="price">$5</span>
           </div>
           <p style="font-size:0.86rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Instant <code>.zip</code> containing standalone Cloudflare Worker (<code>worker.js</code>), <code>wrangler.toml</code>, <code>deploy.yml</code>, <code>SKILL.md</code> &amp; ChatGPT Plugin Setup Guide. Runs free on your Cloudflare account.</p>
           <div class="cta-stack">
-            <button class="btn btn-green" onclick="checkoutStripe('bundle')">Buy Bundle ($49 Card / Stripe)</button>
-            <button class="btn" onclick="inspectX402('bundle')">Pay $49.00 USDC (Base / Solana x402)</button>
+            <button class="btn btn-green" onclick="checkoutStripe('bundle')">Buy Bundle ($5 Card / Stripe)</button>
+            <button class="btn" onclick="inspectX402('bundle')">Pay $5.00 USDC (Base / Solana x402)</button>
           </div>
         </div>
 
         <div class="tier">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>Hosted Rescue Bridge + Bundle</strong>
-            <span class="price">$149</span>
+            <span class="price">$15</span>
           </div>
-          <p style="font-size:0.86rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes everything in the $49 Bundle PLUS an instant multi-tenant hosted <code>/mcp/h/...</code> URL to paste straight into ChatGPT Plugins + priority async support.</p>
+          <p style="font-size:0.86rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes everything in the $5 Bundle PLUS an instant multi-tenant hosted <code>/mcp/h/...</code> URL to paste straight into ChatGPT Plugins + priority async support.</p>
           <div class="cta-stack">
-            <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Buy Hosted Rescue ($149 Card / Stripe)</button>
-            <button class="btn" onclick="inspectX402('hosted')">Pay $149.00 USDC (Base / Solana x402)</button>
+            <button class="btn btn-amber" onclick="checkoutStripe('hosted')">Buy Hosted Rescue ($15 Card / Stripe)</button>
+            <button class="btn" onclick="inspectX402('hosted')">Pay $15.00 USDC (Base / Solana x402)</button>
           </div>
         </div>
       </div>
@@ -512,7 +512,7 @@ function renderFulfillmentConsoleHtml(fulfillment, origin) {
   ${
     fulfillment.management_token
       ? `<div class="card">
-          <h3>2. $149 Hosted Remote MCP Bridge &amp; Management Token</h3>
+          <h3>2. $15 Hosted Remote MCP Bridge &amp; Management Token</h3>
           <p style="color:#cbd5e1;font-size:0.9rem;">Your HMAC Management Token:</p>
           <code>${escapeHtml(fulfillment.management_token)}</code>
           ${fulfillment.hosted_bridge_url ? `<p>Hosted MCP URL (paste in ChatGPT Plugins):</p><code>${escapeHtml(fulfillment.hosted_bridge_url)}</code>` : ""}
@@ -650,8 +650,18 @@ export default {
             merchantAddressSolana: MERCHANT_SOLANA_ATA,
             facilitator: cleanSecret(env?.PAYAI_FACILITATOR) || PAYAI_FACILITATOR,
             endpoints: [
-              { path: "/api/buy?tier=bundle", name: ACTION2MCP_PLANS.bundle.name, priceUsdc: "49.00", amountMicro: 49000000 },
-              { path: "/api/buy?tier=hosted", name: ACTION2MCP_PLANS.hosted.name, priceUsdc: "149.00", amountMicro: 149000000 },
+              {
+                path: "/api/buy?tier=bundle",
+                name: ACTION2MCP_PLANS.bundle.name,
+                priceUsdc: (ACTION2MCP_PLANS.bundle.amountMicro / 1e6).toFixed(2),
+                amountMicro: ACTION2MCP_PLANS.bundle.amountMicro,
+              },
+              {
+                path: "/api/buy?tier=hosted",
+                name: ACTION2MCP_PLANS.hosted.name,
+                priceUsdc: (ACTION2MCP_PLANS.hosted.amountMicro / 1e6).toFixed(2),
+                amountMicro: ACTION2MCP_PLANS.hosted.amountMicro,
+              },
             ],
           },
           null,
@@ -688,8 +698,8 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
 
 - Free preview: \`POST ${url.origin}/api/preview\`
 - Remote MCP endpoint: \`POST ${url.origin}/mcp\` (tool: \`convert_openapi_to_mcp\`)
-- $49 Bundle Checkout: \`${url.origin}/api/checkout?tier=bundle\` or \`POST ${url.origin}/api/buy?tier=bundle\` (USDC)
-- $149 Hosted Rescue Bridge: \`${url.origin}/api/checkout?tier=hosted\` or \`POST ${url.origin}/api/buy?tier=hosted\` (USDC)
+- $5 Bundle Checkout: \`${url.origin}/api/checkout?tier=bundle\` or \`POST ${url.origin}/api/buy?tier=bundle\` (USDC)
+- $15 Hosted Rescue Bridge: \`${url.origin}/api/checkout?tier=hosted\` or \`POST ${url.origin}/api/buy?tier=hosted\` (USDC)
 `,
         { status: 200, headers: { ...cors, "Content-Type": "text/markdown; charset=utf-8" } },
       );
@@ -704,8 +714,8 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
             servers: [{ url: url.origin }],
             paths: {
               "/api/preview": { post: { summary: "Compile OpenAPI JSON/YAML into MCP tools/list & SKILL.md preview" } },
-              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $49 bundle or $149 hosted rescue" } },
-              "/api/buy": { post: { summary: "Purchase $49 bundle or $149 hosted rescue via Base/Solana USDC x402 V2" } },
+              "/api/checkout": { post: { summary: "Create Stripe Checkout session for $5 bundle or $15 hosted rescue" } },
+              "/api/buy": { post: { summary: "Purchase $5 bundle or $15 hosted rescue via Base/Solana USDC x402 V2" } },
               "/api/download": { get: { summary: "Download compiled Cloudflare Worker ZIP or JSON bundle" } },
             },
           },
@@ -1102,7 +1112,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
     }
 
     // -----------------------------------------------------------------------
-    // 5. $149 HOSTED MULTI-TENANT BRIDGE REGISTRATION & MCP ENDPOINT
+    // 5. $15 HOSTED MULTI-TENANT BRIDGE REGISTRATION & MCP ENDPOINT
     // -----------------------------------------------------------------------
     if (path === "/api/hosted/register") {
       if (req.method !== "POST") {
@@ -1115,7 +1125,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       const mgmtTok = authHdr.startsWith("Bearer ") ? authHdr.slice(7).trim() : "";
       const payload = await verifyToken(mgmtTok, env.KUROX_SIGNING_SECRET, "a2m_mgmt_v1");
       if (!payload || payload.tier !== "hosted") {
-        return new Response(JSON.stringify({ error: "Valid $149 Hosted Management Token required" }), {
+        return new Response(JSON.stringify({ error: "Valid $15 Hosted Management Token required" }), {
           status: 401,
           headers: { ...cors, "Content-Type": "application/json" },
         });
@@ -1148,7 +1158,7 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
         } else if (schemaText.length <= 12000) {
           bridgePayload = { typ: "a2m_bridge", schema: schemaText, authType: compiled.auth.authType, authHeader: compiled.auth.headerName, iat: now, exp: now + 365 * 86400 };
         } else {
-          return new Response(JSON.stringify({ error: "Inline schema exceeds 12KB stateless token size; provide a public schema_url or deploy via the $49 Worker ZIP." }), {
+          return new Response(JSON.stringify({ error: "Inline schema exceeds 12KB stateless token size; provide a public schema_url or deploy via the $5 Worker ZIP." }), {
             status: 413,
             headers: { ...cors, "Content-Type": "application/json" },
           });
@@ -1326,8 +1336,8 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
                         dec11_countdown: compiled.dec11_countdown,
                         tools: compiled.mcp_tools,
                         skill_md: compiled.skill_md,
-                        bundle_checkout_49: `${url.origin}/api/checkout?tier=bundle`,
-                        hosted_checkout_149: `${url.origin}/api/checkout?tier=hosted`,
+                        bundle_checkout_url: `${url.origin}/api/checkout?tier=bundle`,
+                        hosted_checkout_url: `${url.origin}/api/checkout?tier=hosted`,
                       },
                       null,
                       2,
