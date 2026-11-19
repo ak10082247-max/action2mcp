@@ -49,7 +49,42 @@
     "HuberGiron/fablabcdmx-inventario-api",
     "jacobsherman-spec/discount-furniture-site-scripts",
     "n0namer/gpts-actions-supabase",
-    "98rjz862kr-alt/cillo-zoho-brigde"
+    "98rjz862kr-alt/cillo-zoho-brigde",
+    "gem-cybersecurity-monitoring-assist/gem-enterprise",
+    "apenaslucasguedes/nossa-campanha",
+    "5starsunited/neonpanel-mcp-server",
+    "1maginat0r/ai-forex-plugin",
+    "xulytiengviet/Actions",
+    "Andrelbmachado/Typer",
+    "harshloomba13/gurukul",
+    "ipreuss/expedition-narrator",
+    "seeker71/Coherence-Network",
+    "jan-glx/aishell",
+    "P9LLI/Patron",
+    "aberesford074-web/AEGIS",
+    "Kayus24/kgg",
+    "OurChappy/portalflow-ai",
+    "DownToZero-Cloud/dtz-sdk-for-rust",
+    "Chenpinji/LLMThief",
+    "scadam/ITServiceAgent",
+    "Uni20-dev/uni20",
+    "gregoryharper84-ship-it/WOW-Dashboard",
+    "burakemirsezen/vibe-cooking",
+    "Olsen-Systems/Bay-Delivery-Quote-Copilot",
+    "ishivamsoni150299/sneha-dental",
+    "Prasanth595/freehire",
+    "Runder-sun/aegis-alpha-skillpack",
+    "chamodmadhusanka/coachello-agent-dev",
+    "ak2dev/agentguard",
+    "passion-programmar/qts-start-up-repository-job-tracking",
+    "gautamdsheth/collabdayshelsinki2026",
+    "jorgeeab/Reloj_Antiguo",
+    "bwag84/bwag84",
+    "mad4bdigital-ai/multi-business-multi-role-growth-intelligence-os",
+    "semgrep/semgrep-rules",
+    "amplify-security/opengrep-rules",
+    "nerginturgut/semgrep-rule-v2",
+    "endpointlabs/semgrep-rules-v2"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -101,7 +136,42 @@
     "huber.giron@outlook.com",
     "jacobsherman@discountfurniture-homefurnishings.com",
     "nik.gam@gmail.com",
-    "98rjz862kr@privaterelay.appleid.com"
+    "98rjz862kr@privaterelay.appleid.com",
+    "assist@gemcybersecurityassist.com",
+    "lucas@impulsa.com.br",
+    "your@email.com",
+    "imaginai90@proton.me",
+    "kimphatngogia@gmail.com",
+    "andremachado@ymail.com",
+    "loomba.harsh.13@gmail.com",
+    "iljapreuss@googlemail.com",
+    "umuff71@gmail.com",
+    "jan.gleixner@gmail.com",
+    "paulo.novelli@gmail.com",
+    "aberesford074@gmail.com",
+    "kullmannmaximikian@gmail.com",
+    "hernando.ren@studytafensw.edu.au",
+    "contact@downtozero.cloud",
+    "cpj24@mails.tsinghua.edu.cn",
+    "scadam@microsoft.com",
+    "ian@phys.nthu.edu.tw",
+    "gregory.harper84@gmail.com",
+    "burakemirsezen@gmail.com",
+    "austinolsenpersonal@hotmail.com",
+    "ishivamsoni150299@gmail.com",
+    "strelov1@gmail.com",
+    "823504052@qq.com",
+    "chamodm115@gmail.com",
+    "ak8dev@gmail.com",
+    "msk@gmail.com",
+    "gautamdsheth@outlook.com",
+    "jorealfaro@gmail.com",
+    "bartwagener@gmail.com",
+    "mad4b.digital@gmail.com",
+    "hello@semgrep.com",
+    "support@amplify.security",
+    "nergin@kondukto.io",
+    "info@endpoint-labs.com"
   ],
   "history": [
     {
@@ -403,24 +473,243 @@
       "email": "98rjz862kr@privaterelay.appleid.com",
       "tool_count": 7,
       "sent_date": "2026-11-19T18:22:30.980857+00:00"
+    },
+    {
+      "repo": "gem-cybersecurity-monitoring-assist/gem-enterprise",
+      "email": "assist@gemcybersecurityassist.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T22:41:04.678499+00:00"
+    },
+    {
+      "repo": "apenaslucasguedes/nossa-campanha",
+      "email": "lucas@impulsa.com.br",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T22:41:11.448162+00:00"
+    },
+    {
+      "repo": "5starsunited/neonpanel-mcp-server",
+      "email": "your@email.com",
+      "tool_count": 14,
+      "sent_date": "2026-11-19T22:41:18.028548+00:00"
+    },
+    {
+      "repo": "1maginat0r/ai-forex-plugin",
+      "email": "imaginai90@proton.me",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T22:41:24.609541+00:00"
+    },
+    {
+      "repo": "xulytiengviet/Actions",
+      "email": "kimphatngogia@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T22:41:31.339747+00:00"
+    },
+    {
+      "repo": "Andrelbmachado/Typer",
+      "email": "andremachado@ymail.com",
+      "tool_count": 15,
+      "sent_date": "2026-11-19T22:41:37.995009+00:00"
+    },
+    {
+      "repo": "harshloomba13/gurukul",
+      "email": "loomba.harsh.13@gmail.com",
+      "tool_count": 7,
+      "sent_date": "2026-11-19T22:41:44.652162+00:00"
+    },
+    {
+      "repo": "ipreuss/expedition-narrator",
+      "email": "iljapreuss@googlemail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:41:51.291456+00:00"
+    },
+    {
+      "repo": "seeker71/Coherence-Network",
+      "email": "umuff71@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T22:41:57.843462+00:00"
+    },
+    {
+      "repo": "jan-glx/aishell",
+      "email": "jan.gleixner@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:42:04.447545+00:00"
+    },
+    {
+      "repo": "P9LLI/Patron",
+      "email": "paulo.novelli@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T22:42:10.974724+00:00"
+    },
+    {
+      "repo": "aberesford074-web/AEGIS",
+      "email": "aberesford074@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T22:42:17.599167+00:00"
+    },
+    {
+      "repo": "Kayus24/kgg",
+      "email": "kullmannmaximikian@gmail.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T22:42:24.183111+00:00"
+    },
+    {
+      "repo": "OurChappy/portalflow-ai",
+      "email": "hernando.ren@studytafensw.edu.au",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T22:42:30.784279+00:00"
+    },
+    {
+      "repo": "DownToZero-Cloud/dtz-sdk-for-rust",
+      "email": "contact@downtozero.cloud",
+      "tool_count": 25,
+      "sent_date": "2026-11-19T22:42:37.579910+00:00"
+    },
+    {
+      "repo": "Chenpinji/LLMThief",
+      "email": "cpj24@mails.tsinghua.edu.cn",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T22:42:44.153013+00:00"
+    },
+    {
+      "repo": "scadam/ITServiceAgent",
+      "email": "scadam@microsoft.com",
+      "tool_count": 12,
+      "sent_date": "2026-11-19T22:42:50.926815+00:00"
+    },
+    {
+      "repo": "Uni20-dev/uni20",
+      "email": "ian@phys.nthu.edu.tw",
+      "tool_count": 15,
+      "sent_date": "2026-11-19T22:42:57.593013+00:00"
+    },
+    {
+      "repo": "gregoryharper84-ship-it/WOW-Dashboard",
+      "email": "gregory.harper84@gmail.com",
+      "tool_count": 17,
+      "sent_date": "2026-11-19T22:43:04.169560+00:00"
+    },
+    {
+      "repo": "burakemirsezen/vibe-cooking",
+      "email": "burakemirsezen@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T22:43:10.761578+00:00"
+    },
+    {
+      "repo": "Olsen-Systems/Bay-Delivery-Quote-Copilot",
+      "email": "austinolsenpersonal@hotmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T22:43:17.294077+00:00"
+    },
+    {
+      "repo": "ishivamsoni150299/sneha-dental",
+      "email": "ishivamsoni150299@gmail.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T22:43:24.186353+00:00"
+    },
+    {
+      "repo": "Prasanth595/freehire",
+      "email": "strelov1@gmail.com",
+      "tool_count": 12,
+      "sent_date": "2026-11-19T22:43:30.910111+00:00"
+    },
+    {
+      "repo": "Runder-sun/aegis-alpha-skillpack",
+      "email": "823504052@qq.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T22:43:37.698053+00:00"
+    },
+    {
+      "repo": "chamodmadhusanka/coachello-agent-dev",
+      "email": "chamodm115@gmail.com",
+      "tool_count": 8,
+      "sent_date": "2026-11-19T22:43:44.607283+00:00"
+    },
+    {
+      "repo": "ak2dev/agentguard",
+      "email": "ak8dev@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T22:43:51.173070+00:00"
+    },
+    {
+      "repo": "passion-programmar/qts-start-up-repository-job-tracking",
+      "email": "msk@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T22:43:57.980287+00:00"
+    },
+    {
+      "repo": "gautamdsheth/collabdayshelsinki2026",
+      "email": "gautamdsheth@outlook.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T22:44:04.557535+00:00"
+    },
+    {
+      "repo": "jorgeeab/Reloj_Antiguo",
+      "email": "jorealfaro@gmail.com",
+      "tool_count": 21,
+      "sent_date": "2026-11-19T22:44:11.386025+00:00"
+    },
+    {
+      "repo": "bwag84/bwag84",
+      "email": "bartwagener@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-19T22:44:18.624482+00:00"
+    },
+    {
+      "repo": "mad4bdigital-ai/multi-business-multi-role-growth-intelligence-os",
+      "email": "mad4b.digital@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:44:25.424385+00:00"
+    },
+    {
+      "repo": "semgrep/semgrep-rules",
+      "email": "hello@semgrep.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:44:32.001343+00:00"
+    },
+    {
+      "repo": "amplify-security/opengrep-rules",
+      "email": "support@amplify.security",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:44:39.057987+00:00"
+    },
+    {
+      "repo": "nerginturgut/semgrep-rule-v2",
+      "email": "nergin@kondukto.io",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:44:45.742186+00:00"
+    },
+    {
+      "repo": "endpointlabs/semgrep-rules-v2",
+      "email": "info@endpoint-labs.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T22:44:52.560112+00:00"
     }
   ],
   "skipped_no_email_repos": [
     "Anazeez/reach-gateway",
     "ChinmayGit8765/receipt-tax",
+    "Coverage-Cat/skills",
     "Igor-Almeidados-Santos/typst-renderer",
+    "Rick84444/JACO-CODE",
     "alexhouse-ua/book-gpt-api",
+    "asmatkhan925/scholarsrepublic",
+    "dunsin2018/HireMe",
     "finmap-org/mcp-server",
     "hatgit/forex-gpt",
+    "jackpalm88/context-brain-memory-lab",
     "jcamilogarciacano/GPT-Gmail",
+    "jmj732/Toss_Trade_System",
     "judsoder/max-attunement-api",
+    "king54346/smegrepTest",
     "microsoftgraph/github-issue-manager",
     "namin/Kappa-ChatGPT",
     "namin/io-chatgpt.livecode.ch",
     "nirholas/three.ws",
+    "overandor/membra_db",
     "pokapopo/vps-action-gateway",
     "s-os-agency/S-OS",
-    "strelov1/freehire"
+    "strelov1/freehire",
+    "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-19T18:22:30.980944+00:00"
+  "updated_at": "2026-11-19T22:44:52.560192+00:00"
 }
