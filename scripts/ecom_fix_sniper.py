@@ -76,37 +76,73 @@ def audit_product_jsonld(html: str, expected_price: float | None, product_url: s
     return issues
 
 
+RETAIL_ROTATION = [
+    ("boutique shop", "London"), ("clothing store", "Manchester"), ("jewelry store", "Austin"),
+    ("coffee roaster", "Portland"), ("bicycle shop", "Bristol"), ("pet shop", "Chicago"),
+    ("gift shop", "Edinburgh"), ("bakery", "Seattle"), ("skincare shop", "Los Angeles"),
+    ("homeware shop", "Brighton"), ("outdoor gear shop", "Denver"), ("florist", "Boston"),
+]
+
+
 def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 35) -> tuple[list[str], int]:
     hosts = []
     seen = set()
     page = max(2, int(cc_page or 2))
+
+    # 1. Common Crawl Shopify storefronts (small limit=30 across recent collections to avoid 504)
     try:
         colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
-        cdx_api = colls[0]["cdx-api"]
-        for _ in range(3):
-            if len(hosts) >= limit_hosts:
+        for coll in colls[:3]:
+            if len(hosts) >= 20:
                 break
-            u = f"{cdx_api}?url=*.myshopify.com&matchType=prefix&output=json&limit=80&page={page}&fl=url,status&filter=status:200"
-            if page >= 2:
-                u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=80&page={page}&fl=url,status&filter=status:200"
-            st, _, _, raw = common.http_fetch(u, timeout=20, verify_ssl=False)
-            if st == 200:
-                for line in raw.decode("utf-8", "replace").splitlines():
-                    if not line.strip():
-                        continue
-                    try:
-                        item_url = json.loads(line).get("url") or ""
-                        h = (urllib.parse.urlparse(item_url).hostname or "").lower()
-                        if not h or h == "myshopify.com" or h == "www.myshopify.com" or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.")):
+            cdx_api = coll["cdx-api"]
+            u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=30&page={page}&fl=url"
+            try:
+                st, _, _, raw = common.http_fetch(u, timeout=16, verify_ssl=False)
+                if st == 200:
+                    for line in raw.decode("utf-8", "replace").splitlines():
+                        if not line.strip():
                             continue
-                        if h not in seen:
-                            seen.add(h)
-                            hosts.append(h)
-                    except Exception:
-                        continue
+                        try:
+                            item_url = json.loads(line).get("url") or ""
+                            h = (urllib.parse.urlparse(item_url).hostname or "").lower()
+                            if not h or h in ("myshopify.com", "www.myshopify.com") or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.", "partners.")):
+                                continue
+                            if h not in seen:
+                                seen.add(h)
+                                hosts.append(h)
+                        except Exception:
+                            continue
+            except Exception:
+                continue
             page = 2 if page >= 50 else page + 1
     except Exception as exc:
         print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
+
+    # 2. Reliable fallback/supplement: Nominatim retail storefronts (catches WooCommerce & custom-domain Shopify stores)
+    rot_idx = page % len(RETAIL_ROTATION)
+    for off in range(2):
+        if len(hosts) >= limit_hosts:
+            break
+        cat, city = RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)]
+        nom_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(cat + ' ' + city)}&format=json&extratags=1&limit=25"
+        try:
+            items = common.http_get_json(nom_url, timeout=12)
+            for it in items:
+                ext = it.get("extratags") or {}
+                web = (ext.get("website") or ext.get("contact:website") or ext.get("url") or "").strip()
+                if not web:
+                    continue
+                if not web.startswith(("http://", "https://")):
+                    web = "https://" + web
+                h = (urllib.parse.urlparse(web).hostname or "").lower()
+                if h and "." in h and h not in seen and not any(b in h for b in ("facebook.com", "instagram.com", "yell.com")):
+                    seen.add(h)
+                    hosts.append(h)
+            time.sleep(1.1)
+        except Exception:
+            continue
+
     return hosts[:limit_hosts], page
 
 
