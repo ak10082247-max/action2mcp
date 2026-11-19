@@ -10,3 +10,19 @@ ENVIRONMENT = "production"
 MERCHANT_BASE_ADDRESS = "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6"
 MERCHANT_SOLANA_ATA = "DD3A7jaXFeHcif9eYj6Vhomuxypat5Yxi8ow6wxz27yL"
 GITHUB_REPO = "ak10082247-max/action2mcp"
+
+[[services]]
+binding = "ACTION2MCP_SVC"
+service = "action2mcp"
+
+[[services]]
+binding = "SITE_RESCUE_SVC"
+service = "site-rescue"
+
+[[services]]
+binding = "ECOM_FIX_SVC"
+service = "ecom-fix"
+
+[[services]]
+binding = "AGENTFUEL_SVC"
+service = "agentfuel402"

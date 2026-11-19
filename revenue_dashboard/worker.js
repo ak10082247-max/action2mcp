@@ -9,12 +9,12 @@ import { cleanSecret } from "../stripe_billing.js";
 import { MERCHANT_BASE, BASE_USDC, MERCHANT_SOLANA_ATA, buildCorsHeaders, jsonResp, htmlResp } from "../edge_helpers.js";
 
 const BASE_RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com"];
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const SOLANA_RPCS = ["https://solana-rpc.publicnode.com", "https://api.mainnet-beta.solana.com"];
 const FLEET_ENDPOINTS = [
-  { id: "action2mcp", name: "Action2MCP ($25 Hosted + Free ZIP)", url: "https://action2mcp.ak10082247.workers.dev/health" },
-  { id: "site_rescue", name: "Play A: SiteRescue ($49 / $149)", url: "https://site-rescue.ak10082247.workers.dev/health" },
-  { id: "ecom_fix", name: "Play B: StoreFix ($49 / $79)", url: "https://ecom-fix.ak10082247.workers.dev/health" },
-  { id: "agentfuel402", name: "AgentFuel402 Data Factory", url: "https://agentfuel402.ak10082247.workers.dev/health" },
+  { id: "action2mcp", name: "Action2MCP ($25 Hosted + Free ZIP)", url: "https://action2mcp.ak10082247.workers.dev/health", binding: "ACTION2MCP_SVC" },
+  { id: "site_rescue", name: "Play A: SiteRescue ($49 / $149)", url: "https://site-rescue.ak10082247.workers.dev/health", binding: "SITE_RESCUE_SVC" },
+  { id: "ecom_fix", name: "Play B: StoreFix ($49 / $79)", url: "https://ecom-fix.ak10082247.workers.dev/health", binding: "ECOM_FIX_SVC" },
+  { id: "agentfuel402", name: "AgentFuel402 Data Factory", url: "https://agentfuel402.ak10082247.workers.dev/health", binding: "AGENTFUEL_SVC" },
   { id: "canaryguard", name: "CanaryGuard 402 Firewall", url: "https://canaryguard-402.onrender.com/health" },
   { id: "rugshield", name: "RugShield 402 Simulator", url: "https://rugshield-402.onrender.com/health" },
 ];
@@ -117,26 +117,37 @@ async function fetchOnChainBalances() {
   let solUsdc = 0;
   let solOk = false;
   let recentSolanaSigs = [];
+  for (const sRpc of SOLANA_RPCS) {
+    try {
+      const balR = await fetch(sRpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getAccountInfo", params: [MERCHANT_SOLANA_ATA, { encoding: "base64" }] }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const bj = await balR.json().catch(() => ({}));
+      const b64 = bj?.result?.value?.data?.[0];
+      if (b64) {
+        const raw = atob(b64);
+        if (raw.length >= 72) {
+          const bytes = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+          const amountAtomic = new DataView(bytes.buffer).getBigUint64(64, true);
+          solUsdc = Number((Number(amountAtomic) / 1e6).toFixed(6));
+          solOk = true;
+          break;
+        }
+      }
+    } catch {}
+  }
+
   try {
-    const [balR, sigR] = await Promise.all([
-      fetch(SOLANA_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getTokenAccountBalance", params: [MERCHANT_SOLANA_ATA] }),
-        signal: AbortSignal.timeout(6000),
-      }),
-      fetch(SOLANA_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "getSignaturesForAddress", params: [MERCHANT_SOLANA_ATA, { limit: 10 }] }),
-        signal: AbortSignal.timeout(6000),
-      }),
-    ]);
-    const bj = await balR.json().catch(() => ({}));
-    if (bj?.result?.value?.amount !== undefined) {
-      solUsdc = Number((Number(bj.result.value.amount) / 1e6).toFixed(6));
-      solOk = true;
-    }
+    const sigR = await fetch("https://api.mainnet-beta.solana.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "getSignaturesForAddress", params: [MERCHANT_SOLANA_ATA, { limit: 10 }] }),
+      signal: AbortSignal.timeout(5000),
+    });
     const sj = await sigR.json().catch(() => ({}));
     if (Array.isArray(sj?.result)) {
       recentSolanaSigs = sj.result.map((x) => ({
@@ -227,15 +238,18 @@ async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
   return out;
 }
 
-async function pingFleetHealth() {
+async function pingFleetHealth(env) {
   return await Promise.all(
     FLEET_ENDPOINTS.map(async (ep) => {
       const t0 = Date.now();
       try {
-        const r = await fetch(ep.url, { headers: { "User-Agent": "KuroxDashboard/1.0" }, signal: AbortSignal.timeout(4000) });
-        return { ...ep, ok: r.ok, status: r.status, ms: Date.now() - t0 };
+        const svc = ep.binding ? env?.[ep.binding] : null;
+        const r = svc
+          ? await svc.fetch(new Request(ep.url), { signal: AbortSignal.timeout(4000) })
+          : await fetch(ep.url, { headers: { "User-Agent": "KuroxDashboard/1.0" }, signal: AbortSignal.timeout(4000) });
+        return { id: ep.id, name: ep.name, url: ep.url, ok: r.ok, status: r.status, ms: Date.now() - t0 };
       } catch {
-        return { ...ep, ok: false, status: 0, ms: Date.now() - t0 };
+        return { id: ep.id, name: ep.name, url: ep.url, ok: false, status: 0, ms: Date.now() - t0 };
       }
     }),
   );
@@ -248,7 +262,7 @@ export async function gatherLiveDashboardData(env) {
     fetchOnChainBalances(),
     fetchApifyTelemetry(env?.APIFY_TOKEN),
     fetchOutreachTelemetry(repoSlug),
-    pingFleetHealth(),
+    pingFleetHealth(env),
   ]);
 
   const totalTrackedUsd = Number((stripe.paid_usd + chain.total_usdc).toFixed(4));

@@ -736,9 +736,13 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
       );
     }
     if (u === "https://mainnet.base.org") return new Response(JSON.stringify({ result: "0x0f4240" }), { status: 200 });
-    if (u === "https://api.mainnet-beta.solana.com") {
+    if (u === "https://solana-rpc.publicnode.com" || u === "https://api.mainnet-beta.solana.com") {
       const b = String(init?.body || "");
-      if (b.includes("getTokenAccountBalance")) return new Response(JSON.stringify({ result: { value: { amount: "500000" } } }), { status: 200 });
+      if (b.includes("getAccountInfo")) {
+        const splBuf = Buffer.alloc(165);
+        splBuf.writeBigUInt64LE(500000n, 64);
+        return new Response(JSON.stringify({ result: { value: { data: [splBuf.toString("base64"), "base64"] } } }), { status: 200 });
+      }
       return new Response(JSON.stringify({ result: [{ signature: "5abc123def", blockTime: 1795000200, confirmationStatus: "finalized", err: null }] }), { status: 200 });
     }
     if (u.includes("apify.com/v2/acts")) return new Response(JSON.stringify({ data: { items: [{ name: "action2mcp", stats: { totalRuns: 4 } }] } }), { status: 200 });
