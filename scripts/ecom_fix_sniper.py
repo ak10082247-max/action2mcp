@@ -76,31 +76,38 @@ def audit_product_jsonld(html: str, expected_price: float | None, product_url: s
     return issues
 
 
-def fetch_store_candidates(cc_page: int = 1, limit_hosts: int = 35) -> tuple[list[str], int]:
+def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 35) -> tuple[list[str], int]:
     hosts = []
     seen = set()
+    page = max(2, int(cc_page or 2))
     try:
         colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
         cdx_api = colls[0]["cdx-api"]
-        u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=80&page={cc_page}&fl=url,status&filter=status:200"
-        st, _, _, raw = common.http_fetch(u, timeout=20, verify_ssl=False)
-        if st == 200:
-            for line in raw.decode("utf-8", "replace").splitlines():
-                if not line.strip():
-                    continue
-                try:
-                    item_url = json.loads(line).get("url") or ""
-                    h = (urllib.parse.urlparse(item_url).hostname or "").lower()
-                    if not h or h == "myshopify.com" or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.")):
+        for _ in range(3):
+            if len(hosts) >= limit_hosts:
+                break
+            u = f"{cdx_api}?url=*.myshopify.com&matchType=prefix&output=json&limit=80&page={page}&fl=url,status&filter=status:200"
+            if page >= 2:
+                u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=80&page={page}&fl=url,status&filter=status:200"
+            st, _, _, raw = common.http_fetch(u, timeout=20, verify_ssl=False)
+            if st == 200:
+                for line in raw.decode("utf-8", "replace").splitlines():
+                    if not line.strip():
                         continue
-                    if h not in seen:
-                        seen.add(h)
-                        hosts.append(h)
-                except Exception:
-                    continue
+                    try:
+                        item_url = json.loads(line).get("url") or ""
+                        h = (urllib.parse.urlparse(item_url).hostname or "").lower()
+                        if not h or h == "myshopify.com" or h == "www.myshopify.com" or h.startswith(("admin.", "apps.", "help.", "community.", "accounts.")):
+                            continue
+                        if h not in seen:
+                            seen.add(h)
+                            hosts.append(h)
+                    except Exception:
+                        continue
+            page = 2 if page >= 50 else page + 1
     except Exception as exc:
         print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
-    return hosts[:limit_hosts], (cc_page + 1) % 50
+    return hosts[:limit_hosts], page
 
 
 def diagnose_ecom_store(candidate_host: str) -> dict | None:
