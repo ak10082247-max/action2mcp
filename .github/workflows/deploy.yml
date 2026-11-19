@@ -1,0 +1,43 @@
+name: Deploy Action2MCP to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy_worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Action2MCP Worker Unit Tests
+        run: node --test test_worker.mjs
+
+      - name: Deploy Worker to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      - name: Sync Runtime Billing Secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          KUROX_SIGNING_SECRET: ${{ secrets.KUROX_SIGNING_SECRET }}
+        run: |
+          if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
+            printf '%s' "$STRIPE_SECRET_KEY" | npx --yes wrangler@3 secret put STRIPE_SECRET_KEY >/dev/null
+          fi
+          if [ -n "${KUROX_SIGNING_SECRET:-}" ]; then
+            printf '%s' "$KUROX_SIGNING_SECRET" | npx --yes wrangler@3 secret put KUROX_SIGNING_SECRET >/dev/null
+          fi

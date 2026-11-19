@@ -1,0 +1,16 @@
+{
+  "name": "action2mcp",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Action2MCP — Automated OpenAI Custom GPT Action to Cloudflare Remote MCP & SKILL.md Compiler for the Dec 11, 2026 Retirement",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test test_worker.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.84.0"
+  }
+}

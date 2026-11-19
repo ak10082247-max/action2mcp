@@ -1,0 +1,41 @@
+name: Action2MCP Custom GPT Sniper Outreach
+
+on:
+  schedule:
+    - cron: '27 */6 * * *'  # Runs every 6 hours at off-peak minute :27
+  workflow_dispatch:
+
+jobs:
+  gpt_sniper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Action2MCP Sniper Tests & Prospecting
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          ACTION2MCP_BASE_URL: https://action2mcp.ak10082247.workers.dev
+        run: |
+          python scripts/test_sniper.py
+          if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+            python scripts/gpt_action_sniper.py --limit 25 --max-emails 20 --send
+          else
+            echo "SMTP_USER/SMTP_PASS secrets not set; skipping --send."
+          fi
+
+      - name: Persist Contacted GPTs State
+        run: |
+          if [ -f data/contacted_gpts.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/contacted_gpts.json
+            git diff --staged --quiet || (git commit -m "chore: persist contacted Custom GPT repos [skip ci]" && git push origin main)
+          fi
