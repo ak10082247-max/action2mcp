@@ -1,5 +1,5 @@
 {
-  "cc_page": 18,
+  "cc_page": 5,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -7,7 +7,9 @@
     "grfxp.myshopify.com",
     "ruceru.com",
     "pagepublications.co",
-    "pagesofthenight.myshopify.com"
+    "pagesofthenight.myshopify.com",
+    "pinoyshki.com",
+    "nuflours.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -16,7 +18,9 @@
     "sales@grfxp.com",
     "marketing@ruceru.com",
     "info@pagepublications.co",
-    "pagesofthenight@yahoo.com"
+    "pagesofthenight@yahoo.com",
+    "pinoyshki@gmail.com",
+    "customerservice@nuflours.com"
   ],
   "history": [
     {
@@ -53,7 +57,17 @@
       "domain": "pagesofthenight.myshopify.com",
       "email": "pagesofthenight@yahoo.com",
       "sent_date": "2026-11-19T22:41:26.387900+00:00"
+    },
+    {
+      "domain": "pinoyshki.com",
+      "email": "pinoyshki@gmail.com",
+      "sent_date": "2026-11-19T23:00:57.033847+00:00"
+    },
+    {
+      "domain": "nuflours.com",
+      "email": "customerservice@nuflours.com",
+      "sent_date": "2026-11-19T23:01:02.945051+00:00"
     }
   ],
-  "updated_at": "2026-11-19T22:56:03.525060+00:00"
+  "updated_at": "2026-11-19T23:01:02.945128+00:00"
 }
