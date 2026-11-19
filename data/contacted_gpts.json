@@ -19,7 +19,37 @@
     "tatsuiman/GPTs-Actions",
     "akinfold/yandex-disk-downloads-sort-skill",
     "realaman90/branding",
-    "CHARM-BDF/charmgpt"
+    "CHARM-BDF/charmgpt",
+    "techwithanirudh/chatgpt-hass",
+    "heydryft/gpt-ea",
+    "CaYatur/CaYa-Coding-Agent-ChatGPT-Web",
+    "amikai/openings-mcp",
+    "AlexandrosChrtn/MyCustomGPT-actions",
+    "moshere-cirm/OpenAIActions",
+    "Levon0Asatryan/android-mcp-bridge",
+    "dw18031988/ds_mcp_server",
+    "linancn/TianGong-AI-Actions",
+    "privatelinkio/crxreview",
+    "calenb2/sports-intel-spine",
+    "Nativ-Technologies/nativ-docs",
+    "onlyarche/my-gpts",
+    "internet-dot/Reflect-Memory",
+    "ysquare/bazi_api",
+    "VISHWAr23/tex-server",
+    "syumai6842/PhiloTree",
+    "ericmgomes/abastece-certo",
+    "ralforion/orionbelt-semantic-layer",
+    "angeladolores2018-arch/ptncore-pages",
+    "mkc909/gpt-terminal-plus",
+    "like-me-like/integrations",
+    "JFeimster/ad-spend-cashflow",
+    "p69/football-api",
+    "Ian-Tolnay/gdl-fedex-memory-api",
+    "giux78/HoodieCreator",
+    "HuberGiron/fablabcdmx-inventario-api",
+    "jacobsherman-spec/discount-furniture-site-scripts",
+    "n0namer/gpts-actions-supabase",
+    "98rjz862kr-alt/cillo-zoho-brigde"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -41,7 +71,37 @@
     "tatsuya.ito.dev@gmail.com",
     "akinfold@gmail.com",
     "aman@fastlanedevs.com",
-    "acrouse.uab@gmail.com"
+    "acrouse.uab@gmail.com",
+    "hello@techwithanirudh.com",
+    "jishu.nirupam@gmail.com",
+    "caganturgut@cayadev.com",
+    "amikai.chuang@gmail.com",
+    "alexchrtn@gmail.com",
+    "moshe@cirm.co",
+    "levonasatryan1098@gmail.com",
+    "nhat.nguyenquang1838@gmail.com",
+    "li-nan@tsinghua.edu.cn",
+    "github@privatelink.io",
+    "calen@calenbedford.com",
+    "founders@usenativ.com",
+    "acronepel@gmail.com",
+    "vm@reflectmemory.com",
+    "ysquare@gmail.com",
+    "vishwarajkumar05@gmail.com",
+    "syuumai6842@gmail.com",
+    "eric@agencialinka.com.br",
+    "info@ralforion.com",
+    "angeladolores2018@gmail.com",
+    "matthewhandau@gmail.com",
+    "mail@yme.nl",
+    "jasonfeimster@gmail.com",
+    "pashxa@syntronic.com",
+    "ian@gdlauto.com.au",
+    "ale.ercolani@gmail.com",
+    "huber.giron@outlook.com",
+    "jacobsherman@discountfurniture-homefurnishings.com",
+    "nik.gam@gmail.com",
+    "98rjz862kr@privaterelay.appleid.com"
   ],
   "history": [
     {
@@ -163,17 +223,204 @@
       "email": "acrouse.uab@gmail.com",
       "tool_count": 2,
       "sent_date": "2026-11-19T17:36:47.785765+00:00"
+    },
+    {
+      "repo": "techwithanirudh/chatgpt-hass",
+      "email": "hello@techwithanirudh.com",
+      "tool_count": 8,
+      "sent_date": "2026-11-19T18:19:15.933823+00:00"
+    },
+    {
+      "repo": "heydryft/gpt-ea",
+      "email": "jishu.nirupam@gmail.com",
+      "tool_count": 17,
+      "sent_date": "2026-11-19T18:19:22.574936+00:00"
+    },
+    {
+      "repo": "CaYatur/CaYa-Coding-Agent-ChatGPT-Web",
+      "email": "caganturgut@cayadev.com",
+      "tool_count": 12,
+      "sent_date": "2026-11-19T18:19:29.192609+00:00"
+    },
+    {
+      "repo": "amikai/openings-mcp",
+      "email": "amikai.chuang@gmail.com",
+      "tool_count": 8,
+      "sent_date": "2026-11-19T18:19:35.821080+00:00"
+    },
+    {
+      "repo": "AlexandrosChrtn/MyCustomGPT-actions",
+      "email": "alexchrtn@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T18:19:42.570013+00:00"
+    },
+    {
+      "repo": "moshere-cirm/OpenAIActions",
+      "email": "moshe@cirm.co",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T18:19:49.271305+00:00"
+    },
+    {
+      "repo": "Levon0Asatryan/android-mcp-bridge",
+      "email": "levonasatryan1098@gmail.com",
+      "tool_count": 9,
+      "sent_date": "2026-11-19T18:19:55.910196+00:00"
+    },
+    {
+      "repo": "dw18031988/ds_mcp_server",
+      "email": "nhat.nguyenquang1838@gmail.com",
+      "tool_count": 18,
+      "sent_date": "2026-11-19T18:20:02.549515+00:00"
+    },
+    {
+      "repo": "linancn/TianGong-AI-Actions",
+      "email": "li-nan@tsinghua.edu.cn",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T18:20:09.240074+00:00"
+    },
+    {
+      "repo": "privatelinkio/crxreview",
+      "email": "github@privatelink.io",
+      "tool_count": 11,
+      "sent_date": "2026-11-19T18:20:15.903769+00:00"
+    },
+    {
+      "repo": "calenb2/sports-intel-spine",
+      "email": "calen@calenbedford.com",
+      "tool_count": 13,
+      "sent_date": "2026-11-19T18:20:22.568848+00:00"
+    },
+    {
+      "repo": "Nativ-Technologies/nativ-docs",
+      "email": "founders@usenativ.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T18:20:29.193491+00:00"
+    },
+    {
+      "repo": "onlyarche/my-gpts",
+      "email": "acronepel@gmail.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-19T18:20:35.934678+00:00"
+    },
+    {
+      "repo": "internet-dot/Reflect-Memory",
+      "email": "vm@reflectmemory.com",
+      "tool_count": 14,
+      "sent_date": "2026-11-19T18:20:42.529224+00:00"
+    },
+    {
+      "repo": "ysquare/bazi_api",
+      "email": "ysquare@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-19T18:20:50.089963+00:00"
+    },
+    {
+      "repo": "VISHWAr23/tex-server",
+      "email": "vishwarajkumar05@gmail.com",
+      "tool_count": 21,
+      "sent_date": "2026-11-19T18:20:56.724769+00:00"
+    },
+    {
+      "repo": "syumai6842/PhiloTree",
+      "email": "syuumai6842@gmail.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-19T18:21:03.336096+00:00"
+    },
+    {
+      "repo": "ericmgomes/abastece-certo",
+      "email": "eric@agencialinka.com.br",
+      "tool_count": 10,
+      "sent_date": "2026-11-19T18:21:10.016949+00:00"
+    },
+    {
+      "repo": "ralforion/orionbelt-semantic-layer",
+      "email": "info@ralforion.com",
+      "tool_count": 12,
+      "sent_date": "2026-11-19T18:21:16.900138+00:00"
+    },
+    {
+      "repo": "angeladolores2018-arch/ptncore-pages",
+      "email": "angeladolores2018@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T18:21:23.566979+00:00"
+    },
+    {
+      "repo": "mkc909/gpt-terminal-plus",
+      "email": "matthewhandau@gmail.com",
+      "tool_count": 8,
+      "sent_date": "2026-11-19T18:21:30.247080+00:00"
+    },
+    {
+      "repo": "like-me-like/integrations",
+      "email": "mail@yme.nl",
+      "tool_count": 8,
+      "sent_date": "2026-11-19T18:21:36.898714+00:00"
+    },
+    {
+      "repo": "JFeimster/ad-spend-cashflow",
+      "email": "jasonfeimster@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T18:21:43.726392+00:00"
+    },
+    {
+      "repo": "p69/football-api",
+      "email": "pashxa@syntronic.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-19T18:21:50.427094+00:00"
+    },
+    {
+      "repo": "Ian-Tolnay/gdl-fedex-memory-api",
+      "email": "ian@gdlauto.com.au",
+      "tool_count": 20,
+      "sent_date": "2026-11-19T18:21:57.059432+00:00"
+    },
+    {
+      "repo": "giux78/HoodieCreator",
+      "email": "ale.ercolani@gmail.com",
+      "tool_count": 12,
+      "sent_date": "2026-11-19T18:22:03.766649+00:00"
+    },
+    {
+      "repo": "HuberGiron/fablabcdmx-inventario-api",
+      "email": "huber.giron@outlook.com",
+      "tool_count": 7,
+      "sent_date": "2026-11-19T18:22:10.539044+00:00"
+    },
+    {
+      "repo": "jacobsherman-spec/discount-furniture-site-scripts",
+      "email": "jacobsherman@discountfurniture-homefurnishings.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-19T18:22:17.341796+00:00"
+    },
+    {
+      "repo": "n0namer/gpts-actions-supabase",
+      "email": "nik.gam@gmail.com",
+      "tool_count": 37,
+      "sent_date": "2026-11-19T18:22:24.305509+00:00"
+    },
+    {
+      "repo": "98rjz862kr-alt/cillo-zoho-brigde",
+      "email": "98rjz862kr@privaterelay.appleid.com",
+      "tool_count": 7,
+      "sent_date": "2026-11-19T18:22:30.980857+00:00"
     }
   ],
   "skipped_no_email_repos": [
+    "Anazeez/reach-gateway",
+    "ChinmayGit8765/receipt-tax",
+    "Igor-Almeidados-Santos/typst-renderer",
     "alexhouse-ua/book-gpt-api",
     "finmap-org/mcp-server",
     "hatgit/forex-gpt",
+    "jcamilogarciacano/GPT-Gmail",
+    "judsoder/max-attunement-api",
+    "microsoftgraph/github-issue-manager",
     "namin/Kappa-ChatGPT",
     "namin/io-chatgpt.livecode.ch",
     "nirholas/three.ws",
     "pokapopo/vps-action-gateway",
+    "s-os-agency/S-OS",
     "strelov1/freehire"
   ],
-  "updated_at": "2026-11-19T17:36:47.785834+00:00"
+  "updated_at": "2026-11-19T18:22:30.980944+00:00"
 }
