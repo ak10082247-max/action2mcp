@@ -76,6 +76,8 @@ paths:
         subj, body = sniper.craft_sniper_email(found[0])
         self.assertIn("Your Custom GPT Action in forex-gpt breaks Dec 11", subj)
         self.assertIn("get_latest_rates", body)
+        self.assertIn("/?spec_url=", body)
+        self.assertIn("/api/checkout?tier=bundle&spec_url=", body)
         self.assertIn("$49", body)
 
 

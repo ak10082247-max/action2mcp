@@ -162,6 +162,7 @@ test("Landing UI, /api/preview, /mcp convert_openapi_to_mcp, /server.json & /.we
   const homeHtml = await homeRes.text();
   assert.match(homeHtml, /Dec 11, 2026/);
   assert.match(homeHtml, /Action2MCP/);
+  assert.match(homeHtml, /spec_url/);
 
   assert.equal(previewRes.status, 200);
   const prev = await previewRes.json();
@@ -201,9 +202,12 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     }
     if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_49")) {
       return new Response(
-        JSON.stringify({ id: "cs_test_paid_49", payment_status: "paid", amount_total: 4900, currency: "usd", metadata: { tier: "bundle" } }),
+        JSON.stringify({ id: "cs_test_paid_49", payment_status: "paid", amount_total: 4900, currency: "usd", metadata: { tier: "bundle", spec_url: "https://raw.example.com/action.yaml" } }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
+    }
+    if (u === "https://raw.example.com/action.yaml") {
+      return new Response(MULTI_ENDPOINT_YAML, { status: 200, headers: { "content-type": "text/yaml" } });
     }
     if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_paid_149")) {
       return new Response(
@@ -247,13 +251,18 @@ test("Stripe ($49 & $149), ZIP download, Hosted MCP Bridge & x402 dual-chain set
     assert.equal(co149.status, 200);
     assert.equal((await co149.json()).amount_cents, 14900);
 
-    // 2. Paid $49 Stripe session downloads real PKZIP bundle
+    // 2. Paid $49 Stripe session preserves spec_url in fulfillment HTML & compiles remote ZIP cleanly
+    const fulHtmlRes = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_49"),
+      FULL_ENV,
+    );
+    assert.equal(fulHtmlRes.status, 200);
+    const fulHtml = await fulHtmlRes.text();
+    assert.match(fulHtml, /https:\/\/raw\.example\.com\/action\.yaml/);
+    assert.match(fulHtml, /Direct Download Compiled ZIP/);
+
     const zipRes = await worker.fetch(
-      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_49&format=zip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
-      }),
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download?session_id=cs_test_paid_49&format=zip"),
       FULL_ENV,
     );
     assert.equal(zipRes.status, 200);

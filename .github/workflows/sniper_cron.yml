@@ -1,5 +1,8 @@
 name: Action2MCP Custom GPT Sniper Outreach
 
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '27 */6 * * *'  # Runs every 6 hours at off-peak minute :27
@@ -26,7 +29,7 @@ jobs:
         run: |
           python scripts/test_sniper.py
           if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
-            python scripts/gpt_action_sniper.py --limit 25 --max-emails 20 --send
+            python scripts/gpt_action_sniper.py --limit 40 --max-emails 20 --send
           else
             echo "SMTP_USER/SMTP_PASS secrets not set; skipping --send."
           fi

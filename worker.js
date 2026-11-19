@@ -452,16 +452,28 @@ function renderLandingHtml(origin) {
     async function inspectX402(tier) {
       persistDraft();
       const out = document.getElementById("previewOut");
+      const su = document.getElementById("schemaUrl").value.trim();
+      const st = document.getElementById("schemaText").value.trim();
       const res = await fetch("/api/buy?tier=" + encodeURIComponent(tier), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tier,
-          schema: document.getElementById("schemaText").value || SAMPLE
+          schema_url: su || undefined,
+          schema: st || (su ? undefined : SAMPLE)
         })
       });
       out.textContent = "HTTP " + res.status + " x402 V2 Challenge (" + tier + "):\\n\\n" + JSON.stringify(await res.json(), null, 2);
     }
+    (function initFromQuery() {
+      try {
+        const sp = new URLSearchParams(window.location.search).get("spec_url") || "";
+        if (sp) {
+          document.getElementById("schemaUrl").value = sp;
+          runPreview();
+        }
+      } catch {}
+    })();
   </script>
 </body>
 </html>`;
@@ -490,11 +502,11 @@ function renderFulfillmentConsoleHtml(fulfillment, origin) {
 
   <div class="card">
     <h3>1. Download Your Compiled Cloudflare Worker + SKILL.md ZIP</h3>
-    <p style="color:#cbd5e1;font-size:0.9rem;">If you pasted an OpenAPI schema before checkout, it is auto-loaded below. Click Download to compile &amp; fetch your <code>.zip</code> archive.</p>
+    ${fulfillment.specUrl ? `<p style="color:#34d399;font-size:0.88rem;">Pre-loaded OpenAPI schema URL: <code>${escapeHtml(fulfillment.specUrl)}</code></p>` : `<p style="color:#cbd5e1;font-size:0.9rem;">If you pasted an OpenAPI schema before checkout, it is auto-loaded below. Click Download to compile &amp; fetch your <code>.zip</code> archive.</p>`}
     <textarea id="schemaInput"></textarea>
     <input id="instInput" type="text" placeholder="Optional GPT instructions for SKILL.md" />
     <button class="btn" onclick="downloadCustomZip()">Download Compiled Cloudflare MCP ZIP</button>
-    <a class="btn btn-blue" style="margin-left:0.5rem;" href="${escapeHtml(fulfillment.download_zip_url)}">Quick Starter Template ZIP</a>
+    <a class="btn btn-blue" style="margin-left:0.5rem;" href="${escapeHtml(fulfillment.download_zip_url)}">${fulfillment.specUrl ? "Direct Download Compiled ZIP" : "Quick Starter Template ZIP"}</a>
   </div>
 
   ${
@@ -515,12 +527,15 @@ function renderFulfillmentConsoleHtml(fulfillment, origin) {
   <script>
     const DL_TOKEN = ${JSON.stringify(fulfillment.download_token)};
     const MGMT_TOKEN = ${JSON.stringify(fulfillment.management_token || "")};
+    const PRESET_SPEC_URL = ${JSON.stringify(fulfillment.specUrl || "")};
+    let SAVED_AUTH_TYPE = "auto";
     try {
       const saved = JSON.parse(localStorage.getItem("a2m_draft") || "{}");
       if (saved.schema) document.getElementById("schemaInput").value = saved.schema;
       if (saved.instructions) document.getElementById("instInput").value = saved.instructions;
-      if (saved.schema_url && document.getElementById("bridgeUrlInput")) {
-        document.getElementById("bridgeUrlInput").value = saved.schema_url;
+      if (saved.auth_type) SAVED_AUTH_TYPE = saved.auth_type;
+      if (document.getElementById("bridgeUrlInput")) {
+        document.getElementById("bridgeUrlInput").value = saved.schema_url || PRESET_SPEC_URL || "";
       }
     } catch {}
 
@@ -533,7 +548,7 @@ function renderFulfillmentConsoleHtml(fulfillment, origin) {
       const res = await fetch("/api/download?token=" + encodeURIComponent(DL_TOKEN) + "&format=zip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schema, instructions: document.getElementById("instInput").value })
+        body: JSON.stringify({ schema, instructions: document.getElementById("instInput").value, auth_type: SAVED_AUTH_TYPE })
       });
       if (!res.ok) { alert("Compile failed: " + await res.text()); return; }
       const blob = await res.blob();

@@ -251,6 +251,7 @@ export async function verifyStripeSessionAndMint(sessionId, origin, env) {
     tier: plan.id,
     sku: plan.sku,
     product_name: plan.name,
+    specUrl,
     download_token: dlToken,
     download_zip_url: `${origin}/api/download?token=${encodeURIComponent(dlToken)}&format=zip`,
     download_json_url: `${origin}/api/download?token=${encodeURIComponent(dlToken)}&format=json`,

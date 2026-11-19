@@ -247,6 +247,8 @@ def discover_and_compile_gpt_actions(
     api_base: str = DEFAULT_API_BASE,
     gh_token: str = "",
     exclude_repos: set[str] | None = None,
+    require_email: bool = False,
+    no_email_out: set[str] | None = None,
 ) -> list[dict]:
     """Search GitHub for Custom GPT OpenAPI specs, download raw schemas, and compile via Action2MCP."""
     tok = gh_token or resolve_gh_token()
@@ -267,10 +269,10 @@ def discover_and_compile_gpt_actions(
     seen_repos = set()
 
     for q in queries:
-        if len(candidates) >= limit * 3:
+        if len(candidates) >= limit * 6:
             break
         try:
-            url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=15"
+            url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=100"
             res = _http_get_json(url, headers=gh_hdrs, timeout=12)
             for item in res.get("items") or []:
                 repo_full = ((item.get("repository") or {}).get("full_name") or "").strip()
@@ -300,6 +302,11 @@ def discover_and_compile_gpt_actions(
             if not preview.get("ok") or int(preview.get("tool_count") or 0) < 1:
                 continue
             email, owner_name = resolve_repo_owner_email(repo_full, gh_hdrs)
+            if not email:
+                if no_email_out is not None:
+                    no_email_out.add(repo_full)
+                if require_email:
+                    continue
             compiled_targets.append({
                 "repo": repo_full,
                 "repo_url": f"https://github.com/{repo_full}",
@@ -328,15 +335,18 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
     if len(target["tool_names"]) > 10:
         tools_preview += f"\n  - ... (+{len(target['tool_names']) - 10} more)"
 
+    raw_url = target["file_html_url"].replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/", 1)
+    spec_q = urllib.parse.quote(raw_url, safe="")
+
     body = (
         f"Hi {target.get('owner_name') or 'there'},\n\n"
         f"OpenAI retires Custom GPTs on December 11, 2026 and its Plugin migration drops Custom Actions.\n\n"
         f"I spotted your OpenAPI Action schema in {target['repo']} ({target['file_path']}) and test-compiled all {count} endpoints cleanly into ChatGPT Plugin MCP tools:\n"
         f"{tools_preview}\n\n"
-        f"You can paste your schema to verify the live MCP tools/list + SKILL.md free at:\n"
-        f"{public_service_url}\n\n"
-        f"Or download the pre-compiled Cloudflare Remote MCP Worker + SKILL.md ZIP bundle for $49 one-time (hosts free on Cloudflare, no ongoing subscription; Base/Solana USDC also accepted):\n"
-        f"{public_service_url}/api/checkout?tier=bundle&spec_url={urllib.parse.quote(target['file_html_url'].replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/', 1), safe='')}\n\n"
+        f"Inspect the live compiled MCP tools/list + SKILL.md for your schema free at:\n"
+        f"{public_service_url}/?spec_url={spec_q}\n\n"
+        f"Or download the pre-compiled Cloudflare Remote MCP Worker + SKILL.md ZIP bundle for $49 one-time (runs free on Cloudflare Workers, no subscription; Base/Solana USDC also accepted):\n"
+        f"{public_service_url}/api/checkout?tier=bundle&spec_url={spec_q}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -371,10 +381,25 @@ def main():
     state = load_state()
     sent_today = count_sent_today(state.get("history") or [])
     known_repos = set(state.get("contacted_repos") or [])
+    no_email_repos = set(state.get("skipped_no_email_repos") or [])
     known_emails = {e.lower().strip() for e in (state.get("contacted_emails") or [])}
 
+    if args.send and sent_today >= args.max_emails:
+        print(f"[!] Daily cap ({sent_today}/{args.max_emails}) already reached for today; skipping discovery.")
+        return
+
+    new_no_email = set()
     print(f"[+] Querying GitHub for OpenAI Custom GPT Actions via 'x-openai-isConsequential' -> compiling against {args.api_base} ...")
-    targets = discover_and_compile_gpt_actions(limit=args.limit, api_base=args.api_base, exclude_repos=known_repos)
+    targets = discover_and_compile_gpt_actions(
+        limit=args.limit,
+        api_base=args.api_base,
+        exclude_repos=known_repos | no_email_repos,
+        require_email=args.send,
+        no_email_out=new_no_email,
+    )
+    if args.send and new_no_email:
+        state["skipped_no_email_repos"] = sorted(no_email_repos | new_no_email)
+        save_state(state)
 
     print(f"[+] Compiled {len(targets)} real Custom GPT Action repo(s):")
     for idx, t in enumerate(targets, 1):
