@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '11 1,7,13,19 * * *'
   workflow_dispatch:
+    inputs:
+      canary_to:
+        description: 'Comma-separated canary Gmail/Outlook inboxes (sends canary only, uncounted)'
+        required: false
+        default: ''
 
 jobs:
   site_rescue_sniper:
@@ -24,11 +29,13 @@ jobs:
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          CANARY_INBOXES: ${{ secrets.CANARY_INBOXES }}
+          INPUT_CANARY_TO: ${{ inputs.canary_to }}
           SITE_RESCUE_BASE_URL: https://site-rescue.ak10082247.workers.dev
         run: |
           python scripts/test_all_snipers.py
-          if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+          if [ -n "$INPUT_CANARY_TO" ] && [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+            python scripts/site_rescue_sniper.py --canary-to "$INPUT_CANARY_TO"
+          elif [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
             python scripts/site_rescue_sniper.py --queries 8 --limit 100 --max-emails 20 --hard-stop 200 --send
           else
             echo "SMTP secrets not set; skipping --send."

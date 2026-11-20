@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '44 2,8,14,20 * * *'
   workflow_dispatch:
+    inputs:
+      canary_to:
+        description: 'Comma-separated canary Gmail/Outlook inboxes (sends canary only, uncounted)'
+        required: false
+        default: ''
 
 jobs:
   ecom_fix_sniper:
@@ -24,11 +29,13 @@ jobs:
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          CANARY_INBOXES: ${{ secrets.CANARY_INBOXES }}
+          INPUT_CANARY_TO: ${{ inputs.canary_to }}
           ECOM_FIX_BASE_URL: https://ecom-fix.ak10082247.workers.dev
         run: |
           python scripts/test_all_snipers.py
-          if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+          if [ -n "$INPUT_CANARY_TO" ] && [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+            python scripts/ecom_fix_sniper.py --canary-to "$INPUT_CANARY_TO"
+          elif [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
             python scripts/ecom_fix_sniper.py --limit 100 --max-emails 20 --hard-stop 200 --send
           else
             echo "SMTP secrets not set; skipping --send."

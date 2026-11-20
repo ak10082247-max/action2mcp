@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '27 */6 * * *'  # Runs every 6 hours at off-peak minute :27
   workflow_dispatch:
+    inputs:
+      canary_to:
+        description: 'Comma-separated canary Gmail/Outlook inboxes (sends canary only, uncounted)'
+        required: false
+        default: ''
 
 jobs:
   gpt_sniper:
@@ -25,11 +30,13 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          CANARY_INBOXES: ${{ secrets.CANARY_INBOXES }}
+          INPUT_CANARY_TO: ${{ inputs.canary_to }}
           ACTION2MCP_BASE_URL: https://action2mcp.ak10082247.workers.dev
         run: |
           python scripts/test_sniper.py
-          if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+          if [ -n "$INPUT_CANARY_TO" ] && [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
+            python scripts/gpt_action_sniper.py --canary-to "$INPUT_CANARY_TO"
+          elif [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
             python scripts/gpt_action_sniper.py --limit 20 --max-emails 20 --send
           else
             echo "SMTP_USER/SMTP_PASS secrets not set; skipping --send."
