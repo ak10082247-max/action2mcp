@@ -1,14 +1,16 @@
 {
-  "cursor": 34,
+  "cursor": 6,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
-    "piercefamilydental.com"
+    "piercefamilydental.com",
+    "mcbrideopticians.co.uk"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
     "info@aerodentistry.com",
-    "info@piercefamilydental.com"
+    "info@piercefamilydental.com",
+    "mcbrideopticians@hotmail.co.uk"
   ],
   "history": [
     {
@@ -25,9 +27,14 @@
       "domain": "piercefamilydental.com",
       "email": "info@piercefamilydental.com",
       "sent_date": "2026-11-19T23:01:16.706317+00:00"
+    },
+    {
+      "domain": "mcbrideopticians.co.uk",
+      "email": "mcbrideopticians@hotmail.co.uk",
+      "sent_date": "2026-11-20T12:18:26.843779+00:00"
     }
   ],
-  "updated_at": "2026-11-20T08:30:28.551960+00:00",
+  "updated_at": "2026-11-20T12:18:26.843825+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
