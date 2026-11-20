@@ -1,5 +1,5 @@
 {
-  "cc_page": 15,
+  "cc_page": 20,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -13,7 +13,9 @@
     "curtisaudiocafe.com",
     "nashvillecrystalstore.com",
     "digvinyl.co.uk",
-    "seiger.nl"
+    "seiger.nl",
+    "queenbeeflowershop.com",
+    "philipsburgdutyfree.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -28,7 +30,9 @@
     "info@curtisaudiocafe.com",
     "xxx@xxx.xxx",
     "orders@digvinyl.co.uk",
-    "info@seiger.nl"
+    "info@seiger.nl",
+    "queenbeeflowershop@gmail.com",
+    "info@philipsburgdutyfree.com"
   ],
   "history": [
     {
@@ -95,9 +99,19 @@
       "domain": "seiger.nl",
       "email": "info@seiger.nl",
       "sent_date": "2026-11-20T10:31:39.550531+00:00"
+    },
+    {
+      "domain": "queenbeeflowershop.com",
+      "email": "queenbeeflowershop@gmail.com",
+      "sent_date": "2026-11-20T21:59:41.278308+00:00"
+    },
+    {
+      "domain": "philipsburgdutyfree.com",
+      "email": "info@philipsburgdutyfree.com",
+      "sent_date": "2026-11-20T21:59:46.900743+00:00"
     }
   ],
-  "updated_at": "2026-11-20T12:18:47.237039+00:00",
+  "updated_at": "2026-11-20T21:59:46.900852+00:00",
   "bounced_emails": [
     "xxx@xxx.xxx",
     "marketing@ruceru.com"
