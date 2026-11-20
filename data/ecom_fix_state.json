@@ -1,5 +1,5 @@
 {
-  "cc_page": 5,
+  "cc_page": 10,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -9,7 +9,11 @@
     "pagepublications.co",
     "pagesofthenight.myshopify.com",
     "pinoyshki.com",
-    "nuflours.com"
+    "nuflours.com",
+    "curtisaudiocafe.com",
+    "nashvillecrystalstore.com",
+    "digvinyl.co.uk",
+    "seiger.nl"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -20,7 +24,11 @@
     "info@pagepublications.co",
     "pagesofthenight@yahoo.com",
     "pinoyshki@gmail.com",
-    "customerservice@nuflours.com"
+    "customerservice@nuflours.com",
+    "info@curtisaudiocafe.com",
+    "xxx@xxx.xxx",
+    "orders@digvinyl.co.uk",
+    "info@seiger.nl"
   ],
   "history": [
     {
@@ -67,7 +75,27 @@
       "domain": "nuflours.com",
       "email": "customerservice@nuflours.com",
       "sent_date": "2026-11-19T23:01:02.945051+00:00"
+    },
+    {
+      "domain": "curtisaudiocafe.com",
+      "email": "info@curtisaudiocafe.com",
+      "sent_date": "2026-11-20T10:31:22.569330+00:00"
+    },
+    {
+      "domain": "nashvillecrystalstore.com",
+      "email": "xxx@xxx.xxx",
+      "sent_date": "2026-11-20T10:31:28.110992+00:00"
+    },
+    {
+      "domain": "digvinyl.co.uk",
+      "email": "orders@digvinyl.co.uk",
+      "sent_date": "2026-11-20T10:31:33.994551+00:00"
+    },
+    {
+      "domain": "seiger.nl",
+      "email": "info@seiger.nl",
+      "sent_date": "2026-11-20T10:31:39.550531+00:00"
     }
   ],
-  "updated_at": "2026-11-19T23:01:02.945128+00:00"
+  "updated_at": "2026-11-20T10:31:39.550651+00:00"
 }
