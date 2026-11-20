@@ -25,11 +25,12 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          CANARY_INBOXES: ${{ secrets.CANARY_INBOXES }}
           ACTION2MCP_BASE_URL: https://action2mcp.ak10082247.workers.dev
         run: |
           python scripts/test_sniper.py
           if [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
-            python scripts/gpt_action_sniper.py --limit 40 --max-emails 85 --send
+            python scripts/gpt_action_sniper.py --limit 20 --max-emails 20 --send
           else
             echo "SMTP_USER/SMTP_PASS secrets not set; skipping --send."
           fi

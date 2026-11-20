@@ -14,6 +14,7 @@ import re
 import smtplib
 import ssl
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -22,9 +23,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+import outreach_common as common
+
 REPO_ROOT = os.path.dirname(SCRIPTS_DIR)
 DATA_DIR = os.path.join(REPO_ROOT, "data")
 CONTACTED_FILE = os.path.join(DATA_DIR, "contacted_gpts.json")
+ACTION2MCP_CUTOFF_DATE = "2026-12-12"
 
 DEFAULT_API_BASE = os.environ.get("ACTION2MCP_BASE_URL") or "https://action2mcp.ak10082247.workers.dev"
 UA = "Action2MCP-GPTSniper/1.0 (+https://github.com/ak10082247-max/action2mcp)"
@@ -149,21 +155,9 @@ def has_valid_mx(domain: str) -> bool:
     return ok
 
 
-def is_deliverable_email(email: str) -> bool:
-    if not email or "@" not in email:
-        return False
-    em = email.lower().strip()
-    parts = em.split("@")
-    if len(parts) != 2:
-        return False
-    local, domain = parts
-    if not re.fullmatch(r"[a-z0-9][a-z0-9._%+\-]{0,63}", local):
-        return False
-    if not re.fullmatch(r"[a-z0-9\-]+(?:\.[a-z0-9\-]+)+", domain):
-        return False
-    if domain in BLOCKED_DOMAINS or domain.endswith((".noreply.github.com", ".local", ".internal", ".test", ".edu", ".ac.uk")):
-        return False
-    if local in BLOCKED_PREFIXES or any(b in local for b in ("noreply", "no-reply", "donotreply", "bot")):
+def is_deliverable_email(email: str, bounced_set: set[str] | None = None) -> bool:
+    ok, domain = common.is_clean_email_syntax(email, bounced_set=bounced_set)
+    if not ok:
         return False
     return has_valid_mx(domain)
 
@@ -367,7 +361,7 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"{tools_preview}\n\n"
         f"You can inspect the compiled MCP tools/list + SKILL.md and download the full Cloudflare Worker + SKILL.md ZIP 100% free (no account, checkout, or email wall) at:\n"
         f"{public_service_url}/?spec_url={spec_q}\n\n"
-        f"(If you prefer not to touch Wrangler or set up a Cloudflare account at all, the optional hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}.)\n\n"
+        f"(If you prefer zero Wrangler/Cloudflare setup, the instant Hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q} — or just reply \"hosted\" for a direct checkout.stripe.com link.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -393,20 +387,44 @@ def send_smtp_email(to_addr: str, subject: str, body: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Action2MCP Custom GPT Action Sniper Finder")
-    parser.add_argument("--limit", type=int, default=40, help="Number of compiled repos to find/display (default: 40)")
-    parser.add_argument("--max-emails", type=int, default=85, help="Daily outreach cap (default: 85)")
+    parser.add_argument("--limit", type=int, default=20, help="Number of compiled repos to find/display (default: 20)")
+    parser.add_argument("--max-emails", type=int, default=20, help="Daily outreach cap (default: 20/day)")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="Action2MCP URL for live /api/preview compilation")
     parser.add_argument("--send", action="store_true", help="Actually send plain-text proof emails via SMTP")
+    parser.add_argument("--override", action="store_true", help="Override pause/cutoff/bounce gates intentionally")
+    parser.add_argument("--canary-to", default=os.environ.get("CANARY_INBOXES", ""), help="Comma-separated test Gmail/Outlook addresses (not counted toward tally)")
     args = parser.parse_args()
 
     state = load_state()
-    sent_today = count_sent_today(state.get("history") or [])
+    if args.canary_to:
+        subj, body = craft_sniper_email({
+            "repo": "example-org/sample-gpt-action",
+            "file_path": "openapi.yaml",
+            "file_html_url": "https://github.com/example-org/sample-gpt-action/blob/main/openapi.yaml",
+            "tool_count": 3,
+            "tool_names": ["get_items", "create_order", "check_status"],
+            "owner_name": "Creator",
+        })
+        cnt = common.send_canary_copies(args.canary_to, subj, body, sender_name="Arman (Action2MCP)")
+        print(f"[+] Sent {cnt} uncounted Action2MCP canary spam-check email(s).")
+        if not args.send:
+            return
+
+    allowed, gate_reason, stats = common.evaluate_play_gate(
+        state,
+        daily_cap=args.max_emails,
+        hard_stop_total=None,
+        cutoff_date=ACTION2MCP_CUTOFF_DATE,
+        override=args.override,
+    )
+    sent_today = stats["sent_today"]
     known_repos = set(state.get("contacted_repos") or [])
     no_email_repos = set(state.get("skipped_no_email_repos") or [])
     known_emails = {e.lower().strip() for e in (state.get("contacted_emails") or [])}
+    bounced_set = stats["bounced_set"]
 
-    if args.send and sent_today >= args.max_emails:
-        print(f"[!] Daily cap ({sent_today}/{args.max_emails}) already reached for today; skipping discovery.")
+    if args.send and not allowed:
+        print(f"[!] Action2MCP Safety / Cutoff Gate: {gate_reason} (total={stats['total_sent']}, bounce={stats['bounce_rate_pct']}%)")
         return
 
     new_no_email = set()
@@ -417,7 +435,7 @@ def main():
         exclude_repos=known_repos | no_email_repos,
         require_email=args.send,
         no_email_out=new_no_email,
-        exclude_emails=known_emails,
+        exclude_emails=known_emails | bounced_set,
     )
     if args.send and new_no_email:
         state["skipped_no_email_repos"] = sorted(no_email_repos | new_no_email)
@@ -434,7 +452,7 @@ def main():
                 print("   [!] Daily cap reached; stopping outreach.")
                 break
             em = t.get("owner_email")
-            if not em or em in known_emails:
+            if not em or em in known_emails or em in bounced_set:
                 continue
             subj, body = craft_sniper_email(t)
             try:

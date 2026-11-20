@@ -753,7 +753,28 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
           data: [
             { id: "cs_live_1111222233334444", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
             { id: "cs_live_5555666677778888", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
+            { id: "cs_open_9999000011112222", payment_status: "unpaid", amount_total: 1000, currency: "usd", created: 1795000200, metadata: { sku: "ecomfix-bundle-v1", target_domain: "realshop.com" } },
           ],
+        }),
+        { status: 200 },
+      );
+    }
+    if (u === "https://api.cloudflare.com/client/v4/graphql") {
+      return new Response(
+        JSON.stringify({
+          data: {
+            viewer: {
+              accounts: [
+                {
+                  workersInvocationsAdaptive: [
+                    { sum: { requests: 42 }, dimensions: { scriptName: "site-rescue" } },
+                    { sum: { requests: 17 }, dimensions: { scriptName: "ecom-fix" } },
+                    { sum: { requests: 88 }, dimensions: { scriptName: "action2mcp" } },
+                  ],
+                },
+              ],
+            },
+          },
         }),
         { status: 200 },
       );
@@ -770,18 +791,22 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
     }
     if (u.includes("apify.com/v2/acts")) return new Response(JSON.stringify({ data: { items: [{ name: "action2mcp", stats: { totalRuns: 4 } }] } }), { status: 200 });
     if (u.includes("apify.com/v2/users/me/limits")) return new Response(JSON.stringify({ data: { current: { monthlyUsageUsd: 0.08 }, limits: { maxMonthlyUsageUsd: 5 } } }), { status: 200 });
-    if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify({ contacted_emails: ["a@b.com"], history: [] }), { status: 200 });
+    if (u.includes("raw.githubusercontent.com")) {
+      return new Response(JSON.stringify({ contacted_emails: ["a@b.com"], bounced_emails: [], replied_emails: [], history: [{ email: "a@b.com", sent_date: "2026-11-20T10:00:00Z" }] }), { status: 200 });
+    }
     return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
   };
 
   try {
-    const DASH_ENV = { ...FULL_ENV, APIFY_TOKEN: "apify_test_tok", GITHUB_REPO: "ak10082247-max/action2mcp" };
+    const DASH_ENV = { ...FULL_ENV, APIFY_TOKEN: "apify_test_tok", CF_ANALYTICS_TOKEN: "cf_tok", CF_ACCOUNT_ID: "acc_123", GITHUB_REPO: "ak10082247-max/action2mcp" };
     const [uiRes, liveRes] = await Promise.all([
       revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/"), DASH_ENV),
       revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/live"), DASH_ENV),
     ]);
     assert.equal(uiRes.status, 200);
-    assert.match(await uiRes.text(), /Live Money Tally/);
+    const dashHtml = await uiRes.text();
+    assert.match(dashHtml, /Live Money Tally/);
+    assert.match(dashHtml, /Stop-Loss &amp; Early Diagnostic Scorecard/);
 
     assert.equal(liveRes.status, 200);
     const liveText = await liveRes.text();
@@ -793,6 +818,11 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
     assert.equal(data.totals.tracked_revenue_usd, 21.5);
     assert.equal(data.stripe.by_play["Action2MCP"], 10);
     assert.equal(data.stripe.by_play["Play A: SiteRescue"], 10);
+    assert.equal(data.stripe.checkout_clicks_by_play["Play B: StoreFix"], 1);
+    assert.equal(data.outreach.site_rescue.stop_loss_cap, 200);
+    assert.equal(data.outreach.site_rescue.daily_cap, 20);
+    assert.equal(data.outreach.site_rescue.cf_requests_7d, 42);
+    assert.equal(data.outreach.ecom_fix.stripe_clicks, 1);
     assert.equal(data.apify.total_runs, 4);
   } finally {
     globalThis.fetch = origFetch;

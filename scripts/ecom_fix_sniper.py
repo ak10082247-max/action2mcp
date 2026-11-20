@@ -288,20 +288,41 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
     }
 
 
+def _redact_issue_summary(issues: list[str]) -> str:
+    """Summarize storefront issues without giving away exact failing path strings in Email #1."""
+    lines: list[str] = []
+    ld_count = sum(1 for i in issues if "JSON-LD" in i or "offers." in i or "sku/gtin" in i or "Price" in i.lower() or "price" in i.lower())
+    st_count = sum(1 for i in issues if "ScriptTag" in i)
+    br_count = sum(1 for i in issues if "Broken storefront" in i or "HTTP " in i)
+    img_count = sum(1 for i in issues if ">3MB" in i)
+    if ld_count:
+        lines.append(f"- {ld_count} Google Shopping Product JSON-LD markup issue(s) (blocks rich price snippets / free listings)")
+    if br_count:
+        lines.append(f"- {br_count} broken collection/storefront link(s) returning HTTP 404/5xx")
+    if st_count:
+        lines.append("- Legacy Shopify ScriptTag(s) active ahead of the March 1, 2027 deprecation deadline")
+    if img_count:
+        lines.append(f"- {img_count} oversized >3MB hero/banner asset(s) slowing mobile checkout")
+    if not lines:
+        lines.append(f"- {len(issues)} Google Shopping / theme conversion warning(s) flagged")
+    return "\n".join(lines[:3])
+
+
 def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> tuple[str, str]:
     dom = target["domain"]
-    audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom})}"
-    top_issues = "\n".join(f"- {i}" for i in target["issues"][:3])
+    audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'email1'})}"
+    top_issues = _redact_issue_summary(target["issues"])
     subject = f"Google Shopping / theme issues flagged on {dom}"[:96]
     body = (
         f"Hi {dom} team,\n\n"
-        f"While running an automated storefront audit on {dom} ({target['platform']}), we caught these live conversion/Google Shopping issues:\n"
+        f"While running an automated storefront audit on {dom} ({target['platform']}), we caught {len(target['issues'])} live revenue-leak issue(s):\n"
         f"{top_issues}\n\n"
-        f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and 404/legacy scripts hurt checkout conversion.\n\n"
-        f"Inspect the live store diagnostic and grab a pre-built Store Fix Bundle at our $10 launch deal "
-        f"(normally $49 one-time — includes a paste-ready "
+        f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and broken/legacy scripts hurt checkout conversion.\n\n"
+        f"Two fast ways to get the exact affected URL(s) + ready-to-paste fix:\n"
+        f"1) Reply \"fix\" to this email and I'll reply with the failing path(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
+        f"2) Or inspect the live diagnostic & download the custom Store Fix Bundle ($10 Deal, was $49 — paste-ready "
         f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
-        f"Shopify URL redirects CSV, and March 1, 2027 ScriptTag checklist) at:\n"
+        f"redirect CSV & ScriptTag checklist) at:\n"
         f"{audit_link}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
@@ -311,18 +332,44 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
 
 def main():
     parser = argparse.ArgumentParser(description="Play B: Shopify & WooCommerce Revenue-Leak Sniper")
-    parser.add_argument("--limit", type=int, default=75, help="Max store candidates per run")
-    parser.add_argument("--max-emails", type=int, default=35, help="Daily send cap")
+    parser.add_argument("--limit", type=int, default=100, help="Max store candidates per run")
+    parser.add_argument("--max-emails", type=int, default=20, help="Daily send cap (default: 20/day)")
+    parser.add_argument("--hard-stop", type=int, default=200, help="Stop-loss delivered cap (default: 200)")
     parser.add_argument("--send", action="store_true", help="Send verified store alerts via SMTP")
+    parser.add_argument("--override", action="store_true", help="Override pause/stop-loss gates intentionally")
+    parser.add_argument("--canary-to", default=os.environ.get("CANARY_INBOXES", ""), help="Comma-separated test Gmail/Outlook addresses (not counted in 200 test)")
     args = parser.parse_args()
 
-    state = common.load_json_state(STATE_FILE, {"cc_page": 2, "contacted_domains": [], "contacted_emails": [], "history": []})
-    sent_today = common.count_sent_today(state.get("history") or [])
+    state = common.load_json_state(
+        STATE_FILE,
+        {"cc_page": 2, "contacted_domains": [], "contacted_emails": [], "bounced_emails": [], "replied_emails": [], "paid_sales": 0, "history": []},
+    )
+    if args.canary_to:
+        subj, body = craft_ecom_fix_email({
+            "domain": "example-shop.com",
+            "platform": "shopify",
+            "currency": "USD",
+            "email": "check@example-shop.com",
+            "issues": ["Missing Product JSON-LD (blocks Google Shopping price snippets)", "1 legacy Shopify ScriptTag active"],
+        })
+        cnt = common.send_canary_copies(args.canary_to, subj, body, sender_name="Arman (StoreFix Audit)")
+        print(f"[+] Sent {cnt} uncounted Play B canary spam-check email(s).")
+        if not args.send:
+            return
+
+    allowed, gate_reason, stats = common.evaluate_play_gate(
+        state,
+        daily_cap=args.max_emails,
+        hard_stop_total=args.hard_stop,
+        override=args.override,
+    )
+    sent_today = stats["sent_today"]
     known_domains = set(state.get("contacted_domains") or [])
     known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
+    bounced_set = stats["bounced_set"]
 
-    if args.send and sent_today >= args.max_emails:
-        print(f"[!] Daily cap ({sent_today}/{args.max_emails}) reached; exiting.")
+    if args.send and not allowed:
+        print(f"[!] Play B Stop-Loss / Safety Gate: {gate_reason} (clean_delivered={stats['clean_delivered']}/{args.hard_stop}, bounce={stats['bounce_rate_pct']}%)")
         return
 
     hosts, next_page = fetch_store_candidates(int(state.get("cc_page") or 2), args.limit, exclude_domains=known_domains)
@@ -340,7 +387,7 @@ def main():
                 diag = None
             if not diag:
                 continue
-            if diag["domain"] in known_domains or diag["email"] in known_emails:
+            if diag["domain"] in known_domains or diag["email"] in known_emails or diag["email"] in bounced_set:
                 continue
             hits.append(diag)
 

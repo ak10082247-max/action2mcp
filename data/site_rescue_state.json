@@ -27,5 +27,11 @@
       "sent_date": "2026-11-19T23:01:16.706317+00:00"
     }
   ],
-  "updated_at": "2026-11-20T08:30:28.551960+00:00"
+  "updated_at": "2026-11-20T08:30:28.551960+00:00",
+  "bounced_emails": [],
+  "replied_emails": [],
+  "paid_sales": 0,
+  "daily_cap": 20,
+  "stop_loss_cap": 200,
+  "paused_reason": "Checkpoint #1 Pause: awaiting Gmail/Outlook spam-trap canary before counting toward 150-200 test"
 }

@@ -56,15 +56,20 @@ async function fetchStripeLive(stripeKeyRaw) {
   let paidCents = 0;
   let paidCount = 0;
   const byPlay = { "Action2MCP": 0, "Play A: SiteRescue": 0, "Play B: StoreFix": 0, "Other / Direct": 0 };
+  const clicksByPlay = { "Action2MCP": 0, "Play A: SiteRescue": 0, "Play B: StoreFix": 0, "Other / Direct": 0 };
   const recentPaid = [];
   if (sessRes.ok) {
     const sj = await sessRes.json().catch(() => ({}));
     for (const s of sj.data || []) {
+      const cat = classifyStripeSession(s);
+      const tdom = String(s.metadata?.target_domain || "").toLowerCase();
+      if (!tdom.startsWith("test.")) {
+        clicksByPlay[cat] = (clicksByPlay[cat] || 0) + 1;
+      }
       if (s.payment_status !== "paid") continue;
       const amt = Number(s.amount_total || 0);
       paidCents += amt;
       paidCount += 1;
-      const cat = classifyStripeSession(s);
       byPlay[cat] = Number(((byPlay[cat] || 0) + amt / 100).toFixed(2));
       if (recentPaid.length < 25) {
         recentPaid.push({
@@ -89,8 +94,46 @@ async function fetchStripeLive(stripeKeyRaw) {
     pending_usd: Number((pendingCents / 100).toFixed(2)),
     paid_count: paidCount,
     by_play: byPlay,
+    checkout_clicks_by_play: clicksByPlay,
     recent_paid: recentPaid,
   };
+}
+
+async function fetchCloudflareAnalytics(env) {
+  const token = cleanSecret(env?.CF_ANALYTICS_TOKEN || env?.CF_API_TOKEN || env?.CLOUDFLARE_API_TOKEN);
+  const acc = cleanSecret(env?.CF_ACCOUNT_ID || env?.CLOUDFLARE_ACCOUNT_ID);
+  if (!token || !acc) return { configured: false, by_script: {} };
+
+  try {
+    const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString().slice(0, 10);
+    const query = `query ($acc: String!, $since: Date!) {
+      viewer {
+        accounts(filter: { accountTag: $acc }) {
+          workersInvocationsAdaptive(limit: 100, filter: { date_geq: $since }) {
+            sum { requests }
+            dimensions { scriptName }
+          }
+        }
+      }
+    }`;
+    const r = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "User-Agent": "KuroxDashboard/1.0" },
+      body: JSON.stringify({ query, variables: { acc, since } }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) return { configured: true, ok: false, status: r.status, by_script: {} };
+    const j = await r.json().catch(() => ({}));
+    const groups = j?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+    const byScript = {};
+    for (const g of groups) {
+      const name = g?.dimensions?.scriptName;
+      if (name) byScript[name] = (byScript[name] || 0) + Number(g?.sum?.requests || 0);
+    }
+    return { configured: true, ok: true, since, by_script: byScript };
+  } catch {
+    return { configured: true, ok: false, by_script: {} };
+  }
 }
 
 async function fetchOnChainBalances() {
@@ -203,9 +246,9 @@ async function fetchApifyTelemetry(apifyTokenRaw) {
 
 async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
   const files = [
-    { key: "action2mcp", label: "Action2MCP GPT Sniper", path: "data/contacted_gpts.json" },
-    { key: "site_rescue", label: "Play A: SiteRescue Sniper", path: "data/site_rescue_state.json" },
-    { key: "ecom_fix", label: "Play B: StoreFix Sniper", path: "data/ecom_fix_state.json" },
+    { key: "action2mcp", label: "Action2MCP (Hold Dec 11)", path: "data/contacted_gpts.json", worker: "action2mcp", playName: "Action2MCP", defaultCap: null, defaultCutoff: "2026-12-12" },
+    { key: "site_rescue", label: "Play A: SiteRescue", path: "data/site_rescue_state.json", worker: "site-rescue", playName: "Play A: SiteRescue", defaultCap: 200, defaultCutoff: null },
+    { key: "ecom_fix", label: "Play B: StoreFix", path: "data/ecom_fix_state.json", worker: "ecom-fix", playName: "Play B: StoreFix", defaultCap: 200, defaultCutoff: null },
   ];
   const today = new Date().toISOString().slice(0, 10);
   const out = {};
@@ -218,21 +261,46 @@ async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
           signal: AbortSignal.timeout(5000),
         });
         if (!r.ok) {
-          out[f.key] = { label: f.label, emails_total: 0, emails_today: 0, updated_at: null, active: true };
+          out[f.key] = { label: f.label, emails_total: 0, clean_delivered: 0, known_bounces: 0, bounce_rate_pct: 0, emails_today: 0, daily_cap: 20, stop_loss_cap: f.defaultCap, replied_count: 0, status: "unknown", updated_at: null, active: true };
           return;
         }
         const j = await r.json().catch(() => ({}));
         const hist = Array.isArray(j.history) ? j.history : [];
+        const totalSent = hist.length || (j.contacted_emails || []).length;
+        const knownBounces = Array.isArray(j.bounced_emails) ? j.bounced_emails.length : 0;
+        const cleanDelivered = Math.max(0, totalSent - knownBounces);
+        const bounceRate = totalSent > 0 ? Number(((knownBounces / totalSent) * 100).toFixed(1)) : 0;
+        const repliedCount = Array.isArray(j.replied_emails) ? j.replied_emails.length : 0;
         const sentToday = hist.filter((h) => String(h.sent_date || "").startsWith(today)).length;
+        const stopCap = j.stop_loss_cap ?? f.defaultCap;
+        const pausedReason = String(j.paused_reason || "").trim();
+        let status = "active";
+        if (pausedReason) status = "paused";
+        else if (totalSent >= 10 && bounceRate > 5.0) status = "bounce_alert";
+        else if (stopCap && cleanDelivered >= stopCap && Number(j.paid_sales || 0) === 0 && repliedCount < 2) status = "stop_loss_200";
+        else if (f.defaultCutoff) status = "hold_dec11";
+
         out[f.key] = {
           label: f.label,
-          emails_total: (j.contacted_emails || []).length || hist.length,
+          worker: f.worker,
+          play_name: f.playName,
+          emails_total: totalSent,
+          known_bounces: knownBounces,
+          clean_delivered: cleanDelivered,
+          bounce_rate_pct: bounceRate,
           emails_today: sentToday,
+          daily_cap: Number(j.daily_cap ?? 20),
+          stop_loss_cap: stopCap,
+          cutoff_date: j.cutoff_date || f.defaultCutoff,
+          replied_count: repliedCount,
+          paid_sales: Number(j.paid_sales || 0),
+          paused_reason: pausedReason,
+          status,
           updated_at: j.updated_at || null,
-          active: true,
+          active: !pausedReason,
         };
       } catch {
-        out[f.key] = { label: f.label, emails_total: 0, emails_today: 0, updated_at: null, active: false };
+        out[f.key] = { label: f.label, emails_total: 0, clean_delivered: 0, known_bounces: 0, bounce_rate_pct: 0, emails_today: 0, daily_cap: 20, stop_loss_cap: f.defaultCap, replied_count: 0, status: "error", updated_at: null, active: false };
       }
     }),
   );
@@ -258,13 +326,19 @@ async function pingFleetHealth(env) {
 
 export async function gatherLiveDashboardData(env) {
   const repoSlug = cleanSecret(env?.GITHUB_REPO) || "ak10082247-max/action2mcp";
-  const [stripe, chain, apify, outreach, fleet] = await Promise.all([
+  const [stripe, chain, apify, outreach, fleet, cfAnalytics] = await Promise.all([
     fetchStripeLive(env?.STRIPE_SECRET_KEY),
     fetchOnChainBalances(),
     fetchApifyTelemetry(env?.APIFY_TOKEN),
     fetchOutreachTelemetry(repoSlug),
     pingFleetHealth(env),
+    fetchCloudflareAnalytics(env),
   ]);
+
+  for (const item of Object.values(outreach)) {
+    item.cf_requests_7d = cfAnalytics?.by_script?.[item.worker] ?? null;
+    item.stripe_clicks = stripe?.checkout_clicks_by_play?.[item.play_name] ?? 0;
+  }
 
   const totalTrackedUsd = Number((stripe.paid_usd + chain.total_usdc).toFixed(4));
   return {
@@ -280,6 +354,7 @@ export async function gatherLiveDashboardData(env) {
     stripe,
     chain,
     apify,
+    cf_analytics: cfAnalytics,
     outreach,
     fleet,
   };
@@ -374,8 +449,8 @@ function renderDashboardHtml() {
       </div>
 
       <div class="card">
-        <strong>Automated 6-Hour Cron Outreach Counters</strong>
-        <table><thead><tr><th>Cron Sniper</th><th>Emails Sent Today</th><th>Total Emails Sent</th><th>Last Updated</th></tr></thead><tbody id="outreachRows"></tbody></table>
+        <strong>Stop-Loss &amp; Early Diagnostic Scorecard (20/day Cap | 150–200 Eval | &lt;5% Bounce Gate)</strong>
+        <table><thead><tr><th>Play</th><th>Delivered / Stop-Loss</th><th>Today / Cap</th><th>Bounces</th><th>Replies</th><th>7d Worker Reqs</th><th>Stripe Clicks</th><th>Gate Status</th></tr></thead><tbody id="outreachRows"></tbody></table>
       </div>
     </div>
 
@@ -451,9 +526,13 @@ function renderDashboardHtml() {
           '<div class="tier" style="background:#0b101b;border:1px solid #222c42;border-radius:10px;padding:0.85rem;"><div class="kpi-label">' + name + '</div><div style="font-size:1.4rem;font-weight:800;color:#34d399;margin-top:0.25rem;">$' + Number(val).toFixed(2) + '</div></div>'
         ).join('');
 
-        document.getElementById('outreachRows').innerHTML = Object.values(d.outreach || {}).map(o =>
-          '<tr><td>' + o.label + '</td><td>' + o.emails_today + '</td><td>' + o.emails_total + '</td><td>' + (o.updated_at ? new Date(o.updated_at).toLocaleString() : 'Not yet run') + '</td></tr>'
-        ).join('');
+        document.getElementById('outreachRows').innerHTML = Object.values(d.outreach || {}).map(o => {
+          const capLbl = o.stop_loss_cap ? (o.clean_delivered + ' / ' + o.stop_loss_cap) : (o.clean_delivered + ' (until Dec 11)');
+          const bClass = (o.bounce_rate_pct > 5) ? 'bad' : 'ok';
+          const sClass = (o.status === 'active' || o.status === 'hold_dec11') ? 'ok' : 'bad';
+          const stLabel = o.paused_reason ? ('PAUSED (' + o.bounce_rate_pct + '% bounce / canary)') : String(o.status || 'active').toUpperCase();
+          return '<tr><td>' + o.label + '</td><td>' + capLbl + '</td><td>' + o.emails_today + ' / ' + (o.daily_cap || 20) + '</td><td><span class="pill ' + bClass + '">' + o.known_bounces + ' (' + o.bounce_rate_pct + '%)</span></td><td>' + (o.replied_count || 0) + '</td><td>' + (o.cf_requests_7d !== null && o.cf_requests_7d !== undefined ? o.cf_requests_7d : 'n/a') + '</td><td>' + (o.stripe_clicks || 0) + '</td><td><span class="pill ' + sClass + '" title="' + (o.paused_reason || '') + '">' + stLabel + '</span></td></tr>';
+        }).join('');
 
         const combined = [...(d.stripe.recent_paid || []), ...(d.chain.solana.recent_sigs || [])];
         document.getElementById('ledgerRows').innerHTML = combined.length

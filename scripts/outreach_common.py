@@ -24,11 +24,21 @@ BLOCKED_EMAIL_DOMAINS = {
     "sentry-next.wixpress.com", "wixpress.com", "shopify.com", "squarespace.com",
     "godaddy.com", "wordpress.com", "w3.org", "schema.org", "cloudflare.com",
     "googleapis.com", "gstatic.com", "github.com", "users.noreply.github.com",
+    "noreply.github.com", "email.com", "domain.com", "yourdomain.com",
+    "company.com", "yoursite.com", "mysite.com", "website.com", "test.com",
+    "xxx.xxx", "mailinator.com", "guerrillamail.com", "tempmail.com",
 }
 BLOCKED_LOCAL_PREFIXES = {
     "noreply", "no-reply", "donotreply", "mailer-daemon", "postmaster",
     "hostmaster", "webmaster", "bounce", "abuse", "privacy", "security",
+    "xxx", "your", "youremail", "email", "user", "username", "test", "testing",
+    "sample", "demo", "example", "fake", "dummy", "placeholder", "name",
+    "firstname", "lastname", "dependabot", "actions",
 }
+BLOCKED_PLACEHOLDER_TOKENS = (
+    "noreply", "no-reply", "donotreply", "yourdomain", "youremail",
+    "placeholder", "u003e", "@2x", "@3x", "xxx",
+)
 BAD_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".css", ".js")
 
 try:
@@ -240,28 +250,116 @@ def has_valid_mx(domain: str) -> bool:
     return ok
 
 
-def is_deliverable_email(email: str) -> bool:
+def is_clean_email_syntax(email: str, bounced_set: set[str] | None = None) -> tuple[bool, str]:
+    """Validate syntax and reject placeholders, assets, traps, bounces, and .edu domains."""
     if not email or "@" not in email:
-        return False
+        return False, ""
     em = email.lower().strip()
-    if em.endswith(BAD_EXTENSIONS) or any(tok in em for tok in ("@2x", "@3x", "u003e", "yourdomain")):
-        return False
+    if bounced_set and em in bounced_set:
+        return False, ""
+    if em.endswith(BAD_EXTENSIONS) or any(tok in em for tok in BLOCKED_PLACEHOLDER_TOKENS):
+        return False, ""
     parts = em.split("@")
     if len(parts) != 2:
-        return False
+        return False, ""
     local, domain = parts
     if not re.fullmatch(r"[a-z0-9][a-z0-9._%+\-]{0,63}", local):
-        return False
+        return False, ""
     if not re.fullmatch(r"[a-z0-9\-]+(?:\.[a-z0-9\-]+)+", domain):
-        return False
+        return False, ""
     tld = domain.rsplit(".", 1)[-1]
     if len(tld) < 2 or tld.isdigit():
-        return False
-    if domain in BLOCKED_EMAIL_DOMAINS or domain.endswith((".local", ".internal", ".test", ".png", ".jpg", ".svg")):
-        return False
-    if local in BLOCKED_LOCAL_PREFIXES or any(b in local for b in ("noreply", "no-reply", "donotreply")):
+        return False, ""
+    if bounced_set and any(b.endswith("@" + domain) for b in bounced_set):
+        return False, ""
+    if domain in BLOCKED_EMAIL_DOMAINS or domain.endswith((
+        ".local", ".internal", ".test", ".png", ".jpg", ".svg",
+        ".edu", ".ac.uk", ".noreply.github.com",
+    )) or ".edu." in domain:
+        return False, ""
+    if local in BLOCKED_LOCAL_PREFIXES:
+        return False, ""
+    return True, domain
+
+
+def is_deliverable_email(email: str, bounced_set: set[str] | None = None) -> bool:
+    ok, domain = is_clean_email_syntax(email, bounced_set=bounced_set)
+    if not ok:
         return False
     return has_valid_mx(domain)
+
+
+def evaluate_play_gate(
+    state: dict,
+    daily_cap: int = 20,
+    hard_stop_total: int | None = 200,
+    cutoff_date: str | None = None,
+    max_bounce_pct: float = 5.0,
+    override: bool = False,
+) -> tuple[bool, str, dict]:
+    """Enforce daily 20/day pacing, >5% bounce circuit-breaker, 200-email stop-loss, and Dec 12 cutoff."""
+    history = state.get("history") or []
+    bounced = {str(x).lower().strip() for x in (state.get("bounced_emails") or []) if x}
+    replied = [str(x).lower().strip() for x in (state.get("replied_emails") or []) if x]
+    paid_sales = int(state.get("paid_sales") or 0)
+    total_sent = len(history)
+    known_bounces = len(bounced)
+    clean_delivered = max(0, total_sent - known_bounces)
+    bounce_pct = round((known_bounces / total_sent) * 100.0, 1) if total_sent > 0 else 0.0
+    sent_today = count_sent_today(history)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    stats = {
+        "total_sent": total_sent,
+        "known_bounces": known_bounces,
+        "clean_delivered": clean_delivered,
+        "bounce_rate_pct": bounce_pct,
+        "sent_today": sent_today,
+        "daily_cap": daily_cap,
+        "hard_stop_total": hard_stop_total,
+        "cutoff_date": cutoff_date,
+        "replied_count": len(replied),
+        "paid_sales": paid_sales,
+        "bounced_set": bounced,
+    }
+
+    if override:
+        return True, "override", stats
+
+    paused_reason = str(state.get("paused_reason") or "").strip()
+    if paused_reason:
+        return False, f"Paused: {paused_reason}", stats
+
+    if cutoff_date and today_str >= cutoff_date and paid_sales == 0:
+        return False, f"Cutoff reached ({cutoff_date}): Dec 11 shutdown deadline passed with 0 paid sales.", stats
+
+    if total_sent >= 10 and bounce_pct > max_bounce_pct:
+        return (
+            False,
+            f"Bounce circuit-breaker tripped: {known_bounces}/{total_sent} ({bounce_pct}%) exceeds {max_bounce_pct}% safe Gmail limit.",
+            stats,
+        )
+
+    if hard_stop_total and clean_delivered >= hard_stop_total and paid_sales == 0 and len(replied) < 2:
+        return (
+            False,
+            f"Hard stop-loss hit at {clean_delivered}/{hard_stop_total} cleanly delivered emails with 0 sales and {len(replied)} replies.",
+            stats,
+        )
+
+    if sent_today >= daily_cap:
+        return False, f"Daily cap reached ({sent_today}/{daily_cap}).", stats
+
+    return True, "ok", stats
+
+
+def send_canary_copies(canary_csv: str, subject: str, body: str, sender_name: str) -> int:
+    addrs = [a.strip() for a in str(canary_csv or "").split(",") if "@" in a]
+    sent = 0
+    for addr in addrs:
+        send_smtp_email(addr, subject, body, sender_name=sender_name)
+        sent += 1
+    return sent
 
 
 def extract_deliverable_emails(html: str, site_host: str) -> list[str]:

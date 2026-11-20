@@ -12,6 +12,9 @@ class SniperUnitTest(unittest.TestCase):
         self.assertFalse(sniper.is_deliverable_email("12345+user@users.noreply.github.com"))
         self.assertFalse(sniper.is_deliverable_email("noreply@example.com"))
         self.assertFalse(sniper.is_deliverable_email("student@mit.edu"))
+        self.assertFalse(sniper.is_deliverable_email("41151138@comunidadort.edu.ar"))
+        self.assertFalse(sniper.is_deliverable_email("your@email.com"))
+        self.assertFalse(sniper.is_deliverable_email("xxx@xxx.xxx"))
         with patch.object(sniper, "has_valid_mx", return_value=True):
             self.assertTrue(sniper.is_deliverable_email("founder@customgpt-app.io"))
 
@@ -81,6 +84,7 @@ paths:
         self.assertIn("/api/checkout?tier=hosted&spec_url=", body)
         self.assertIn("$10", body)
         self.assertIn("$25", body)
+        self.assertIn('reply "hosted"', body)
         self.assertNotIn("tier=bundle", body)
 
 

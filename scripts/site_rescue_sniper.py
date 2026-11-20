@@ -198,14 +198,13 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
     ssl_days = target.get("ssl_days_remaining")
     ssl_broken = bool(target.get("ssl_broken"))
 
+    # Avoid the "Free Forward" leak: state concrete severity counts without exposing exact path strings in Email #1
     proof_lines = []
-    broken_param = ""
     if broken:
-        b0 = broken[0]
-        broken_param = b0["url"]
-        proof_lines.append(f"- Broken CTA '{b0['label']}': {b0['url']} returned HTTP {b0['status']}")
+        statuses = sorted({str(b.get("status") or 404) for b in broken})
+        proof_lines.append(f"- {len(broken)} booking/appointment CTA link(s) returning HTTP {'/'.join(statuses)} (visitors drop on click)")
     if ssl_broken:
-        proof_lines.append(f"- SSL Certificate Error / Expired on https://{dom} ({target.get('ssl_expires_at') or 'TLS verify failed'})")
+        proof_lines.append(f"- SSL/HTTPS certificate error flagged on https://{dom} ({target.get('ssl_expires_at') or 'TLS verify failed'})")
     elif ssl_days is not None and ssl_days <= 14:
         proof_lines.append(f"- SSL Certificate expiring in {ssl_days} day(s) (expires {target.get('ssl_expires_at')})")
     if not target.get("has_local_schema"):
@@ -214,23 +213,21 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
     subject_issue = f"broken booking link (HTTP {broken[0]['status']})" if broken else "expiring SSL warning"
     subject = f"Quick heads-up on {dom}: {subject_issue}"[:96]
 
-    q = {"domain": dom}
+    q = {"domain": dom, "ref": "email1"}
     if ssl_days is not None:
         q["ssl_days"] = str(ssl_days)
-    if broken_param:
-        q["broken"] = broken_param
     audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode(q)}"
 
     body = (
         f"Hi {target['name']} team,\n\n"
-        f"Automated health checks flagged an active customer-facing issue on {dom} right now:\n"
+        f"Automated health checks flagged active customer-facing issues on {dom} right now:\n"
         + "\n".join(proof_lines)
-        + "\n\nWhen a prospective client clicks a broken link or hits an SSL warning, they leave immediately.\n\n"
-        f"You can verify the live diagnostic and grab a custom pre-built Site Recovery Pack at our $10 launch deal "
-        f"(normally $49 one-time — includes your broken-link CSV audit, paste-ready .htaccess/Nginx 301 redirect rules, "
-        f"Google LocalBusiness JSON-LD, and a plain-English 3-step handoff sheet for your web host) at:\n"
+        + "\n\nWhen a prospective client clicks a dead booking link or hits an SSL warning, they leave immediately.\n\n"
+        f"Two fast ways to get the exact affected path(s) + ready-to-apply fix:\n"
+        f"1) Reply \"link\" to this email and I'll reply right here with the failing URL(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
+        f"2) Or view live diagnostics & grab the custom Site Recovery Pack ZIP ($10 Deal, was $49 — 301 redirect rules, LocalBusiness JSON-LD & 3-step host handoff) at:\n"
         f"{audit_link}\n\n"
-        f"(Priority async email fix verification is also discounted to $29 there, normally $149, if you prefer hands-off handling.)\n\n"
+        f"(Priority async email verification is also discounted to $29 there, normally $149.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -239,19 +236,48 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
 
 def main():
     parser = argparse.ArgumentParser(description="Play A: Local Business Broken-Link & SSL Cliff Sniper")
-    parser.add_argument("--queries", type=int, default=10, help="Nominatim city/category queries per run")
-    parser.add_argument("--limit", type=int, default=80, help="Max sites to probe per run")
-    parser.add_argument("--max-emails", type=int, default=35, help="Daily send cap")
+    parser.add_argument("--queries", type=int, default=8, help="Photon/Nominatim queries per run")
+    parser.add_argument("--limit", type=int, default=100, help="Max sites to probe per run")
+    parser.add_argument("--max-emails", type=int, default=20, help="Daily send cap (default: 20/day)")
+    parser.add_argument("--hard-stop", type=int, default=200, help="Stop-loss delivered cap (default: 200)")
     parser.add_argument("--send", action="store_true", help="Send verified alerts via SMTP")
+    parser.add_argument("--override", action="store_true", help="Override pause/stop-loss gates intentionally")
+    parser.add_argument("--canary-to", default=os.environ.get("CANARY_INBOXES", ""), help="Comma-separated test Gmail/Outlook addresses (not counted in 200 test)")
     args = parser.parse_args()
 
-    state = common.load_json_state(STATE_FILE, {"cursor": 0, "contacted_domains": [], "contacted_emails": [], "history": []})
-    sent_today = common.count_sent_today(state.get("history") or [])
+    state = common.load_json_state(
+        STATE_FILE,
+        {"cursor": 0, "contacted_domains": [], "contacted_emails": [], "bounced_emails": [], "replied_emails": [], "paid_sales": 0, "history": []},
+    )
+    if args.canary_to:
+        subj, body = craft_site_rescue_email({
+            "name": "Example Dental Practice",
+            "domain": "clinic-example.co.uk",
+            "email": "check@clinic-example.co.uk",
+            "broken_links": [{"url": "https://clinic-example.co.uk/book", "label": "Book Now", "status": 404}],
+            "ssl_broken": False,
+            "ssl_days_remaining": 11,
+            "ssl_expires_at": "2026-12-01",
+            "has_local_schema": False,
+        })
+        cnt = common.send_canary_copies(args.canary_to, subj, body, sender_name="Arman (SiteRescue Audit)")
+        print(f"[+] Sent {cnt} uncounted Play A canary spam-check email(s).")
+        if not args.send:
+            return
+
+    allowed, gate_reason, stats = common.evaluate_play_gate(
+        state,
+        daily_cap=args.max_emails,
+        hard_stop_total=args.hard_stop,
+        override=args.override,
+    )
+    sent_today = stats["sent_today"]
     known_domains = set(state.get("contacted_domains") or [])
     known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
+    bounced_set = stats["bounced_set"]
 
-    if args.send and sent_today >= args.max_emails:
-        print(f"[!] Daily cap ({sent_today}/{args.max_emails}) reached; exiting.")
+    if args.send and not allowed:
+        print(f"[!] Play A Stop-Loss / Safety Gate: {gate_reason} (clean_delivered={stats['clean_delivered']}/{args.hard_stop}, bounce={stats['bounce_rate_pct']}%)")
         return
 
     cands, next_cursor = fetch_local_business_candidates(int(state.get("cursor") or 0), args.queries)
@@ -270,7 +296,7 @@ def main():
                 diag = None
             if not diag:
                 continue
-            if diag["domain"] in known_domains or diag["email"] in known_emails:
+            if diag["domain"] in known_domains or diag["email"] in known_emails or diag["email"] in bounced_set:
                 continue
             hits.append(diag)
 

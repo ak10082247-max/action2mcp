@@ -84,3 +84,9 @@ jobs:
           if [ -n "${APIFY_TOKEN:-}" ]; then
             printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@4 secret put APIFY_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
           fi
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            printf '%s' "$CLOUDFLARE_API_TOKEN" | npx --yes wrangler@4 secret put CF_ANALYTICS_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
+          if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | npx --yes wrangler@4 secret put CF_ACCOUNT_ID --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
