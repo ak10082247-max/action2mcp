@@ -269,14 +269,17 @@ async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
         const totalSent = hist.length || (j.contacted_emails || []).length;
         const knownBounces = Array.isArray(j.bounced_emails) ? j.bounced_emails.length : 0;
         const cleanDelivered = Math.max(0, totalSent - knownBounces);
-        const bounceRate = totalSent > 0 ? Number(((knownBounces / totalSent) * 100).toFixed(1)) : 0;
+        const resetAt = String(j.bounce_reset_at || "").trim();
+        const activeSent = resetAt ? hist.filter((h) => String(h.sent_date || "") >= resetAt).length : totalSent;
+        const activeBounces = resetAt && Array.isArray(j.post_fix_bounced_emails) ? j.post_fix_bounced_emails.length : knownBounces;
+        const bounceRate = activeSent > 0 ? Number(((activeBounces / activeSent) * 100).toFixed(1)) : 0;
         const repliedCount = Array.isArray(j.replied_emails) ? j.replied_emails.length : 0;
         const sentToday = hist.filter((h) => String(h.sent_date || "").startsWith(today)).length;
         const stopCap = j.stop_loss_cap ?? f.defaultCap;
         const pausedReason = String(j.paused_reason || "").trim();
         let status = "active";
         if (pausedReason) status = "paused";
-        else if (totalSent >= 10 && bounceRate > 5.0) status = "bounce_alert";
+        else if (activeSent >= 10 && bounceRate > 5.0) status = "bounce_alert";
         else if (stopCap && cleanDelivered >= stopCap && Number(j.paid_sales || 0) === 0 && repliedCount < 2) status = "stop_loss_200";
         else if (f.defaultCutoff) status = "hold_dec11";
 

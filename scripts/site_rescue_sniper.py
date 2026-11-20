@@ -265,6 +265,9 @@ def main():
         if not args.send:
             return
 
+    if args.send and common.sync_imap_bounces_and_replies(state):
+        common.save_json_state(STATE_FILE, state)
+
     allowed, gate_reason, stats = common.evaluate_play_gate(
         state,
         daily_cap=args.max_emails,

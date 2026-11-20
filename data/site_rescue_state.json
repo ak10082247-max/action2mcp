@@ -33,5 +33,7 @@
   "paid_sales": 0,
   "daily_cap": 20,
   "stop_loss_cap": 200,
-  "paused_reason": "Checkpoint #1 Pause: awaiting Gmail/Outlook spam-trap canary before counting toward 150-200 test"
+  "paused_reason": "",
+  "bounce_reset_at": "2026-11-20T12:15:00+00:00",
+  "post_fix_bounced_emails": []
 }

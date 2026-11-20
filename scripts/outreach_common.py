@@ -297,7 +297,7 @@ def evaluate_play_gate(
     max_bounce_pct: float = 5.0,
     override: bool = False,
 ) -> tuple[bool, str, dict]:
-    """Enforce daily 20/day pacing, >5% bounce circuit-breaker, 200-email stop-loss, and Dec 12 cutoff."""
+    """Enforce daily 20/day pacing, >5% post-fix bounce circuit-breaker, 200-email stop-loss, and Dec 12 cutoff."""
     history = state.get("history") or []
     bounced = {str(x).lower().strip() for x in (state.get("bounced_emails") or []) if x}
     replied = [str(x).lower().strip() for x in (state.get("replied_emails") or []) if x]
@@ -306,6 +306,17 @@ def evaluate_play_gate(
     known_bounces = len(bounced)
     clean_delivered = max(0, total_sent - known_bounces)
     bounce_pct = round((known_bounces / total_sent) * 100.0, 1) if total_sent > 0 else 0.0
+
+    reset_at = str(state.get("bounce_reset_at") or "").strip()
+    if reset_at:
+        active_sent = sum(1 for h in history if str(h.get("sent_date") or "") >= reset_at)
+        post_bounces = {str(x).lower().strip() for x in (state.get("post_fix_bounced_emails") or []) if x}
+        active_bounces = len(post_bounces)
+    else:
+        active_sent = total_sent
+        active_bounces = known_bounces
+    active_bounce_pct = round((active_bounces / active_sent) * 100.0, 1) if active_sent > 0 else 0.0
+
     sent_today = count_sent_today(history)
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -313,7 +324,10 @@ def evaluate_play_gate(
         "total_sent": total_sent,
         "known_bounces": known_bounces,
         "clean_delivered": clean_delivered,
-        "bounce_rate_pct": bounce_pct,
+        "bounce_rate_pct": active_bounce_pct if reset_at else bounce_pct,
+        "lifetime_bounce_rate_pct": bounce_pct,
+        "active_sent": active_sent,
+        "active_bounces": active_bounces,
         "sent_today": sent_today,
         "daily_cap": daily_cap,
         "hard_stop_total": hard_stop_total,
@@ -333,10 +347,10 @@ def evaluate_play_gate(
     if cutoff_date and today_str >= cutoff_date and paid_sales == 0:
         return False, f"Cutoff reached ({cutoff_date}): Dec 11 shutdown deadline passed with 0 paid sales.", stats
 
-    if total_sent >= 10 and bounce_pct > max_bounce_pct:
+    if active_sent >= 10 and active_bounce_pct > max_bounce_pct:
         return (
             False,
-            f"Bounce circuit-breaker tripped: {known_bounces}/{total_sent} ({bounce_pct}%) exceeds {max_bounce_pct}% safe Gmail limit.",
+            f"Bounce circuit-breaker tripped: {active_bounces}/{active_sent} ({active_bounce_pct}%) exceeds {max_bounce_pct}% safe Gmail limit.",
             stats,
         )
 
@@ -351,6 +365,70 @@ def evaluate_play_gate(
         return False, f"Daily cap reached ({sent_today}/{daily_cap}).", stats
 
     return True, "ok", stats
+
+
+def sync_imap_bounces_and_replies(state: dict) -> bool:
+    """Best-effort read-only Gmail IMAP sync to auto-record new bounces and prospect replies."""
+    import imaplib
+    smtp_user, smtp_pass = resolve_smtp_credentials()
+    if not smtp_user or not smtp_pass:
+        return False
+    changed = False
+    known_emails = {str(e).lower().strip() for e in (state.get("contacted_emails") or []) if "@" in str(e)}
+    if not known_emails:
+        return False
+    bounced = {str(x).lower().strip() for x in (state.get("bounced_emails") or []) if x}
+    post_bounced = {str(x).lower().strip() for x in (state.get("post_fix_bounced_emails") or []) if x}
+    replied = {str(x).lower().strip() for x in (state.get("replied_emails") or []) if x}
+    reset_at = str(state.get("bounce_reset_at") or "").strip()
+    post_set = {
+        str(h.get("email") or "").lower().strip()
+        for h in (state.get("history") or [])
+        if h.get("email") and (not reset_at or str(h.get("sent_date") or "") >= reset_at)
+    }
+
+    try:
+        m = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=10)
+        m.login(smtp_user, smtp_pass)
+        st, _ = m.select("INBOX", readonly=True)
+        if st == "OK":
+            typ, msgs = m.search(None, "FROM", "mailer-daemon")
+            ids = (msgs[0] or b"").split()[-35:] if typ == "OK" else []
+            for mid in ids:
+                ftyp, fdata = m.fetch(mid, "(RFC822)")
+                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
+                    continue
+                txt = fdata[0][1].decode("utf-8", "replace").lower()
+                for cand in re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", txt):
+                    if cand in known_emails and cand not in bounced:
+                        bounced.add(cand)
+                        changed = True
+                    if cand in post_set and cand not in post_bounced:
+                        post_bounced.add(cand)
+                        changed = True
+
+            rtyp, rmsgs = m.search(None, "ALL")
+            rids = (rmsgs[0] or b"").split()[-50:] if rtyp == "OK" else []
+            for mid in rids:
+                ftyp, fdata = m.fetch(mid, "(BODY.PEEK[HEADER.FIELDS (FROM)])")
+                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
+                    continue
+                fhdr = fdata[0][1].decode("utf-8", "replace").lower()
+                if "mailer-daemon" in fhdr or smtp_user.lower() in fhdr:
+                    continue
+                for cand in re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", fhdr):
+                    if cand in known_emails and cand not in replied:
+                        replied.add(cand)
+                        changed = True
+        m.logout()
+    except Exception:
+        return False
+
+    if changed:
+        state["bounced_emails"] = sorted(bounced)
+        state["post_fix_bounced_emails"] = sorted(post_bounced)
+        state["replied_emails"] = sorted(replied)
+    return changed
 
 
 def send_canary_copies(canary_csv: str, subject: str, body: str, sender_name: str) -> int:
