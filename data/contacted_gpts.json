@@ -84,7 +84,42 @@
     "semgrep/semgrep-rules",
     "amplify-security/opengrep-rules",
     "nerginturgut/semgrep-rule-v2",
-    "endpointlabs/semgrep-rules-v2"
+    "endpointlabs/semgrep-rules-v2",
+    "laravel42/web-dockier-api",
+    "JasonBenn/mle-tutor",
+    "cyberthing-dev/embeddingserver",
+    "daadelian-bot/khadem-jame",
+    "generatives/FlashCardAPI",
+    "CyanAutomation/budokon",
+    "explicit09/ShipBar",
+    "aliabdalla-maker/aepx-core",
+    "overandor/membra-company-os",
+    "ioshi9212-dotcom/roman_ai",
+    "adham721/JARVIS-Bridge",
+    "Long18/fair-pay",
+    "n0namer/gpts-actions-n8n",
+    "howells/agentsurface",
+    "jllado/weight-control",
+    "MASTER-UTKARSH/AI-Resume-Automation",
+    "elettro/stashbox",
+    "splits-network/splits",
+    "stoerr/CoDeveloperGPTengine",
+    "dacoburn/basics-test",
+    "Drassil/ai-memory",
+    "PlaceOS/rest-api",
+    "serban-petrescu/aws-proto-cognito-appsync-gpt",
+    "CamComercioSM/cdnsicam",
+    "ctava-msft/m365-servicenow-sreagent-aks",
+    "jgwill/coaiajs",
+    "harley/gpt-actions",
+    "apify/actor-rag-web-browser",
+    "lobehub/lobe-openai-plugins",
+    "khulnasoft/NextGPT-Plugins",
+    "senja24/cleek-openai-plugins",
+    "UteamUP/uteamup-mcp",
+    "LucasPatricioRey/isekai-lucas-engine",
+    "jentic/jentic-public-apis",
+    "kosif199022-jpg/kosif-one"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -171,7 +206,42 @@
     "hello@semgrep.com",
     "support@amplify.security",
     "nergin@kondukto.io",
-    "info@endpoint-labs.com"
+    "info@endpoint-labs.com",
+    "hello@laravel42.com",
+    "jasoncbenn@gmail.com",
+    "jsmith@cyberthing.dev",
+    "da.adelian@gmail.com",
+    "declaneaston@gmail.com",
+    "scheimann@me.com",
+    "tmbuwa09@gmail.com",
+    "ali.abdalla@softwareequality.com",
+    "j.skrobynets@gmail.com",
+    "ioshi9212@gmail.com",
+    "adhammihamed502@gmail.com",
+    "us.thanhlong18@gmail.com",
+    "jarvis@openclaw.ai",
+    "daniel@danielhowells.com",
+    "jllado@gmail.com",
+    "241b278@juetguna.in",
+    "dpalermo@elettro.com",
+    "me@brandonkorous.com",
+    "hans-peter.stoerr@otto.de",
+    "douglas@dactbc.com",
+    "yehonal.azeroth@gmail.com",
+    "steve@place.technology",
+    "serban.petrescu@outlook.com",
+    "desarrollo.tics@ccsm.org.co",
+    "christava@microsoft.com",
+    "mia@jgwill.com",
+    "harley@coderpush.com",
+    "hello@apify.com",
+    "hello@lobehub.com",
+    "info@khulnasoft.com",
+    "ikaagus958@gmail.com",
+    "support@uteamup.com",
+    "41151138@comunidadort.edu.ar",
+    "sophie@jentic.com",
+    "kosif199022@gmail.com"
   ],
   "history": [
     {
@@ -683,18 +753,232 @@
       "email": "info@endpoint-labs.com",
       "tool_count": 5,
       "sent_date": "2026-11-19T22:44:52.560112+00:00"
+    },
+    {
+      "repo": "laravel42/web-dockier-api",
+      "email": "hello@laravel42.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:44:51.565520+00:00"
+    },
+    {
+      "repo": "JasonBenn/mle-tutor",
+      "email": "jasoncbenn@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:44:58.145375+00:00"
+    },
+    {
+      "repo": "cyberthing-dev/embeddingserver",
+      "email": "jsmith@cyberthing.dev",
+      "tool_count": 2,
+      "sent_date": "2026-11-20T00:45:04.701549+00:00"
+    },
+    {
+      "repo": "daadelian-bot/khadem-jame",
+      "email": "da.adelian@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:45:11.351329+00:00"
+    },
+    {
+      "repo": "generatives/FlashCardAPI",
+      "email": "declaneaston@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:45:18.256452+00:00"
+    },
+    {
+      "repo": "CyanAutomation/budokon",
+      "email": "scheimann@me.com",
+      "tool_count": 14,
+      "sent_date": "2026-11-20T00:45:24.913198+00:00"
+    },
+    {
+      "repo": "explicit09/ShipBar",
+      "email": "tmbuwa09@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-20T00:45:31.587917+00:00"
+    },
+    {
+      "repo": "aliabdalla-maker/aepx-core",
+      "email": "ali.abdalla@softwareequality.com",
+      "tool_count": 10,
+      "sent_date": "2026-11-20T00:45:38.171212+00:00"
+    },
+    {
+      "repo": "overandor/membra-company-os",
+      "email": "j.skrobynets@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-20T00:45:44.769895+00:00"
+    },
+    {
+      "repo": "ioshi9212-dotcom/roman_ai",
+      "email": "ioshi9212@gmail.com",
+      "tool_count": 30,
+      "sent_date": "2026-11-20T00:45:51.545815+00:00"
+    },
+    {
+      "repo": "adham721/JARVIS-Bridge",
+      "email": "adhammihamed502@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-20T00:45:58.144400+00:00"
+    },
+    {
+      "repo": "Long18/fair-pay",
+      "email": "us.thanhlong18@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-20T00:46:04.913928+00:00"
+    },
+    {
+      "repo": "n0namer/gpts-actions-n8n",
+      "email": "jarvis@openclaw.ai",
+      "tool_count": 22,
+      "sent_date": "2026-11-20T00:46:11.492695+00:00"
+    },
+    {
+      "repo": "howells/agentsurface",
+      "email": "daniel@danielhowells.com",
+      "tool_count": 7,
+      "sent_date": "2026-11-20T00:46:18.017820+00:00"
+    },
+    {
+      "repo": "jllado/weight-control",
+      "email": "jllado@gmail.com",
+      "tool_count": 30,
+      "sent_date": "2026-11-20T00:46:24.580539+00:00"
+    },
+    {
+      "repo": "MASTER-UTKARSH/AI-Resume-Automation",
+      "email": "241b278@juetguna.in",
+      "tool_count": 12,
+      "sent_date": "2026-11-20T00:46:31.097714+00:00"
+    },
+    {
+      "repo": "elettro/stashbox",
+      "email": "dpalermo@elettro.com",
+      "tool_count": 25,
+      "sent_date": "2026-11-20T00:46:37.641656+00:00"
+    },
+    {
+      "repo": "splits-network/splits",
+      "email": "me@brandonkorous.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:46:44.230985+00:00"
+    },
+    {
+      "repo": "stoerr/CoDeveloperGPTengine",
+      "email": "hans-peter.stoerr@otto.de",
+      "tool_count": 7,
+      "sent_date": "2026-11-20T00:46:50.773735+00:00"
+    },
+    {
+      "repo": "dacoburn/basics-test",
+      "email": "douglas@dactbc.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:46:57.285045+00:00"
+    },
+    {
+      "repo": "Drassil/ai-memory",
+      "email": "yehonal.azeroth@gmail.com",
+      "tool_count": 5,
+      "sent_date": "2026-11-20T00:47:03.856529+00:00"
+    },
+    {
+      "repo": "PlaceOS/rest-api",
+      "email": "steve@place.technology",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:47:10.374578+00:00"
+    },
+    {
+      "repo": "serban-petrescu/aws-proto-cognito-appsync-gpt",
+      "email": "serban.petrescu@outlook.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:47:16.959381+00:00"
+    },
+    {
+      "repo": "CamComercioSM/cdnsicam",
+      "email": "desarrollo.tics@ccsm.org.co",
+      "tool_count": 4,
+      "sent_date": "2026-11-20T00:47:23.516385+00:00"
+    },
+    {
+      "repo": "ctava-msft/m365-servicenow-sreagent-aks",
+      "email": "christava@microsoft.com",
+      "tool_count": 2,
+      "sent_date": "2026-11-20T00:47:30.064211+00:00"
+    },
+    {
+      "repo": "jgwill/coaiajs",
+      "email": "mia@jgwill.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:47:36.601802+00:00"
+    },
+    {
+      "repo": "harley/gpt-actions",
+      "email": "harley@coderpush.com",
+      "tool_count": 32,
+      "sent_date": "2026-11-20T00:47:43.171922+00:00"
+    },
+    {
+      "repo": "apify/actor-rag-web-browser",
+      "email": "hello@apify.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:47:49.804498+00:00"
+    },
+    {
+      "repo": "lobehub/lobe-openai-plugins",
+      "email": "hello@lobehub.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-20T00:47:56.491745+00:00"
+    },
+    {
+      "repo": "khulnasoft/NextGPT-Plugins",
+      "email": "info@khulnasoft.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:48:03.025003+00:00"
+    },
+    {
+      "repo": "senja24/cleek-openai-plugins",
+      "email": "ikaagus958@gmail.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-20T00:48:09.665198+00:00"
+    },
+    {
+      "repo": "UteamUP/uteamup-mcp",
+      "email": "support@uteamup.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-20T00:48:16.219019+00:00"
+    },
+    {
+      "repo": "LucasPatricioRey/isekai-lucas-engine",
+      "email": "41151138@comunidadort.edu.ar",
+      "tool_count": 16,
+      "sent_date": "2026-11-20T00:48:22.790489+00:00"
+    },
+    {
+      "repo": "jentic/jentic-public-apis",
+      "email": "sophie@jentic.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-20T00:48:29.293658+00:00"
+    },
+    {
+      "repo": "kosif199022-jpg/kosif-one",
+      "email": "kosif199022@gmail.com",
+      "tool_count": 29,
+      "sent_date": "2026-11-20T00:48:35.834525+00:00"
     }
   ],
   "skipped_no_email_repos": [
     "Anazeez/reach-gateway",
     "ChinmayGit8765/receipt-tax",
     "Coverage-Cat/skills",
+    "GOI17/alfred",
     "Igor-Almeidados-Santos/typst-renderer",
     "Rick84444/JACO-CODE",
+    "adiestel/think",
     "alexhouse-ua/book-gpt-api",
     "asmatkhan925/scholarsrepublic",
+    "bumahkib7/qryon",
     "dunsin2018/HireMe",
     "finmap-org/mcp-server",
+    "garantias3-afk/multiauditoria",
     "hatgit/forex-gpt",
     "jackpalm88/context-brain-memory-lab",
     "jcamilogarciacano/GPT-Gmail",
@@ -702,14 +986,16 @@
     "judsoder/max-attunement-api",
     "king54346/smegrepTest",
     "microsoftgraph/github-issue-manager",
+    "microsoftgraph/msgraph-sample-copilot-plugin",
     "namin/Kappa-ChatGPT",
     "namin/io-chatgpt.livecode.ch",
     "nirholas/three.ws",
     "overandor/membra_db",
+    "overandor/nitro-chain",
     "pokapopo/vps-action-gateway",
     "s-os-agency/S-OS",
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-19T22:44:52.560192+00:00"
+  "updated_at": "2026-11-20T00:48:35.834589+00:00"
 }
