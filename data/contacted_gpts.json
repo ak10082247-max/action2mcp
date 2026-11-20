@@ -997,22 +997,25 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-20T00:48:35.834589+00:00",
+  "updated_at": "2026-11-20T15:38:55.582743+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
-    "hans-peter.stoerr@otto.de",
-    "support@amplify.security",
-    "msk@gmail.com",
+    "contact@ads4gpts.com",
     "contact@downtozero.cloud",
+    "hans-peter.stoerr@otto.de",
     "hernando.ren@studytafensw.edu.au",
-    "imaginai90@proton.me",
-    "your@email.com",
-    "pashxa@syntronic.com",
-    "mail@yme.nl",
     "hp.stoerr@ist-software.com",
-    "contact@ads4gpts.com"
+    "imaginai90@proton.me",
+    "mail@yme.nl",
+    "msk@gmail.com",
+    "pashxa@syntronic.com",
+    "support@amplify.security",
+    "your@email.com"
   ],
-  "replied_emails": [],
+  "replied_emails": [
+    "823504052@qq.com",
+    "scheimann@me.com"
+  ],
   "paid_sales": 0,
   "daily_cap": 20,
   "cutoff_date": "2026-12-12",
