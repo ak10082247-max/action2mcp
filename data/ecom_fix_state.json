@@ -1,5 +1,5 @@
 {
-  "cc_page": 10,
+  "cc_page": 15,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -97,7 +97,7 @@
       "sent_date": "2026-11-20T10:31:39.550531+00:00"
     }
   ],
-  "updated_at": "2026-11-20T10:31:39.550651+00:00",
+  "updated_at": "2026-11-20T12:18:47.237039+00:00",
   "bounced_emails": [
     "xxx@xxx.xxx",
     "marketing@ruceru.com"
