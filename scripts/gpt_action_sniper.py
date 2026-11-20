@@ -353,6 +353,10 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
 
     raw_url = target["file_html_url"].replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/", 1)
     spec_q = urllib.parse.quote(raw_url, safe="")
+    raw_preview_url = f"{public_service_url}/?spec_url={spec_q}"
+    tracked_preview_url = common.build_tracked_url("action2mcp", target["repo"], raw_preview_url)
+    raw_checkout_url = f"{public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}"
+    tracked_checkout_url = common.build_tracked_url("action2mcp", target["repo"], raw_checkout_url)
 
     body = (
         f"Hi {target.get('owner_name') or 'there'},\n\n"
@@ -360,8 +364,8 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"I spotted your OpenAPI Action schema in {target['repo']} ({target['file_path']}) and test-compiled all {count} endpoints cleanly into ChatGPT Plugin MCP tools:\n"
         f"{tools_preview}\n\n"
         f"You can inspect the compiled MCP tools/list + SKILL.md and download the full Cloudflare Worker + SKILL.md ZIP 100% free (no account, checkout, or email wall) at:\n"
-        f"{public_service_url}/?spec_url={spec_q}\n\n"
-        f"(If you prefer zero Wrangler/Cloudflare setup, the instant Hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {public_service_url}/api/checkout?tier=hosted&spec_url={spec_q} — or just reply \"hosted\" for a direct checkout.stripe.com link.)\n\n"
+        f"{tracked_preview_url}\n\n"
+        f"(If you prefer zero Wrangler/Cloudflare setup, the instant Hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {tracked_checkout_url} — or just reply \"hosted\" for a direct checkout.stripe.com link.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
@@ -420,6 +424,12 @@ def main():
         cutoff_date=ACTION2MCP_CUTOFF_DATE,
         override=args.override,
     )
+    if args.send:
+        common.push_dashboard_ingest("action2mcp", stats, source="action2mcp_cron")
+        kv_paused, kv_reason = common.check_dashboard_play_status("action2mcp")
+        if kv_paused and not args.override:
+            print(f"[!] Action2MCP Dashboard Safety Gate: {kv_reason} (bounce={stats['bounce_rate_pct']}%)")
+            return
     sent_today = stats["sent_today"]
     known_repos = set(state.get("contacted_repos") or [])
     no_email_repos = set(state.get("skipped_no_email_repos") or [])
@@ -471,6 +481,10 @@ def main():
                 time.sleep(6)
             except Exception as exc:
                 print(f"   [-] SMTP failed for {em}: {exc}")
+
+    if args.send:
+        _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=None, cutoff_date=ACTION2MCP_CUTOFF_DATE, override=True)
+        common.push_dashboard_ingest("action2mcp", post_stats, source="action2mcp_cron_post")
 
 
 if __name__ == "__main__":

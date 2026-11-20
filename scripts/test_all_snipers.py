@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import outreach_common as common
 import site_rescue_sniper as play_a
 import ecom_fix_sniper as play_b
+import process_stripe_alerts as stripe_alerts
 
 
 class MultiPlaySniperTests(unittest.TestCase):
@@ -47,7 +48,8 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn('Reply "link"', body)
         self.assertIn("$10", body)
         self.assertIn("$49", body)
-        self.assertIn("https://site-rescue.ak10082247.workers.dev/", body)
+        self.assertIn("/t?play=play_a_local", body)
+        self.assertIn("site-rescue.ak10082247.workers.dev", body)
 
     def test_play_b_ecom_fix_diagnostics_and_email(self):
         def fake_json(url, headers=None, timeout=12):
@@ -86,7 +88,8 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn('Reply "fix"', body)
         self.assertIn("$10", body)
         self.assertIn("$49", body)
-        self.assertIn("https://ecom-fix.ak10082247.workers.dev/", body)
+        self.assertIn("/t?play=play_b_ecom", body)
+        self.assertIn("ecom-fix.ak10082247.workers.dev", body)
 
     def test_stop_loss_and_bounce_gates(self):
         ok, reason, _ = common.evaluate_play_gate({"history": [], "bounced_emails": [], "replied_emails": []}, daily_cap=20, hard_stop_total=200)
@@ -130,6 +133,32 @@ class MultiPlaySniperTests(unittest.TestCase):
         )
         self.assertFalse(ok_dec)
         self.assertIn("cutoff", reason_dec.lower())
+
+    def test_tracked_urls_dashboard_gate_and_stripe_alert_formatting(self):
+        tracked = common.build_tracked_url("play_a_local", "clinic.co.uk", "https://site-rescue.ak10082247.workers.dev/?domain=clinic.co.uk")
+        self.assertIn("/t?play=play_a_local&id=", tracked)
+        self.assertNotIn("@", tracked)
+
+        with patch.object(common, "http_get_json", return_value={"ok": True, "paused": True, "reason": "PAUSED_HIGH_BOUNCE"}):
+            paused, reason = common.check_dashboard_play_status("play_a_local", ingest_token="tok_123")
+        self.assertTrue(paused)
+        self.assertEqual(reason, "PAUSED_HIGH_BOUNCE")
+
+        to_sale, subj_sale, body_sale, _ = stripe_alerts.format_alert_email(
+            {"kind": "sale_confirmed", "play_label": "Play A: SiteRescue", "tier": "pack", "amount_usd": 10.0, "target_domain": "clinic.co.uk", "session_ref": "cs_live_12...34"},
+            owner_email="armkhan18@gmail.com",
+        )
+        self.assertEqual(to_sale, "armkhan18@gmail.com")
+        self.assertIn("$$$ SALE CONFIRMED", subj_sale)
+        self.assertIn("$10.00 USD", body_sale)
+
+        to_rec, subj_rec, body_rec, _ = stripe_alerts.format_alert_email(
+            {"kind": "abandoned_recovery", "play_label": "Play B: StoreFix", "amount_usd": 10.0, "target_domain": "oak.com", "recipient_email": "owner@oak.com", "checkout_url": "https://ecom-fix.ak10082247.workers.dev/"},
+            owner_email="armkhan18@gmail.com",
+        )
+        self.assertEqual(to_rec, "owner@oak.com")
+        self.assertIn("oak.com", subj_rec)
+        self.assertIn("One-time checkout follow-up", body_rec)
 
 
 if __name__ == "__main__":

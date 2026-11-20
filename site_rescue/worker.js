@@ -12,6 +12,7 @@ import {
   handleStripeCheckoutRoute,
   handleGenericX402BuyRoute,
   handleRescueDownloadRoute,
+  incrementFunnelCounter,
 } from "../edge_helpers.js";
 import { analyzeLocalBusinessSite, buildSiteRecoveryBundle } from "./diagnostics.js";
 
@@ -193,6 +194,9 @@ export default {
           ssl_days_remaining: body.ssl_days_remaining,
           brokenUrl: body.broken_url,
         });
+        if (!String(body.domain || body.url || "").trim().toLowerCase().startsWith("test.")) {
+          await incrementFunnelCounter(env, "play_a_local", "free_previews_or_zips");
+        }
         return jsonResp({ ok: true, ...res }, 200, cors);
       } catch (err) {
         return jsonResp({ ok: false, error: err.message }, err.httpStatus || 422, cors);

@@ -29,6 +29,7 @@ import {
   createStripeCheckoutSession,
   verifyStripeSessionAndMint,
 } from "./stripe_billing.js";
+import { incrementFunnelCounter } from "./edge_helpers.js";
 
 const MERCHANT_BASE = "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6";
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -906,6 +907,10 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
           authType: body.auth_type || "auto",
           authHeaderName: body.auth_header || "",
         });
+        const previewUrl = String(body.schema_url || body.spec_url || "").toLowerCase();
+        if (!previewUrl.includes("//test.")) {
+          await incrementFunnelCounter(env, "action2mcp", "free_previews_or_zips");
+        }
         return new Response(
           JSON.stringify(
             {
@@ -965,6 +970,10 @@ description: Compile retiring OpenAI Custom GPT Actions (OpenAPI 3.0/3.1 JSON or
       }
       try {
         const { files } = await compileBundleFromParams(bodyParams, false);
+        const dlUrl = String(bodyParams.schema_url || bodyParams.spec_url || "").toLowerCase();
+        if (!dlUrl.includes("//test.")) {
+          await incrementFunnelCounter(env, "action2mcp", "free_previews_or_zips");
+        }
         return zipBundleResponse(files, cors);
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, error: err.message }), {

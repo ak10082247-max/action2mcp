@@ -26,6 +26,12 @@ jobs:
           python scripts/test_sniper.py
           python scripts/test_all_snipers.py
 
+      - name: Provision Shared FUNNEL_KV Binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: node scripts/provision_kv_toml.mjs
+
       - name: Deploy Action2MCP Primary Worker
         uses: cloudflare/wrangler-action@v3
         with:
@@ -64,6 +70,10 @@ jobs:
           CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
           CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          DASHBOARD_INGEST_TOKEN: ${{ secrets.DASHBOARD_INGEST_TOKEN }}
+          MONTHLY_FIXED_COST_USD: ${{ secrets.MONTHLY_FIXED_COST_USD }}
         run: |
           for cfg in wrangler.toml site_rescue/wrangler.toml ecom_fix/wrangler.toml revenue_dashboard/wrangler.toml; do
             if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
@@ -89,4 +99,16 @@ jobs:
           fi
           if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
             printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | npx --yes wrangler@4 secret put CF_ACCOUNT_ID --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
+          if [ -n "${DASHBOARD_PASSWORD:-}" ]; then
+            printf '%s' "$DASHBOARD_PASSWORD" | npx --yes wrangler@4 secret put DASHBOARD_PASSWORD --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
+          if [ -n "${STRIPE_WEBHOOK_SECRET:-}" ]; then
+            printf '%s' "$STRIPE_WEBHOOK_SECRET" | npx --yes wrangler@4 secret put STRIPE_WEBHOOK_SECRET --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
+          if [ -n "${DASHBOARD_INGEST_TOKEN:-}" ]; then
+            printf '%s' "$DASHBOARD_INGEST_TOKEN" | npx --yes wrangler@4 secret put DASHBOARD_INGEST_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
+          fi
+          if [ -n "${MONTHLY_FIXED_COST_USD:-}" ]; then
+            printf '%s' "$MONTHLY_FIXED_COST_USD" | npx --yes wrangler@4 secret put MONTHLY_FIXED_COST_USD --config revenue_dashboard/wrangler.toml >/dev/null
           fi

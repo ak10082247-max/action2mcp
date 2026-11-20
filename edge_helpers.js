@@ -405,3 +405,116 @@ export async function handleRescueDownloadRoute({ req, url, env, cors, plansMap,
   if (reqFormat === "json") return jsonResp({ ok: true, fulfillment, diagnostic: pack.diagnostic, files: pack.files }, 200, cors, { "Cache-Control": "no-store" });
   return zipResp(pack.files, zipFilename, cors);
 }
+
+const textEncoder = new TextEncoder();
+
+export function normalizePlayKey(raw) {
+  const k = String(raw || "").trim().toLowerCase();
+  if (!k) return "other";
+  if (k === "play_a_local" || k === "play_a" || k === "site_rescue" || k === "site-rescue" || k === "siterescue" || k === "playa") return "play_a_local";
+  if (k === "play_b_ecom" || k === "play_b" || k === "ecom_fix" || k === "ecom-fix" || k === "storefix" || k === "playb") return "play_b_ecom";
+  if (k === "action2mcp" || k === "a2m") return "action2mcp";
+  if (k === "agentfuel402" || k === "agentfuel") return "agentfuel402";
+  if (k === "canaryguard" || k === "canaryguard-402") return "canaryguard";
+  if (k === "rugshield" || k === "rugshield-402") return "rugshield";
+  return k.replace(/[^a-z0-9_-]/g, "_").slice(0, 32) || "other";
+}
+
+export function constantTimeEqual(a, b) {
+  const ba = textEncoder.encode(String(a || ""));
+  const bb = textEncoder.encode(String(b || ""));
+  if (ba.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ba.length; i += 1) diff |= ba[i] ^ bb[i];
+  return diff === 0;
+}
+
+export async function sha256Hex(input) {
+  const digest = await crypto.subtle.digest("SHA-256", textEncoder.encode(String(input || "")));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function hmacSha256Hex(message, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    textEncoder.encode(String(secret || "")),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, textEncoder.encode(String(message || "")));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function verifyStripeWebhookSignature(rawBody, sigHeader, secret, maxAgeSec = 300) {
+  const sec = String(secret || "").replace(/[\uFEFF\x00-\x20\x7F]+/g, "");
+  if (!sec || !sigHeader) return { ok: false, error: "missing_secret_or_signature" };
+  let timestamp = null;
+  const v1Sigs = [];
+  for (const part of String(sigHeader).split(",")) {
+    const [k, v] = part.split("=", 2).map((x) => String(x || "").trim());
+    if (k === "t") timestamp = Number(v);
+    if (k === "v1" && v) v1Sigs.push(v.toLowerCase());
+  }
+  if (!Number.isFinite(timestamp) || v1Sigs.length === 0) return { ok: false, error: "malformed_stripe_signature" };
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
+  if (age > maxAgeSec) return { ok: false, error: "stripe_signature_timestamp_expired" };
+
+  const expected = await hmacSha256Hex(`${timestamp}.${rawBody}`, sec);
+  const matched = v1Sigs.some((cand) => constantTimeEqual(cand, expected));
+  return matched ? { ok: true, timestamp } : { ok: false, error: "invalid_stripe_signature" };
+}
+
+export async function incrementFunnelCounter(env, playRaw, metricKey, delta = 1) {
+  const kv = env?.FUNNEL_KV;
+  if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function") return null;
+  const play = normalizePlayKey(playRaw);
+  const k = `metric:${play}:${metricKey}`;
+  try {
+    const cur = Number((await kv.get(k)) || 0) || 0;
+    const next = cur + Number(delta || 1);
+    await kv.put(k, String(next));
+    return next;
+  } catch {
+    return null;
+  }
+}
+
+export async function recordUniqueFunnelClick(env, playRaw, leadHash) {
+  const kv = env?.FUNNEL_KV;
+  if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function") return null;
+  const play = normalizePlayKey(playRaw);
+  const cleanId = String(leadHash || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 48);
+  try {
+    if (cleanId) {
+      const seenKey = `seen_click:${play}:${cleanId}`;
+      const already = await kv.get(seenKey);
+      if (already) return Number((await kv.get(`metric:${play}:unique_clicks`)) || 0) || 0;
+      await kv.put(seenKey, "1", { expirationTtl: 90 * 86400 });
+    }
+    return await incrementFunnelCounter(env, play, "unique_clicks", 1);
+  } catch {
+    return null;
+  }
+}
+
+export function computeStopLossVerdict(row) {
+  const paidSales = Number(row?.paid_sales || 0);
+  const cleanDelivered = Number(row?.clean_delivered || 0);
+  const activeSent = Number(row?.active_sent ?? row?.emails_total ?? 0);
+  const bouncePct = Number(row?.bounce_rate_pct || 0);
+  const stopLossCap = row?.stop_loss_cap ? Number(row.stop_loss_cap) : null;
+  const repliedCount = Number(row?.replied_count || 0);
+  const uniqueClicks = Number(row?.unique_clicks || 0);
+  const abandonedCount = Number(row?.abandoned_checkouts || 0);
+  const pausedHighBounce = Boolean(row?.paused_high_bounce);
+  const cutoffDate = row?.cutoff_date ? String(row.cutoff_date) : null;
+  const todayStr = String(row?.today_str || new Date().toISOString().slice(0, 10));
+
+  if (paidSales >= 1) return "SCALING";
+  if ((stopLossCap && cleanDelivered >= stopLossCap && repliedCount < 2) || (cutoffDate && todayStr >= cutoffDate)) return "KILL";
+  if (pausedHighBounce || (activeSent >= 10 && bouncePct > 5.0)) return "FIX DELIVERABILITY";
+  if (cleanDelivered >= 50 && uniqueClicks === 0 && repliedCount === 0 && abandonedCount === 0) return "FIX DELIVERABILITY";
+  if (uniqueClicks > 0 || abandonedCount > 0 || repliedCount > 0) return "FIX TRUST/PRICE";
+  return "TESTING";
+}

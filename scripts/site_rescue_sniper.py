@@ -216,7 +216,8 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
     q = {"domain": dom, "ref": "email1"}
     if ssl_days is not None:
         q["ssl_days"] = str(ssl_days)
-    audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode(q)}"
+    raw_audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode(q)}"
+    audit_link = common.build_tracked_url("play_a_local", dom, raw_audit_link)
 
     body = (
         f"Hi {target['name']} team,\n\n"
@@ -274,6 +275,12 @@ def main():
         hard_stop_total=args.hard_stop,
         override=args.override,
     )
+    if args.send:
+        common.push_dashboard_ingest("play_a_local", stats, source="play_a_cron")
+        kv_paused, kv_reason = common.check_dashboard_play_status("play_a_local")
+        if kv_paused and not args.override:
+            print(f"[!] Play A Dashboard Safety Gate: {kv_reason} (bounce={stats['bounce_rate_pct']}%)")
+            return
     sent_today = stats["sent_today"]
     known_domains = set(state.get("contacted_domains") or [])
     known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
@@ -322,6 +329,10 @@ def main():
                 time.sleep(5)
             except Exception as exc:
                 print(f"    [-] SMTP failed: {exc}")
+
+    if args.send:
+        _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)
+        common.push_dashboard_ingest("play_a_local", post_stats, source="play_a_cron_post")
 
     print(f"[=] Play A Summary: candidates={len(cands)} probed={probed} verified_broken={len(hits)} sent_today={sent_today}")
 

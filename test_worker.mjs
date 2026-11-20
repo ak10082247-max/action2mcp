@@ -1,15 +1,39 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, createHmac } from "node:crypto";
 import worker from "./worker.js";
 import { compileOpenApiToMcp, generateStandaloneWorkerJs, buildDeployableBundle } from "./compiler.js";
 import { createZipArchive } from "./zip_builder.js";
 import { compileForApify, runActorMain, APIFY_PPE_EVENT } from "./apify_main.mjs";
 import { signCdpJwt } from "./cdp_auth.js";
+import { computeStopLossVerdict } from "./edge_helpers.js";
 import siteRescueWorker from "./site_rescue/worker.js";
 import ecomFixWorker from "./ecom_fix/worker.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
+
+function createMemoryKv() {
+  const store = new Map();
+  return {
+    async get(key) {
+      return store.has(key) ? store.get(key) : null;
+    },
+    async put(key, value) {
+      store.set(String(key), String(value));
+    },
+    async delete(key) {
+      store.delete(String(key));
+    },
+    async list({ prefix = "", limit = 1000 } = {}) {
+      const keys = [];
+      for (const name of store.keys()) {
+        if (name.startsWith(prefix)) keys.push({ name });
+        if (keys.length >= limit) break;
+      }
+      return { keys, list_complete: true, cursor: "" };
+    },
+  };
+}
 
 const ENV = {
   MERCHANT_BASE_ADDRESS: "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6",
@@ -740,8 +764,13 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
   }
 });
 
-test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redacts PII", async () => {
+test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhooks, gates bounces & computes Net P&L", async () => {
   const origFetch = globalThis.fetch;
+  const sharedKv = createMemoryKv();
+  const WEBHOOK_SECRET = "whsec_test_kurox_1234567890";
+  const INGEST_TOKEN = "ingest_tok_test_abcdef";
+  const DASH_PW = "Sup3rS3cretDash!";
+
   globalThis.fetch = async (url, init) => {
     const u = String(url);
     if (u === "https://api.stripe.com/v1/balance") {
@@ -751,9 +780,9 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
       return new Response(
         JSON.stringify({
           data: [
-            { id: "cs_live_1111222233334444", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
-            { id: "cs_live_5555666677778888", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
-            { id: "cs_open_9999000011112222", payment_status: "unpaid", amount_total: 1000, currency: "usd", created: 1795000200, metadata: { sku: "ecomfix-bundle-v1", target_domain: "realshop.com" } },
+            { id: "cs_live_1111222233334444", status: "complete", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000000, customer_details: { email: "secret@buyer.com" }, metadata: { sku: "action2mcp-hosted-v1", tier: "hosted" } },
+            { id: "cs_live_5555666677778888", status: "complete", payment_status: "paid", amount_total: 1000, currency: "usd", created: 1795000100, customer_details: { email: "clinic@buyer.co.uk" }, metadata: { sku: "siterescue-pack-v1", target_domain: "clinic.co.uk" } },
+            { id: "cs_exp_9999000011112222", status: "expired", payment_status: "unpaid", amount_total: 1000, currency: "usd", created: 1795000200, customer_details: { email: "abandoner@shop.com" }, metadata: { sku: "ecomfix-bundle-v1", tier: "fix_pack", target_domain: "realshop.com" } },
           ],
         }),
         { status: 200 },
@@ -798,32 +827,278 @@ test("Revenue Dashboard tallies live Stripe checkouts, Base/Solana USDC & redact
   };
 
   try {
-    const DASH_ENV = { ...FULL_ENV, APIFY_TOKEN: "apify_test_tok", CF_ANALYTICS_TOKEN: "cf_tok", CF_ACCOUNT_ID: "acc_123", GITHUB_REPO: "ak10082247-max/action2mcp" };
-    const [uiRes, liveRes] = await Promise.all([
+    const DASH_ENV = {
+      ...FULL_ENV,
+      FUNNEL_KV: sharedKv,
+      DASHBOARD_PASSWORD: DASH_PW,
+      STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+      DASHBOARD_INGEST_TOKEN: INGEST_TOKEN,
+      MONTHLY_FIXED_COST_USD: "5.00",
+      APIFY_TOKEN: "apify_test_tok",
+      CF_ANALYTICS_TOKEN: "cf_tok",
+      CF_ACCOUNT_ID: "acc_123",
+      GITHUB_REPO: "ak10082247-max/action2mcp",
+    };
+
+    // 1. Auth gate & health checks
+    const [healthRes, unauthUiRes, unauthApiRes] = await Promise.all([
+      revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/health"), DASH_ENV),
       revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/"), DASH_ENV),
       revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/live"), DASH_ENV),
     ]);
+    assert.equal(healthRes.status, 200);
+    assert.equal(unauthUiRes.status, 302);
+    assert.equal(unauthUiRes.headers.get("location"), "/login");
+    assert.equal(unauthApiRes.status, 401);
+
+    const badLogin = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "password=wrongpass",
+      }),
+      DASH_ENV,
+    );
+    assert.equal(badLogin.status, 401);
+
+    const okLogin = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `password=${encodeURIComponent(DASH_PW)}`,
+      }),
+      DASH_ENV,
+    );
+    assert.equal(okLogin.status, 302);
+    assert.equal(okLogin.headers.get("location"), "/");
+    const setCookie = okLogin.headers.get("set-cookie") || "";
+    assert.match(setCookie, /HttpOnly/i);
+    assert.match(setCookie, /Secure/i);
+    assert.match(setCookie, /SameSite=Lax/i);
+    const cookiePair = setCookie.split(";")[0];
+
+    // 2. Click tracking /t dedup + open redirect guard
+    const evilRedir = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/t?play=play_b_ecom&id=lead1&to=https%3A%2F%2Fevil.example%2Fphish"),
+      DASH_ENV,
+    );
+    assert.equal(evilRedir.status, 400);
+
+    const trackUrl = "https://kurox-revenue-dashboard.ak10082247.workers.dev/t?play=play_b_ecom&id=leadA&to=" + encodeURIComponent("https://ecom-fix.ak10082247.workers.dev/?domain=realshop.com");
+    const track1 = await revenueDashboardWorker.fetch(new Request(trackUrl), DASH_ENV);
+    const track2 = await revenueDashboardWorker.fetch(new Request(trackUrl), DASH_ENV);
+    const track3 = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/t?play=play_b_ecom&id=leadB&to=" + encodeURIComponent("https://ecom-fix.ak10082247.workers.dev/?domain=other.com")),
+      DASH_ENV,
+    );
+    assert.equal(track1.status, 302);
+    assert.equal(track1.headers.get("location"), "https://ecom-fix.ak10082247.workers.dev/?domain=realshop.com");
+    assert.equal(track2.status, 302);
+    assert.equal(track3.status, 302);
+    assert.equal(await sharedKv.get("metric:play_b_ecom:unique_clicks"), "2");
+
+    // 3. Free preview / ZIP counters on Action2MCP + SiteRescue + StoreFix
+    const freeDl = await worker.fetch(
+      new Request("https://action2mcp.ak10082247.workers.dev/api/download-free", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schema: MULTI_ENDPOINT_YAML }),
+      }),
+      DASH_ENV,
+    );
+    assert.equal(freeDl.status, 200);
+    assert.equal(await sharedKv.get("metric:action2mcp:free_previews_or_zips"), "1");
+
+    // 4. Stripe Webhook HMAC verification + Sale Alert + 30m Abandoned Recovery Queue + Dedup
+    const signStripe = (payloadStr) => {
+      const ts = Math.floor(Date.now() / 1000);
+      const v1 = createHmac("sha256", WEBHOOK_SECRET).update(`${ts}.${payloadStr}`).digest("hex");
+      return `t=${ts},v1=${v1}`;
+    };
+    const badWh = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/webhooks/stripe", {
+        method: "POST",
+        headers: { "Stripe-Signature": "t=123,v1=deadbeef" },
+        body: "{}",
+      }),
+      DASH_ENV,
+    );
+    assert.equal(badWh.status, 401);
+
+    const completedEvt = JSON.stringify({
+      id: "evt_completed_1",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_live_webhook_1",
+          payment_status: "paid",
+          amount_total: 1000,
+          customer_details: { email: "buyer1@clinic.co.uk" },
+          metadata: { sku: "siterescue-pack-v1", tier: "pack", target_domain: "clinic.co.uk" },
+        },
+      },
+    });
+    const okWhCompleted = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/webhooks/stripe", {
+        method: "POST",
+        headers: { "Stripe-Signature": signStripe(completedEvt) },
+        body: completedEvt,
+      }),
+      DASH_ENV,
+    );
+    assert.equal(okWhCompleted.status, 200);
+    const dupWhCompleted = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/webhooks/stripe", {
+        method: "POST",
+        headers: { "Stripe-Signature": signStripe(completedEvt) },
+        body: completedEvt,
+      }),
+      DASH_ENV,
+    );
+    assert.equal((await dupWhCompleted.json()).duplicate, true);
+
+    const expiredEvt1 = JSON.stringify({
+      id: "evt_exp_1",
+      type: "checkout.session.expired",
+      data: {
+        object: {
+          id: "cs_exp_wh_1",
+          payment_status: "unpaid",
+          amount_total: 1000,
+          customer_details: { email: "abandon@clinic.co.uk" },
+          metadata: { sku: "ecomfix-bundle-v1", tier: "fix_pack", target_domain: "realshop.com" },
+        },
+      },
+    });
+    const expiredEvt2SameEmail = JSON.stringify({
+      id: "evt_exp_2",
+      type: "checkout.session.expired",
+      data: {
+        object: {
+          id: "cs_exp_wh_2",
+          payment_status: "unpaid",
+          amount_total: 1000,
+          customer_details: { email: "abandon@clinic.co.uk" },
+          metadata: { sku: "ecomfix-bundle-v1", tier: "fix_pack", target_domain: "realshop.com" },
+        },
+      },
+    });
+    const rExp1 = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/webhooks/stripe", {
+        method: "POST",
+        headers: { "Stripe-Signature": signStripe(expiredEvt1) },
+        body: expiredEvt1,
+      }),
+      DASH_ENV,
+    )).json();
+    const rExp2 = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/webhooks/stripe", {
+        method: "POST",
+        headers: { "Stripe-Signature": signStripe(expiredEvt2SameEmail) },
+        body: expiredEvt2SameEmail,
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(rExp1.queued_recovery, true);
+    assert.equal(rExp2.queued_recovery, false);
+
+    // Due-now alerts only contain sale_confirmed; ?all=1 contains both (+30m recovery)
+    const dueRes = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/pending-alerts", {
+        headers: { Authorization: `Bearer ${INGEST_TOKEN}` },
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(dueRes.alerts.length, 1);
+    assert.equal(dueRes.alerts[0].kind, "sale_confirmed");
+    assert.match(dueRes.alerts[0].subject, /\$\$\$ SALE CONFIRMED/);
+
+    const allAlertsRes = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/pending-alerts?all=1", {
+        headers: { Authorization: `Bearer ${INGEST_TOKEN}` },
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(allAlertsRes.alerts.length, 2);
+
+    const ackRes = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/ack-alert", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${INGEST_TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: dueRes.alerts[0].id }),
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(ackRes.ok, true);
+
+    // 5. Bounce Ingest -> 5% PAUSED_HIGH_BOUNCE circuit breaker -> /api/play-status
+    const ingestRes = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/ingest", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${INGEST_TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ play: "play_a_local", emails_sent: 14, emails_bounced: 2, post_fix_sent: 12, post_fix_bounced: 2 }),
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(ingestRes.paused_high_bounce, true);
+    assert.equal(ingestRes.pause_reason, "PAUSED_HIGH_BOUNCE");
+
+    const playStatusRes = await (await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/play-status?play=play_a_local", {
+        headers: { Authorization: `Bearer ${INGEST_TOKEN}` },
+      }),
+      DASH_ENV,
+    )).json();
+    assert.equal(playStatusRes.paused, true);
+    assert.equal(playStatusRes.reason, "PAUSED_HIGH_BOUNCE");
+
+    // 6. Authenticated dashboard UI & /api/live with Stop-Loss Matrix, P&L & PII masking
+    const [uiRes, liveRes] = await Promise.all([
+      revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/", { headers: { Cookie: cookiePair } }), DASH_ENV),
+      revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/api/live", { headers: { Cookie: cookiePair } }), DASH_ENV),
+    ]);
     assert.equal(uiRes.status, 200);
     const dashHtml = await uiRes.text();
-    assert.match(dashHtml, /Live Money Tally/);
-    assert.match(dashHtml, /Stop-Loss &amp; Early Diagnostic Scorecard/);
+    assert.match(dashHtml, /Real Net P&amp;L/);
+    assert.match(dashHtml, /Stop-Loss Decision Matrix/);
+    assert.match(dashHtml, /Abandoned Stripe Checkouts/);
 
     assert.equal(liveRes.status, 200);
     const liveText = await liveRes.text();
     assert.doesNotMatch(liveText, /secret@buyer\.com/);
     assert.doesNotMatch(liveText, /clinic@buyer\.co\.uk/);
+    assert.doesNotMatch(liveText, /abandoner@shop\.com/);
+    assert.doesNotMatch(liveText, /abandon@clinic\.co\.uk/);
+    assert.doesNotMatch(liveText, new RegExp(DASH_PW));
+
     const data = JSON.parse(liveText);
     assert.equal(data.totals.stripe_paid_usd, 20);
     assert.equal(data.totals.onchain_usdc, 1.5);
     assert.equal(data.totals.tracked_revenue_usd, 21.5);
-    assert.equal(data.stripe.by_play["Action2MCP"], 10);
-    assert.equal(data.stripe.by_play["Play A: SiteRescue"], 10);
-    assert.equal(data.stripe.checkout_clicks_by_play["Play B: StoreFix"], 1);
-    assert.equal(data.outreach.site_rescue.stop_loss_cap, 200);
-    assert.equal(data.outreach.site_rescue.daily_cap, 20);
-    assert.equal(data.outreach.site_rescue.cf_requests_7d, 42);
-    assert.equal(data.outreach.ecom_fix.stripe_clicks, 1);
-    assert.equal(data.apify.total_runs, 4);
+    assert.equal(data.totals.abandoned_orders, 1);
+    assert.equal(data.stripe.recent_abandoned[0].buyer_masked, "a***@shop.com");
+    assert.equal(data.pnl.stripe_fees_usd, 1.18);
+    assert.equal(data.pnl.apify_compute_usd, 0.08);
+    assert.equal(data.pnl.monthly_fixed_cost_usd, 5);
+    assert.equal(data.pnl.net_profit_usd, 15.24);
+    assert.equal(data.matrix.length, 6);
+    const playAMatrix = data.matrix.find((m) => m.key === "play_a_local");
+    const playBMatrix = data.matrix.find((m) => m.key === "play_b_ecom");
+    assert.equal(playAMatrix.verdict, "SCALING");
+    assert.equal(playBMatrix.unique_clicks, 2);
+    assert.equal(playBMatrix.verdict, "FIX TRUST/PRICE");
+
+    // 7. Unit test all 5 Stop-Loss verdict states directly
+    assert.equal(computeStopLossVerdict({ paid_sales: 1 }), "SCALING");
+    assert.equal(computeStopLossVerdict({ clean_delivered: 200, stop_loss_cap: 200, replied_count: 1 }), "KILL");
+    assert.equal(computeStopLossVerdict({ clean_delivered: 10, active_sent: 10, bounce_rate_pct: 6.5 }), "FIX DELIVERABILITY");
+    assert.equal(computeStopLossVerdict({ clean_delivered: 55, unique_clicks: 0, replied_count: 0, abandoned_checkouts: 0 }), "FIX DELIVERABILITY");
+    assert.equal(computeStopLossVerdict({ clean_delivered: 25, unique_clicks: 2, abandoned_checkouts: 1 }), "FIX TRUST/PRICE");
+    assert.equal(computeStopLossVerdict({ clean_delivered: 10, unique_clicks: 0 }), "TESTING");
+
+    const logoutRes = await revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/logout", { method: "POST" }), DASH_ENV);
+    assert.equal(logoutRes.status, 302);
+    assert.match(logoutRes.headers.get("set-cookie") || "", /Max-Age=0/);
   } finally {
     globalThis.fetch = origFetch;
   }

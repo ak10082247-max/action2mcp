@@ -30,6 +30,8 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          DASHBOARD_INGEST_TOKEN: ${{ secrets.DASHBOARD_INGEST_TOKEN }}
+          DASHBOARD_URL: https://kurox-revenue-dashboard.ak10082247.workers.dev
           INPUT_CANARY_TO: ${{ inputs.canary_to }}
           ACTION2MCP_BASE_URL: https://action2mcp.ak10082247.workers.dev
         run: |

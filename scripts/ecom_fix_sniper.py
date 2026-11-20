@@ -310,7 +310,8 @@ def _redact_issue_summary(issues: list[str]) -> str:
 
 def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> tuple[str, str]:
     dom = target["domain"]
-    audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'email1'})}"
+    raw_audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'email1'})}"
+    audit_link = common.build_tracked_url("play_b_ecom", dom, raw_audit_link)
     top_issues = _redact_issue_summary(target["issues"])
     subject = f"Google Shopping / theme issues flagged on {dom}"[:96]
     body = (
@@ -366,6 +367,12 @@ def main():
         hard_stop_total=args.hard_stop,
         override=args.override,
     )
+    if args.send:
+        common.push_dashboard_ingest("play_b_ecom", stats, source="play_b_cron")
+        kv_paused, kv_reason = common.check_dashboard_play_status("play_b_ecom")
+        if kv_paused and not args.override:
+            print(f"[!] Play B Dashboard Safety Gate: {kv_reason} (bounce={stats['bounce_rate_pct']}%)")
+            return
     sent_today = stats["sent_today"]
     known_domains = set(state.get("contacted_domains") or [])
     known_emails = set(e.lower().strip() for e in (state.get("contacted_emails") or []))
@@ -413,6 +420,10 @@ def main():
                 time.sleep(5)
             except Exception as exc:
                 print(f"    [-] SMTP failed: {exc}")
+
+    if args.send:
+        _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)
+        common.push_dashboard_ingest("play_b_ecom", post_stats, source="play_b_cron_post")
 
     print(f"[=] Play B Summary: candidates={len(hosts)} verified_leaks={len(hits)} sent_today={sent_today}")
 

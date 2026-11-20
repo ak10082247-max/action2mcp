@@ -5,6 +5,7 @@ Handles workspace .env loading, DoH MX validation, safe HTTP fetching,
 email extraction, SMTP sending, and persistent JSON state.
 """
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 import re
@@ -367,13 +368,45 @@ def evaluate_play_gate(
     return True, "ok", stats
 
 
-def sync_imap_bounces_and_replies(state: dict) -> bool:
-    """Best-effort read-only Gmail IMAP sync to auto-record new bounces and prospect replies."""
+def _fetch_imap_sender_sets() -> tuple[set[str], set[str]] | None:
+    """Fetch lowercase candidate emails from recent Gmail mailer-daemon bounces and inbound headers."""
     import imaplib
     smtp_user, smtp_pass = resolve_smtp_credentials()
     if not smtp_user or not smtp_pass:
-        return False
-    changed = False
+        return None
+    bounce_addrs: set[str] = set()
+    reply_addrs: set[str] = set()
+    try:
+        m = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=10)
+        m.login(smtp_user, smtp_pass)
+        st, _ = m.select("INBOX", readonly=True)
+        if st == "OK":
+            typ, msgs = m.search(None, "FROM", "mailer-daemon")
+            ids = (msgs[0] or b"").split()[-50:] if typ == "OK" else []
+            for mid in ids:
+                ftyp, fdata = m.fetch(mid, "(RFC822)")
+                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
+                    continue
+                txt = fdata[0][1].decode("utf-8", "replace").lower()
+                bounce_addrs.update(re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", txt))
+
+            rtyp, rmsgs = m.search(None, "ALL")
+            rids = (rmsgs[0] or b"").split()[-60:] if rtyp == "OK" else []
+            for mid in rids:
+                ftyp, fdata = m.fetch(mid, "(BODY.PEEK[HEADER.FIELDS (FROM)])")
+                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
+                    continue
+                fhdr = fdata[0][1].decode("utf-8", "replace").lower()
+                if "mailer-daemon" in fhdr or smtp_user.lower() in fhdr:
+                    continue
+                reply_addrs.update(re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", fhdr))
+        m.logout()
+    except Exception:
+        return None
+    return bounce_addrs, reply_addrs
+
+
+def _apply_imap_matches_to_state(state: dict, bounce_addrs: set[str], reply_addrs: set[str]) -> bool:
     known_emails = {str(e).lower().strip() for e in (state.get("contacted_emails") or []) if "@" in str(e)}
     if not known_emails:
         return False
@@ -387,48 +420,133 @@ def sync_imap_bounces_and_replies(state: dict) -> bool:
         if h.get("email") and (not reset_at or str(h.get("sent_date") or "") >= reset_at)
     }
 
-    try:
-        m = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=10)
-        m.login(smtp_user, smtp_pass)
-        st, _ = m.select("INBOX", readonly=True)
-        if st == "OK":
-            typ, msgs = m.search(None, "FROM", "mailer-daemon")
-            ids = (msgs[0] or b"").split()[-35:] if typ == "OK" else []
-            for mid in ids:
-                ftyp, fdata = m.fetch(mid, "(RFC822)")
-                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
-                    continue
-                txt = fdata[0][1].decode("utf-8", "replace").lower()
-                for cand in re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", txt):
-                    if cand in known_emails and cand not in bounced:
-                        bounced.add(cand)
-                        changed = True
-                    if cand in post_set and cand not in post_bounced:
-                        post_bounced.add(cand)
-                        changed = True
-
-            rtyp, rmsgs = m.search(None, "ALL")
-            rids = (rmsgs[0] or b"").split()[-50:] if rtyp == "OK" else []
-            for mid in rids:
-                ftyp, fdata = m.fetch(mid, "(BODY.PEEK[HEADER.FIELDS (FROM)])")
-                if ftyp != "OK" or not fdata or not isinstance(fdata[0], tuple):
-                    continue
-                fhdr = fdata[0][1].decode("utf-8", "replace").lower()
-                if "mailer-daemon" in fhdr or smtp_user.lower() in fhdr:
-                    continue
-                for cand in re.findall(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,12}", fhdr):
-                    if cand in known_emails and cand not in replied:
-                        replied.add(cand)
-                        changed = True
-        m.logout()
-    except Exception:
-        return False
+    changed = False
+    for cand in bounce_addrs & known_emails:
+        if cand not in bounced:
+            bounced.add(cand)
+            changed = True
+        if cand in post_set and cand not in post_bounced:
+            post_bounced.add(cand)
+            changed = True
+    for cand in reply_addrs & known_emails:
+        if cand not in replied:
+            replied.add(cand)
+            changed = True
 
     if changed:
         state["bounced_emails"] = sorted(bounced)
         state["post_fix_bounced_emails"] = sorted(post_bounced)
         state["replied_emails"] = sorted(replied)
     return changed
+
+
+def sync_imap_bounces_and_replies(state: dict) -> bool:
+    """Best-effort read-only Gmail IMAP sync to auto-record new bounces and prospect replies."""
+    known_emails = {str(e).lower().strip() for e in (state.get("contacted_emails") or []) if "@" in str(e)}
+    if not known_emails:
+        return False
+    res = _fetch_imap_sender_sets()
+    if res is None:
+        return False
+    bounce_addrs, reply_addrs = res
+    return _apply_imap_matches_to_state(state, bounce_addrs, reply_addrs)
+
+
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "https://kurox-revenue-dashboard.ak10082247.workers.dev").rstrip("/")
+
+
+def build_lead_hash(identifier: str) -> str:
+    return hashlib.sha256(str(identifier or "").strip().lower().encode("utf-8")).hexdigest()[:16]
+
+
+def build_tracked_url(play_key: str, lead_identifier: str, target_url: str, dashboard_base: str = DASHBOARD_URL) -> str:
+    base = (dashboard_base or DASHBOARD_URL).rstrip("/")
+    q = urllib.parse.urlencode({
+        "play": play_key,
+        "id": build_lead_hash(lead_identifier),
+        "to": target_url,
+    })
+    return f"{base}/t?{q}"
+
+
+def _dashboard_auth_headers(ingest_token: str | None = None) -> dict[str, str]:
+    tok = (ingest_token if ingest_token is not None else os.environ.get("DASHBOARD_INGEST_TOKEN", "")).strip()
+    if not tok:
+        return {}
+    return {
+        "Authorization": f"Bearer {tok}",
+        "User-Agent": UA,
+        "Content-Type": "application/json",
+    }
+
+
+def check_dashboard_play_status(play_key: str, dashboard_base: str = DASHBOARD_URL, ingest_token: str | None = None) -> tuple[bool, str]:
+    """Query /api/play-status to honor central PAUSED_HIGH_BOUNCE circuit breaker across plays."""
+    hdrs = _dashboard_auth_headers(ingest_token)
+    if not hdrs:
+        return False, ""
+    url = f"{(dashboard_base or DASHBOARD_URL).rstrip('/')}/api/play-status?{urllib.parse.urlencode({'play': play_key})}"
+    try:
+        j = http_get_json(url, headers=hdrs, timeout=8)
+        if j.get("paused"):
+            return True, str(j.get("reason") or "PAUSED_HIGH_BOUNCE")
+    except Exception:
+        return False, ""
+    return False, ""
+
+
+def push_dashboard_ingest(play_key: str, stats: dict, dashboard_base: str = DASHBOARD_URL, ingest_token: str | None = None, source: str = "cron") -> dict | None:
+    """Push latest bounce/delivered telemetry to dashboard POST /api/ingest."""
+    hdrs = _dashboard_auth_headers(ingest_token)
+    if not hdrs:
+        return None
+    url = f"{(dashboard_base or DASHBOARD_URL).rstrip('/')}/api/ingest"
+    payload = json.dumps({
+        "play": play_key,
+        "emails_sent": int(stats.get("total_sent", 0)),
+        "emails_bounced": int(stats.get("known_bounces", 0)),
+        "post_fix_sent": int(stats.get("active_sent", 0)),
+        "post_fix_bounced": int(stats.get("active_bounces", 0)),
+        "bounce_rate_pct": float(stats.get("bounce_rate_pct", 0.0)),
+        "emails_today": int(stats.get("sent_today", 0)),
+        "daily_cap": int(stats.get("daily_cap", 20)),
+        "stop_loss_cap": stats.get("hard_stop_total"),
+        "replied_count": int(stats.get("replied_count", 0)),
+        "source": source,
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, headers=hdrs, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8", "replace"))
+    except Exception:
+        return None
+
+
+def sync_imap_bounces_across_states(
+    state_specs: list[tuple[str, str, int | None]],
+    dashboard_base: str = DASHBOARD_URL,
+    ingest_token: str | None = None,
+) -> dict[str, dict]:
+    """Scan Gmail IMAP once across all outreach state files, persist updates, and ingest into dashboard KV."""
+    imap_res = _fetch_imap_sender_sets()
+    summary: dict[str, dict] = {}
+    for play_key, state_path, stop_cap in state_specs:
+        state = load_json_state(state_path, {"contacted_emails": [], "bounced_emails": [], "replied_emails": [], "history": []})
+        if imap_res is not None and _apply_imap_matches_to_state(state, imap_res[0], imap_res[1]):
+            save_json_state(state_path, state)
+        _, _, stats = evaluate_play_gate(state, daily_cap=20, hard_stop_total=stop_cap)
+        ingest_resp = push_dashboard_ingest(play_key, stats, dashboard_base=dashboard_base, ingest_token=ingest_token, source="imap_sync")
+        if ingest_resp and ingest_resp.get("paused_high_bounce") and not state.get("paused_reason"):
+            state["paused_reason"] = ingest_resp.get("pause_reason") or "PAUSED_HIGH_BOUNCE"
+            save_json_state(state_path, state)
+        summary[play_key] = {
+            "total_sent": stats["total_sent"],
+            "active_sent": stats["active_sent"],
+            "active_bounces": stats["active_bounces"],
+            "bounce_rate_pct": stats["bounce_rate_pct"],
+            "paused_high_bounce": bool((ingest_resp or {}).get("paused_high_bounce")),
+        }
+    return summary
 
 
 def send_canary_copies(canary_csv: str, subject: str, body: str, sender_name: str) -> int:
