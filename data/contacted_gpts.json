@@ -1022,7 +1022,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-21T13:33:19.575881+00:00",
+  "updated_at": "2026-11-21T13:39:11.172834+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
@@ -1031,6 +1031,7 @@
     "hernando.ren@studytafensw.edu.au",
     "hp.stoerr@ist-software.com",
     "imaginai90@proton.me",
+    "le.dat0312@gmail.com",
     "mail@yme.nl",
     "msk@gmail.com",
     "pashxa@syntronic.com",
@@ -1046,5 +1047,7 @@
   "cutoff_date": "2026-12-12",
   "paused_reason": "",
   "bounce_reset_at": "2026-11-20T12:15:00+00:00",
-  "post_fix_bounced_emails": []
+  "post_fix_bounced_emails": [
+    "le.dat0312@gmail.com"
+  ]
 }
