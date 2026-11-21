@@ -413,6 +413,7 @@ export function normalizePlayKey(raw) {
   if (!k) return "other";
   if (k === "play_a_local" || k === "play_a" || k === "site_rescue" || k === "site-rescue" || k === "siterescue" || k === "playa") return "play_a_local";
   if (k === "play_b_ecom" || k === "play_b" || k === "ecom_fix" || k === "ecom-fix" || k === "storefix" || k === "playb") return "play_b_ecom";
+  if (k === "play_c_agency" || k === "play_c" || k === "agency" || k === "agency_overflow" || k === "playc") return "play_c_agency";
   if (k === "action2mcp" || k === "a2m") return "action2mcp";
   if (k === "agentfuel402" || k === "agentfuel") return "agentfuel402";
   if (k === "canaryguard" || k === "canaryguard-402") return "canaryguard";

@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import outreach_common as common
 import site_rescue_sniper as play_a
 import ecom_fix_sniper as play_b
+import agency_overflow_sniper as play_c
 import process_stripe_alerts as stripe_alerts
 
 
@@ -159,6 +160,13 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertEqual(to_rec, "owner@oak.com")
         self.assertIn("oak.com", subj_rec)
         self.assertIn("One-time checkout follow-up", body_rec)
+
+    def test_play_c_agency_overflow_pitch(self):
+        subj, body = play_c.craft_agency_overflow_email({"name": "Harbor SEO", "domain": "harborseo.co.uk"})
+        self.assertIn("Harbor SEO", subj)
+        self.assertIn("pay after proof", subj)
+        self.assertIn("$49 per client", body)
+        self.assertIn("/t?play=play_c_agency", body)
 
 
 if __name__ == "__main__":

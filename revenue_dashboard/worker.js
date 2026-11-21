@@ -48,6 +48,7 @@ const ALLOWED_REDIRECT_HOSTS = new Set([
 const DEFAULT_PLAY_REDIRECTS = {
   play_a_local: "https://site-rescue.ak10082247.workers.dev/",
   play_b_ecom: "https://ecom-fix.ak10082247.workers.dev/",
+  play_c_agency: "https://site-rescue.ak10082247.workers.dev/?ref=agency",
   action2mcp: "https://action2mcp.ak10082247.workers.dev/",
   agentfuel402: "https://agentfuel402.ak10082247.workers.dev/",
   canaryguard: "https://canaryguard-402.onrender.com/",
@@ -57,6 +58,7 @@ const DEFAULT_PLAY_REDIRECTS = {
 const SIX_PLAY_CATALOG = [
   { key: "play_a_local", outreachKey: "site_rescue", stripeLabel: "Play A: SiteRescue", name: "Play A: SiteRescue (Local 404/SSL)", kind: "cold_email", defaultCap: 200, defaultCutoff: null },
   { key: "play_b_ecom", outreachKey: "ecom_fix", stripeLabel: "Play B: StoreFix", name: "Play B: StoreFix (Shopify/Woo)", kind: "cold_email", defaultCap: 200, defaultCutoff: null },
+  { key: "play_c_agency", outreachKey: "agency_overflow", stripeLabel: "Play C: Agency Overflow", name: "Play C: Agency B2B Overflow ($49/client)", kind: "cold_email", defaultCap: 200, defaultCutoff: null },
   { key: "action2mcp", outreachKey: "action2mcp", stripeLabel: "Action2MCP", name: "Action2MCP (Hold Dec 11)", kind: "cold_email", defaultCap: null, defaultCutoff: "2026-12-12" },
   { key: "agentfuel402", outreachKey: null, stripeLabel: null, name: "AgentFuel402 (x402 / Apify)", kind: "x402_api", defaultCap: null, defaultCutoff: null },
   { key: "canaryguard", outreachKey: null, stripeLabel: null, name: "CanaryGuard 402 (Firewall)", kind: "x402_api", defaultCap: null, defaultCutoff: null },
@@ -361,6 +363,7 @@ async function fetchOutreachTelemetry(repoSlug = "ak10082247-max/action2mcp") {
     { key: "action2mcp", playKey: "action2mcp", label: "Action2MCP (Hold Dec 11)", path: "data/contacted_gpts.json", worker: "action2mcp", playName: "Action2MCP", defaultCap: null, defaultCutoff: "2026-12-12" },
     { key: "site_rescue", playKey: "play_a_local", label: "Play A: SiteRescue", path: "data/site_rescue_state.json", worker: "site-rescue", playName: "Play A: SiteRescue", defaultCap: 200, defaultCutoff: null },
     { key: "ecom_fix", playKey: "play_b_ecom", label: "Play B: StoreFix", path: "data/ecom_fix_state.json", worker: "ecom-fix", playName: "Play B: StoreFix", defaultCap: 200, defaultCutoff: null },
+    { key: "agency_overflow", playKey: "play_c_agency", label: "Play C: Agency Overflow", path: "data/agency_overflow_state.json", worker: "site-rescue", playName: "Play C: Agency Overflow", defaultCap: 200, defaultCutoff: null },
   ];
   const today = new Date().toISOString().slice(0, 10);
   const out = {};
@@ -608,7 +611,7 @@ async function listKvAlerts(env, dueOnly = true) {
 
 async function getPlayStatusMap(env) {
   const kv = env?.FUNNEL_KV;
-  const targets = ["play_a_local", "play_b_ecom", "action2mcp"];
+  const targets = ["play_a_local", "play_b_ecom", "play_c_agency", "action2mcp"];
   const plays = {};
   await Promise.all(
     targets.map(async (pk) => {

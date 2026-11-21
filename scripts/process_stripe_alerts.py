@@ -20,6 +20,7 @@ REPO_ROOT = os.path.dirname(SCRIPTS_DIR)
 STATE_SPECS = [
     ("play_a_local", os.path.join(REPO_ROOT, "data", "site_rescue_state.json"), 200),
     ("play_b_ecom", os.path.join(REPO_ROOT, "data", "ecom_fix_state.json"), 200),
+    ("play_c_agency", os.path.join(REPO_ROOT, "data", "agency_overflow_state.json"), 200),
     ("action2mcp", os.path.join(REPO_ROOT, "data", "contacted_gpts.json"), None),
 ]
 

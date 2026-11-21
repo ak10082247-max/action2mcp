@@ -1081,7 +1081,7 @@ test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhook
     assert.equal(data.pnl.apify_compute_usd, 0.08);
     assert.equal(data.pnl.monthly_fixed_cost_usd, 5);
     assert.equal(data.pnl.net_profit_usd, 15.24);
-    assert.equal(data.matrix.length, 6);
+    assert.equal(data.matrix.length, 7);
     const playAMatrix = data.matrix.find((m) => m.key === "play_a_local");
     const playBMatrix = data.matrix.find((m) => m.key === "play_b_ecom");
     assert.equal(playAMatrix.verdict, "SCALING");

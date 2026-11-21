@@ -116,7 +116,7 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
             if len(hosts) >= limit_hosts:
                 break
             cdx_api = coll["cdx-api"]
-            u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=30&page={page}&fl=url"
+            u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=50&page={page}&fl=url"
             try:
                 st, _, _, raw = common.http_fetch(u, timeout=16, verify_ssl=False)
                 if st == 200:
@@ -136,7 +136,7 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
 
     # 2. Fast Photon + OSM batch retail shop websites (custom Shopify + WooCommerce storefronts)
     rot_idx = page % len(RETAIL_ROTATION)
-    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(8)]
+    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(12)]
     for item in common.fetch_photon_osm_websites(retail_queries, limit_per_query=50):
         if len(hosts) >= limit_hosts:
             break

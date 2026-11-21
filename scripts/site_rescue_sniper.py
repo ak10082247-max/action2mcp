@@ -100,7 +100,7 @@ def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 8) -> 
     candidates = []
     seen_domains = set()
     n = len(SEARCH_ROTATION)
-    q_count = max(4, min(10, limit_queries))
+    q_count = max(4, min(18, limit_queries))
     batch_queries = [f"{SEARCH_ROTATION[(cursor + off) % n][0]} {SEARCH_ROTATION[(cursor + off) % n][1]}" for off in range(q_count)]
 
     # 1. Primary: High-speed Photon + OSM batch nodes/ways API (150-250 websites in seconds, zero Overpass 502 bottlenecks)
