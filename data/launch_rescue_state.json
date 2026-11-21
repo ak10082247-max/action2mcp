@@ -1,0 +1,40 @@
+{
+  "contacted_domains": [
+    "nonloop.github.io",
+    "bellripple.com",
+    "myballast.pro",
+    "paneloui.com"
+  ],
+  "contacted_emails": [
+    "yugakhans@gmail.com",
+    "bellripplegarden@gmail.com",
+    "contact@myballast.pro",
+    "govindalapudisrinath@gmail.com"
+  ],
+  "bounced_emails": [],
+  "replied_emails": [],
+  "paid_sales": 0,
+  "history": [
+    {
+      "domain": "nonloop.github.io",
+      "email": "yugakhans@gmail.com",
+      "sent_date": "2026-11-21T21:05:35.977881+00:00"
+    },
+    {
+      "domain": "bellripple.com",
+      "email": "bellripplegarden@gmail.com",
+      "sent_date": "2026-11-21T21:05:42.120609+00:00"
+    },
+    {
+      "domain": "myballast.pro",
+      "email": "contact@myballast.pro",
+      "sent_date": "2026-11-21T21:05:47.907435+00:00"
+    },
+    {
+      "domain": "paneloui.com",
+      "email": "govindalapudisrinath@gmail.com",
+      "sent_date": "2026-11-21T21:05:53.629172+00:00"
+    }
+  ],
+  "updated_at": "2026-11-21T21:05:53.629241+00:00"
+}
