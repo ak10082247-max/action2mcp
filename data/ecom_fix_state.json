@@ -1,5 +1,5 @@
 {
-  "cc_page": 8,
+  "cc_page": 15,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -18,7 +18,9 @@
     "philipsburgdutyfree.com",
     "wantagebookshop.co.uk",
     "casestudycoffee.com",
-    "futuracoffeeroasters.com"
+    "futuracoffeeroasters.com",
+    "stumptowncoffee.com",
+    "nossacoffee.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -38,7 +40,9 @@
     "info@philipsburgdutyfree.com",
     "hello@wantagebookshop.co.uk",
     "info@casestudycoffee.com",
-    "sales@futuracoffeeroasters.com"
+    "sales@futuracoffeeroasters.com",
+    "info@stumptowncoffee.com",
+    "hello@nossacoffee.com"
   ],
   "history": [
     {
@@ -130,9 +134,19 @@
       "domain": "futuracoffeeroasters.com",
       "email": "sales@futuracoffeeroasters.com",
       "sent_date": "2026-11-21T13:35:20.880955+00:00"
+    },
+    {
+      "domain": "stumptowncoffee.com",
+      "email": "info@stumptowncoffee.com",
+      "sent_date": "2026-11-21T14:03:54.193970+00:00"
+    },
+    {
+      "domain": "nossacoffee.com",
+      "email": "hello@nossacoffee.com",
+      "sent_date": "2026-11-21T14:04:00.295505+00:00"
     }
   ],
-  "updated_at": "2026-11-21T13:39:42.909226+00:00",
+  "updated_at": "2026-11-21T14:04:00.295588+00:00",
   "bounced_emails": [
     "xxx@xxx.xxx",
     "marketing@ruceru.com"
