@@ -121,7 +121,8 @@
     "jentic/jentic-public-apis",
     "kosif199022-jpg/kosif-one",
     "Kengkorok/studio",
-    "alphineaiinc/aca-realtime-gateway-clean"
+    "alphineaiinc/aca-realtime-gateway-clean",
+    "LeDat0312/ads-automation"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -245,7 +246,8 @@
     "sophie@jentic.com",
     "kosif199022@gmail.com",
     "sa7one@gmail.com",
-    "alphineai.inc@gmail.com"
+    "alphineai.inc@gmail.com",
+    "le.dat0312@gmail.com"
   ],
   "history": [
     {
@@ -979,6 +981,12 @@
       "email": "alphineai.inc@gmail.com",
       "tool_count": 1,
       "sent_date": "2026-11-21T00:04:37.560021+00:00"
+    },
+    {
+      "repo": "LeDat0312/ads-automation",
+      "email": "le.dat0312@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-21T13:33:19.575793+00:00"
     }
   ],
   "skipped_no_email_repos": [
@@ -1014,7 +1022,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-21T07:27:40.501533+00:00",
+  "updated_at": "2026-11-21T13:33:19.575881+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
