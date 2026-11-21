@@ -1,5 +1,5 @@
 {
-  "cursor": 14,
+  "cursor": 2,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -7,7 +7,9 @@
     "mcbrideopticians.co.uk",
     "willmurphydentistry.co.uk",
     "drrearden.com",
-    "temkinopticians.com"
+    "temkinopticians.com",
+    "porterssolicitors.co.uk",
+    "drartaheri.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -16,7 +18,9 @@
     "mcbrideopticians@hotmail.co.uk",
     "info@willmurphydentistry.co.uk",
     "office@drrearden.com",
-    "info@temkinopticians.com"
+    "info@temkinopticians.com",
+    "info@porterssolicitors.co.uk",
+    "drtahery1@gmail.com"
   ],
   "history": [
     {
@@ -53,9 +57,19 @@
       "domain": "temkinopticians.com",
       "email": "info@temkinopticians.com",
       "sent_date": "2026-11-21T13:40:57.539074+00:00"
+    },
+    {
+      "domain": "porterssolicitors.co.uk",
+      "email": "info@porterssolicitors.co.uk",
+      "sent_date": "2026-11-21T13:44:53.649352+00:00"
+    },
+    {
+      "domain": "drartaheri.com",
+      "email": "drtahery1@gmail.com",
+      "sent_date": "2026-11-21T13:44:59.603466+00:00"
     }
   ],
-  "updated_at": "2026-11-21T13:40:57.539124+00:00",
+  "updated_at": "2026-11-21T13:44:59.603544+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
