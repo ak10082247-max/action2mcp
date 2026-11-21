@@ -119,7 +119,9 @@
     "UteamUP/uteamup-mcp",
     "LucasPatricioRey/isekai-lucas-engine",
     "jentic/jentic-public-apis",
-    "kosif199022-jpg/kosif-one"
+    "kosif199022-jpg/kosif-one",
+    "Kengkorok/studio",
+    "alphineaiinc/aca-realtime-gateway-clean"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -241,7 +243,9 @@
     "support@uteamup.com",
     "41151138@comunidadort.edu.ar",
     "sophie@jentic.com",
-    "kosif199022@gmail.com"
+    "kosif199022@gmail.com",
+    "sa7one@gmail.com",
+    "alphineai.inc@gmail.com"
   ],
   "history": [
     {
@@ -963,6 +967,18 @@
       "email": "kosif199022@gmail.com",
       "tool_count": 29,
       "sent_date": "2026-11-20T00:48:35.834525+00:00"
+    },
+    {
+      "repo": "Kengkorok/studio",
+      "email": "sa7one@gmail.com",
+      "tool_count": 4,
+      "sent_date": "2026-11-21T00:04:30.989428+00:00"
+    },
+    {
+      "repo": "alphineaiinc/aca-realtime-gateway-clean",
+      "email": "alphineai.inc@gmail.com",
+      "tool_count": 1,
+      "sent_date": "2026-11-21T00:04:37.560021+00:00"
     }
   ],
   "skipped_no_email_repos": [
@@ -997,7 +1013,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-20T15:38:55.582743+00:00",
+  "updated_at": "2026-11-21T00:04:37.560077+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
