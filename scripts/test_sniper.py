@@ -85,6 +85,8 @@ paths:
         self.assertIn("tier%3Dhosted", body)
         self.assertIn("$10", body)
         self.assertIn("$25", body)
+        self.assertIn("$40", body)
+        self.assertIn("fiverr.com%2Fs%2F2pQja04", body)
         self.assertIn('reply "hosted"', body)
         self.assertNotIn("tier=bundle", body)
 

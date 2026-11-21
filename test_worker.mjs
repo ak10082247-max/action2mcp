@@ -897,6 +897,14 @@ test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhook
     assert.equal(track3.status, 302);
     assert.equal(await sharedKv.get("metric:play_b_ecom:unique_clicks"), "2");
 
+    const fiverrRedir = await revenueDashboardWorker.fetch(
+      new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/t?play=play_b_ecom&id=test_fiverr&to=" + encodeURIComponent("https://www.fiverr.com/s/EmrLlZd")),
+      DASH_ENV,
+    );
+    assert.equal(fiverrRedir.status, 302);
+    assert.equal(fiverrRedir.headers.get("location"), "https://www.fiverr.com/s/EmrLlZd");
+    assert.equal(await sharedKv.get("metric:play_b_ecom:unique_clicks"), "2");
+
     // 3. Free preview / ZIP counters on Action2MCP + SiteRescue + StoreFix
     const freeDl = await worker.fetch(
       new Request("https://action2mcp.ak10082247.workers.dev/api/download-free", {

@@ -121,6 +121,9 @@ def craft_agency_overflow_email(target: dict) -> tuple[str, str]:
     name = target.get("name") or dom
     sr_link = common.build_tracked_url("play_c_agency", dom, f"{DEFAULT_SITERESCUE_URL}/?ref=agency")
     ef_link = common.build_tracked_url("play_c_agency", dom, f"{DEFAULT_ECOMFIX_URL}/?ref=agency")
+    fiverr_ecom = common.build_fiverr_tracked_url("play_c_agency", dom, "play_b_ecom")
+    fiverr_app = common.build_fiverr_tracked_url("play_c_agency", dom, "vibe_coding")
+    fiverr_site = common.build_fiverr_tracked_url("play_c_agency", dom, "play_a_local")
 
     subject = f"White-label Shopify/SEO technical overflow for {name} (pay after proof)"[:96]
     body = (
@@ -132,7 +135,11 @@ def craft_agency_overflow_email(target: dict) -> tuple[str, str]:
         f"I built deterministic automated packers for these and run white-label overflow for small agencies:\n"
         f"- Wholesale rate: $49 per client fix ZIP (mark it up cleanly under your own agency brand)\n"
         f"- Risk-free first test: $10 trial client pack — and for a verified client domain, send me the URL and I'll generate the staging fix diff first so you only pay after checking it works.\n\n"
-        f"You can test both live scanners right now on any client domain:\n"
+        f"Prefer Fiverr buyer escrow for client trials? Start directly on my UK Fiverr gigs:\n"
+        f"- $5 Shopify/Woo Schema & 404 Trial: {fiverr_ecom}\n"
+        f"- $5 Next.js / Cursor / API Bug Trial: {fiverr_app}\n"
+        f"- $15 Site 404, SSL & WordPress Hardening Trial: {fiverr_site}\n\n"
+        f"Or test both live scanners right now on any client domain:\n"
         f"- Local 404/SSL/LocalBusiness JSON-LD scanner: {sr_link}\n"
         f"- Shopify/Woo Google Shopping & ScriptTag audit: {ef_link}\n\n"
         f"Happy to run a free diagnostic sample on 1 client URL if helpful — just reply with a domain.\n\n"

@@ -43,6 +43,8 @@ const ALLOWED_REDIRECT_HOSTS = new Set([
   "rugshield-402.onrender.com",
   "apify.com",
   "www.apify.com",
+  "fiverr.com",
+  "www.fiverr.com",
 ]);
 
 const DEFAULT_PLAY_REDIRECTS = {

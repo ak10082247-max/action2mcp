@@ -51,6 +51,7 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("$49", body)
         self.assertIn("/t?play=play_a_local", body)
         self.assertIn("site-rescue.ak10082247.workers.dev", body)
+        self.assertIn("fiverr.com%2Fs%2FZoz3GEY", body)
 
         subj2, body2 = play_a.craft_site_rescue_email({
             "name": "Oak Clinic",
@@ -104,6 +105,7 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("$49", body)
         self.assertIn("/t?play=play_b_ecom", body)
         self.assertIn("ecom-fix.ak10082247.workers.dev", body)
+        self.assertIn("fiverr.com%2Fs%2FEmrLlZd", body)
 
     def test_stop_loss_and_bounce_gates(self):
         ok, reason, _ = common.evaluate_play_gate({"history": [], "bounced_emails": [], "replied_emails": []}, daily_cap=20, hard_stop_total=200)
@@ -180,6 +182,9 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("pay after proof", subj)
         self.assertIn("$49 per client", body)
         self.assertIn("/t?play=play_c_agency", body)
+        self.assertIn("fiverr.com%2Fs%2FEmrLlZd", body)
+        self.assertIn("fiverr.com%2Fs%2FGPlNGgZ", body)
+        self.assertIn("fiverr.com%2Fs%2FZoz3GEY", body)
 
 
 if __name__ == "__main__":

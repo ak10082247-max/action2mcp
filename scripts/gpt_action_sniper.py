@@ -362,6 +362,7 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
     tracked_preview_url = common.build_tracked_url("action2mcp", target["repo"], raw_preview_url)
     raw_checkout_url = f"{public_service_url}/api/checkout?tier=hosted&spec_url={spec_q}"
     tracked_checkout_url = common.build_tracked_url("action2mcp", target["repo"], raw_checkout_url)
+    tracked_fiverr_url = common.build_fiverr_tracked_url("action2mcp", target["repo"], "action2mcp")
 
     body = (
         f"Hi {target.get('owner_name') or 'there'},\n\n"
@@ -370,7 +371,9 @@ def craft_sniper_email(target: dict, public_service_url: str = "https://action2m
         f"{tools_preview}\n\n"
         f"You can inspect the compiled MCP tools/list + SKILL.md and download the full Cloudflare Worker + SKILL.md ZIP 100% free (no account, checkout, or email wall) at:\n"
         f"{tracked_preview_url}\n\n"
-        f"(If you prefer zero Wrangler/Cloudflare setup, the instant Hosted MCP URL shortcut is discounted to a $10 launch deal (normally $25 one-time) at {tracked_checkout_url} — or just reply \"hosted\" for a direct checkout.stripe.com link.)\n\n"
+        f"Two fast done-for-you options if you want hands-free migration:\n"
+        f"- Instant Hosted MCP URL shortcut: $10 launch deal (normally $25 one-time) at {tracked_checkout_url} (or reply \"hosted\" for a direct checkout.stripe.com link).\n"
+        f"- Standard buyer escrow via my UK Fiverr gig (full Action Audit/POC & MCP build from $40): {tracked_fiverr_url}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
