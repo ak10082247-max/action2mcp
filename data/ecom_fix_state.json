@@ -1,5 +1,5 @@
 {
-  "cc_page": 20,
+  "cc_page": 7,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -15,7 +15,8 @@
     "digvinyl.co.uk",
     "seiger.nl",
     "queenbeeflowershop.com",
-    "philipsburgdutyfree.com"
+    "philipsburgdutyfree.com",
+    "wantagebookshop.co.uk"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -32,7 +33,8 @@
     "orders@digvinyl.co.uk",
     "info@seiger.nl",
     "queenbeeflowershop@gmail.com",
-    "info@philipsburgdutyfree.com"
+    "info@philipsburgdutyfree.com",
+    "hello@wantagebookshop.co.uk"
   ],
   "history": [
     {
@@ -109,9 +111,14 @@
       "domain": "philipsburgdutyfree.com",
       "email": "info@philipsburgdutyfree.com",
       "sent_date": "2026-11-20T21:59:46.900743+00:00"
+    },
+    {
+      "domain": "wantagebookshop.co.uk",
+      "email": "hello@wantagebookshop.co.uk",
+      "sent_date": "2026-11-21T10:15:16.490703+00:00"
     }
   ],
-  "updated_at": "2026-11-20T21:59:46.900852+00:00",
+  "updated_at": "2026-11-21T10:15:16.490785+00:00",
   "bounced_emails": [
     "xxx@xxx.xxx",
     "marketing@ruceru.com"
