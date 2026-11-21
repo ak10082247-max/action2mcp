@@ -614,7 +614,13 @@ test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Pr
     const u = String(url);
     if (u === "http://clinic.example.co.uk/") return new Response("", { status: 200 });
     if (u === "https://clinic.example.co.uk/") {
-      return new Response('<html><head><title>Bright Dental Clinic</title></head><form action="http://clinic.example.co.uk/submit"></form><a href="/book-online">Book Appointment</a></html>', { status: 200 });
+      return new Response('<html><head><title>Bright Dental Clinic</title></head><form action="http://clinic.example.co.uk/submit"></form><a href="/book-online">Book Appointment</a></html>', {
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "*",
+          "access-control-allow-credentials": "true",
+        },
+      });
     }
     if (u === "https://clinic.example.co.uk/book-online") return new Response("Not Found", { status: 404 });
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
@@ -637,6 +643,8 @@ test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Pr
     assert.equal(hJson.plans.pack.originalCents, 4900);
     assert.equal(hJson.plans.priority.amountCents, 2900);
     assert.equal(hJson.plans.priority.originalCents, 14900);
+    assert.equal(hJson.plans.dfy.amountCents, 9900);
+    assert.equal(hJson.plans.dfy.originalCents, 24900);
 
     const uiRes = await siteRescueWorker.fetch(new Request("https://site-rescue.ak10082247.workers.dev/"), FULL_ENV);
     const uiHtml = await uiRes.text();
@@ -656,6 +664,8 @@ test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Pr
     assert.equal(scanData.broken_links.length, 1);
     assert.equal(scanData.broken_links[0].status, 404);
     assert.equal(scanData.missing_viewport, true);
+    assert.equal(scanData.missing_og_image, true);
+    assert.equal(scanData.cors_credentials_leak, true);
     assert.equal(scanData.insecure_http_assets.length, 1);
     assert.ok(scanData.issues.some((i) => i.includes("expires in 5 day(s)")));
 
@@ -735,6 +745,8 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
     assert.equal(hJson.plans.fix_pack.originalCents, 4900);
     assert.equal(hJson.plans.pro_kit.amountCents, 2500);
     assert.equal(hJson.plans.pro_kit.originalCents, 7900);
+    assert.equal(hJson.plans.dfy.amountCents, 9900);
+    assert.equal(hJson.plans.dfy.originalCents, 24900);
 
     const coRes = await ecomFixWorker.fetch(
       new Request("https://ecom-fix.ak10082247.workers.dev/api/checkout?tier=fix_pack&domain=mystore.example.com&format=json", { method: "POST" }),
@@ -1100,7 +1112,8 @@ test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhook
     assert.equal(data.pnl.apify_compute_usd, 0.08);
     assert.equal(data.pnl.monthly_fixed_cost_usd, 5);
     assert.equal(data.pnl.net_profit_usd, 15.24);
-    assert.equal(data.matrix.length, 7);
+    assert.equal(data.matrix.length, 8);
+    assert.ok(data.matrix.some((m) => m.key === "play_d_launch"));
     const playAMatrix = data.matrix.find((m) => m.key === "play_a_local");
     const playBMatrix = data.matrix.find((m) => m.key === "play_b_ecom");
     assert.equal(playAMatrix.verdict, "SCALING");

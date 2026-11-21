@@ -42,6 +42,19 @@ export const ECOM_FIX_PLANS = {
     priceDisplay: "$25 USD / USDC (was $79)",
     tier: "pro_kit_25",
   },
+  dfy: {
+    id: "dfy",
+    sku: "ecomfix-dfy-v1",
+    name: "Done-For-You Complete Store + 500px Merchant Fix — $99 Deal (was $249)",
+    description:
+      "Limited-time $99 Deal (normally $249): Full automated Store Fix Bundle ZIP PLUS white-glove async Liquid schema installation, 301 redirect setup, and Jan 31, 2027 500x500px Google Merchant image batch processing.",
+    amountCents: 9900,
+    amountMicro: 99000000,
+    originalCents: 24900,
+    originalDisplay: "$249",
+    priceDisplay: "$99 USD / USDC (was $249)",
+    tier: "dfy_99",
+  },
 };
 
 function renderLanding(origin) {
@@ -92,13 +105,22 @@ function renderLanding(origin) {
         <button class="btn btn-green" onclick="buyStripe('fix_pack')">Download Store Fix Bundle ($10 Deal — was $49)</button>
       </div>
 
-      <div class="tier" style="margin-bottom:0;">
+      <div class="tier">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Store Fix Kit Pro</strong>
           <span class="price" style="color:#fbbf24;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$79</span>$25 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Everything in the Store Fix Bundle PLUS full diagnostic JSON manifest and priority async implementation check.</p>
         <button class="btn btn-amber" onclick="buyStripe('pro_kit')">Get Store Fix Kit Pro ($25 Deal — was $79)</button>
+      </div>
+
+      <div class="tier" style="margin-bottom:0;border-color:#4f46e5;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Done-For-You Complete Store Fix</strong>
+          <span class="price" style="color:#a78bfa;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$249</span>$99 Deal</span>
+        </div>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Zero tech work: we patch your theme Product JSON-LD, import 301 redirects, and resize/upload undersized Google Merchant photos for you asynchronously.</p>
+        <button class="btn" style="background:#6d28d9;" onclick="buyStripe('dfy')">Order Done-For-You Fix ($99 Deal — was $249)</button>
       </div>
     </div>
   </div>

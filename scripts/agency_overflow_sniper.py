@@ -142,6 +142,20 @@ def craft_agency_overflow_email(target: dict) -> tuple[str, str]:
     return subject, body
 
 
+def craft_followup_email(entry: dict) -> tuple[str, str]:
+    dom = entry.get("domain") or "your agency"
+    raw_audit = f"{DEFAULT_SITE_RESCUE_URL}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'agency_followup'})}"
+    site_link = common.build_tracked_url("play_c_agency", dom, raw_audit)
+    subj = f"Re: White-label Shopify/SEO technical overflow for {dom}"[:96]
+    body = (
+        f"Hi again,\n\n"
+        f"Quick bump in case technical cleanup tickets (Merchant 500px image feeds, broken booking/collection 301s, or March 2027 Shopify ScriptTags) are piling up on your client retainers.\n\n"
+        f"Reply with any client URL for a free proof audit before paying a cent ($49/client wholesale), or check sample diagnostics at:\n{site_link}\n\n"
+        f"Best,\nArman\n---\nReply 'unsubscribe' to stop.\n"
+    )
+    return subj, body
+
+
 def main():
     parser = argparse.ArgumentParser(description="Play C: B2B White-Label Agency Overflow Sniper")
     parser.add_argument("--queries", type=int, default=14, help="Agency city queries per run")
@@ -228,6 +242,14 @@ def main():
                 print(f"    [-] SMTP failed: {exc}")
 
     if args.send:
+        sent_today += common.send_due_followups(
+            state,
+            lambda e: craft_followup_email(e),
+            sender_name="Arman (Kurox Technical Partner)",
+            daily_cap=args.max_emails,
+            max_per_run=4,
+            save_path=STATE_FILE,
+        )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)
         common.push_dashboard_ingest("play_c_agency", post_stats, source="play_c_cron_post")
 

@@ -167,6 +167,22 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
     bare_domain = (parsed_home.hostname or candidate_host).lower().replace("www.", "")
     home_html = raw_home.decode("utf-8", "replace")
 
+    low_html = home_html.lower()
+    looks_ecom = any(tok in low_html for tok in ("shopify", "woocommerce", "/products/", "/collections/", "wp-content"))
+    emails = common.extract_deliverable_emails(home_html, bare_domain)
+    if not emails and looks_ecom:
+        for cp in ("/pages/contact", "/pages/contact-us", "/contact"):
+            try:
+                cst, _, _, craw = common.http_fetch(f"{base_origin}{cp}", timeout=6, verify_ssl=False)
+                if cst < 400:
+                    emails = common.extract_deliverable_emails(craw.decode("utf-8", "replace"), bare_domain)
+                    if emails:
+                        break
+            except Exception:
+                continue
+    if not emails or common.is_enterprise_queue_email(emails[0], home_html):
+        return None
+
     platform = None
     sample_product_url = None
     sample_price = None
@@ -282,20 +298,6 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
     if not issues:
         return None
 
-    emails = common.extract_deliverable_emails(home_html, bare_domain)
-    if not emails:
-        for cp in ("/pages/contact", "/pages/contact-us", "/contact"):
-            try:
-                cst, _, _, craw = common.http_fetch(f"{base_origin}{cp}", timeout=6, verify_ssl=False)
-                if cst < 400:
-                    emails = common.extract_deliverable_emails(craw.decode("utf-8", "replace"), bare_domain)
-                    if emails:
-                        break
-            except Exception:
-                continue
-    if not emails:
-        return None
-
     return {
         "domain": bare_domain,
         "platform": platform,
@@ -342,7 +344,7 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
         f"{top_issues}\n\n"
         f"Google Shopping is dropping products with mismatched Product JSON-LD now — and on Jan 31, 2027 enforces a strict 500x500px minimum across all product images (disapproving undersized SKUs).\n\n"
         f"Two fast ways to get the exact affected URL(s) + ready-to-paste fix:\n"
-        f"1) Reply \"fix\" to this email and I'll reply with the failing SKU/URL(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
+        f"1) Reply \"fix\" to get the failing SKU/URL(s) + a $10 Launch Deal Stripe checkout link (was $49), OR reply \"done\" for a $99 Done-For-You complete patch (we fix Liquid schema, redirects & 500x500px Google Merchant photos for you).\n"
         f"2) Or inspect the live diagnostic & download the custom Store Fix Bundle ($10 Deal, was $49 — includes "
         f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
         f"redirect CSV, 500x500px SKU audit CSV + offline 1500x1500px image padder tool, and ScriptTag checklist) at:\n"
@@ -351,6 +353,20 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
     return subject, body
+
+
+def craft_followup_email(entry: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> tuple[str, str]:
+    dom = entry.get("domain") or "your store"
+    raw_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'followup'})}"
+    tracked = common.build_tracked_url("play_b_ecom", dom, raw_link)
+    subj = f"Re: Google Merchant 500px / schema alert on {dom}"[:96]
+    body = (
+        f"Hi again,\n\n"
+        f"Quick follow-up on {dom}'s Product JSON-LD & Google Merchant Jan 31, 2027 500x500px image checks.\n\n"
+        f"Reply \"fix\" for the exact failing SKUs + $10 Launch Deal ZIP, or \"done\" if you'd like me to install the Liquid/image fix end-to-end ($99 via Stripe) — or preview live at:\n{tracked}\n\n"
+        f"Best,\nArman\n---\nReply 'unsubscribe' to stop.\n"
+    )
+    return subj, body
 
 
 def main():
@@ -444,6 +460,14 @@ def main():
                 print(f"    [-] SMTP failed: {exc}")
 
     if args.send:
+        sent_today += common.send_due_followups(
+            state,
+            lambda e: craft_followup_email(e),
+            sender_name="Arman (StoreFix Audit)",
+            daily_cap=args.max_emails,
+            max_per_run=4,
+            save_path=STATE_FILE,
+        )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)
         common.push_dashboard_ingest("play_b_ecom", post_stats, source="play_b_cron_post")
 

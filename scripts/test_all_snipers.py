@@ -8,6 +8,7 @@ import outreach_common as common
 import site_rescue_sniper as play_a
 import ecom_fix_sniper as play_b
 import agency_overflow_sniper as play_c
+import launch_rescue_sniper as play_d
 import process_stripe_alerts as stripe_alerts
 
 
@@ -197,6 +198,66 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("$49 per client", body)
         self.assertIn("500x500px", body)
         self.assertIn("/t?play=play_c_agency", body)
+
+    def test_play_d_launch_rescue_and_followups(self):
+        self.assertFalse(play_d.is_clean_launch_candidate("fl-studio-2026-portable-x64", "https://spam.github.io/x"))
+        self.assertFalse(play_d.is_clean_launch_candidate("goodapp", "https://github.com/user/repo"))
+        self.assertTrue(play_d.is_clean_launch_candidate("FastInvoice SaaS", "https://fastinvoice.example.com"))
+        self.assertTrue(common.is_enterprise_queue_email("support@brand.zendesk.com"))
+
+        cand = {
+            "name": "FastInvoice",
+            "url": "https://fastinvoice.example.com",
+            "domain": "fastinvoice.example.com",
+            "source": "show_hn",
+            "github_owner": "founder1",
+            "github_repo": "founder1/fastinvoice",
+        }
+
+        def fake_fetch(url, method="GET", headers=None, data=None, timeout=10, verify_ssl=True):
+            if url == "https://fastinvoice.example.com":
+                html = '<html><head><title>FastInvoice</title></head><body><h1>FastInvoice automated billing for freelancers</h1><a href="/pricing">Pricing</a><footer>Contact founder@fastinvoice.example.com for support</footer></body></html>'
+                return 200, "https://fastinvoice.example.com/", {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Credentials": "true"}, html.encode()
+            if url == "https://fastinvoice.example.com/.env":
+                return 200, url, {"Content-Type": "text/plain"}, b"STRIPE_SECRET=sk_test_not_printed\nDATABASE_URL=pg://x\n"
+            if url == "https://fastinvoice.example.com/.git/HEAD":
+                return 404, url, {}, b"Not Found"
+            if url == "https://fastinvoice.example.com/pricing":
+                return 404, url, {}, b"Not Found"
+            return 404, url, {}, b""
+
+        with patch.object(common, "http_fetch", side_effect=fake_fetch), \
+             patch.object(common, "has_valid_mx", return_value=True):
+            res = play_d.diagnose_launch_site(cand)
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res["email"], "founder@fastinvoice.example.com")
+        self.assertTrue(any("CORS misconfiguration" in i for i in res["issues"]))
+        self.assertTrue(any("environment config file" in i for i in res["issues"]))
+        subj, body = play_d.craft_launch_rescue_email(res)
+        self.assertIn("fastinvoice.example.com", subj)
+        self.assertNotIn("sk_test_not_printed", body)
+        self.assertNotIn("/.env", body)
+        self.assertIn("/t?play=play_d_launch", body)
+        self.assertIn("$49-$99", body)
+
+        state = {
+            "bounced_emails": ["b@x.com"],
+            "replied_emails": ["r@x.com"],
+            "history": [
+                {"domain": "old-clean.com", "email": "ok@old-clean.com", "sent_date": "2026-11-18T10:00:00+00:00"},
+                {"domain": "bounced.com", "email": "b@x.com", "sent_date": "2026-11-18T10:00:00+00:00"},
+                {"domain": "replied.com", "email": "r@x.com", "sent_date": "2026-11-18T10:00:00+00:00"},
+                {"domain": "fresh.com", "email": "fresh@fresh.com", "sent_date": "2099-01-01T10:00:00+00:00"},
+            ],
+        }
+        sent_to = []
+        with patch.object(common, "send_smtp_email", side_effect=lambda to, s, b, sender_name="": sent_to.append(to)), \
+             patch("time.sleep"):
+            cnt = common.send_due_followups(state, lambda e: ("Re: bump", f"Hi {e['domain']}"), "Arman", daily_cap=20, max_per_run=4)
+        self.assertEqual(cnt, 1)
+        self.assertEqual(sent_to, ["ok@old-clean.com"])
+        self.assertTrue(state["history"][0].get("followup_sent"))
 
 
 if __name__ == "__main__":

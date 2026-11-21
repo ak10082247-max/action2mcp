@@ -43,6 +43,19 @@ export const SITE_RESCUE_PLANS = {
     priceDisplay: "$29 USD / USDC (was $149)",
     tier: "priority_29",
   },
+  dfy: {
+    id: "dfy",
+    sku: "siterescue-dfy-v1",
+    name: "Done-For-You Complete Site/App Recovery Fix — $99 Deal (was $249)",
+    description:
+      "Limited-time $99 Deal (normally $249): Instant Site Recovery Pack ZIP PLUS complete async implementation/PR fix for broken links, SSL/redirect rules, security headers, viewport, and LocalBusiness schema.",
+    amountCents: 9900,
+    amountMicro: 99000000,
+    originalCents: 24900,
+    originalDisplay: "$249",
+    priceDisplay: "$99 USD / USDC (was $249)",
+    tier: "dfy_99",
+  },
 };
 
 function renderLanding(origin) {
@@ -93,13 +106,22 @@ function renderLanding(origin) {
         <button class="btn btn-green" onclick="buyStripe('pack')">Download Recovery Pack ($10 Deal — was $49)</button>
       </div>
 
-      <div class="tier" style="margin-bottom:0;">
+      <div class="tier">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>Priority Async Recovery</strong>
           <span class="price" style="color:#fbbf24;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$149</span>$29 Deal</span>
         </div>
         <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Instant Custom Recovery Pack ZIP PLUS priority async email fix verification for your web host or developer.</p>
         <button class="btn btn-amber" onclick="buyStripe('priority')">Get Priority Async Recovery ($29 Deal — was $149)</button>
+      </div>
+
+      <div class="tier" style="margin-bottom:0;border-color:#4f46e5;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Done-For-You Complete Fix / PR</strong>
+          <span class="price" style="color:#a78bfa;"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$249</span>$99 Deal</span>
+        </div>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Zero hassle: we deliver the complete patch, server/CDN rules, or GitHub fix PR directly for your website or app.</p>
+        <button class="btn" style="background:#6d28d9;" onclick="buyStripe('dfy')">Order Done-For-You Fix ($99 Deal — was $249)</button>
       </div>
     </div>
   </div>

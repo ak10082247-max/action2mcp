@@ -4,7 +4,7 @@ Shared outreach utilities for Play A (SiteRescue) & Play B (StoreFix) crons.
 Handles workspace .env loading, DoH MX validation, safe HTTP fetching,
 email extraction, SMTP sending, and persistent JSON state.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
@@ -600,7 +600,84 @@ def save_json_state(path: str, state: dict) -> None:
 
 def count_sent_today(history: list[dict]) -> int:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return sum(1 for h in (history or []) if str(h.get("sent_date") or "").startswith(today))
+    total = 0
+    for h in history or []:
+        if str(h.get("sent_date") or "").startswith(today):
+            total += 1
+        if str(h.get("followup_sent_at") or "").startswith(today):
+            total += 1
+    return total
+
+
+ENTERPRISE_HELPDESK_MARKERS = (
+    "zendesk.com", "freshdesk.com", "helpscout.net", "intercom-mail.com",
+    "salesforce.com", "kustomerapp.com", "gorgias.com", "reamaze.com",
+)
+
+
+def is_enterprise_queue_email(email: str, html: str = "") -> bool:
+    """Detect ticket-queue autoresponders or mega-chain helpdesk inboxes unlikely to buy quick $10-$99 fixes."""
+    em = str(email or "").lower().strip()
+    if any(m in em for m in ENTERPRISE_HELPDESK_MARKERS):
+        return True
+    low = (html or "")[:200000].lower()
+    if em.startswith("customerservice@") and any(m in low for m in ("zdassets.com", "gorgias.chat", "salesforce-experience")):
+        return True
+    return False
+
+
+def send_due_followups(
+    state: dict,
+    make_followup_fn,
+    sender_name: str,
+    daily_cap: int = 20,
+    max_per_run: int = 4,
+    min_age_hours: int = 48,
+    save_path: str | None = None,
+) -> int:
+    """Send at most 1 clean Day+2 follow-up bump per non-bounced, non-replied prospect inside daily cap."""
+    import time
+
+    bounced = {str(x).lower().strip() for x in (state.get("bounced_emails") or []) if x}
+    replied = {str(x).lower().strip() for x in (state.get("replied_emails") or []) if x}
+    history = state.get("history") or []
+    sent_today = count_sent_today(history)
+    now = datetime.now(timezone.utc)
+    sent_now = 0
+
+    for entry in history:
+        if sent_now >= max_per_run or sent_today >= daily_cap:
+            break
+        if entry.get("followup_sent"):
+            continue
+        em = str(entry.get("email") or "").lower().strip()
+        if not em or em in bounced or em in replied:
+            continue
+        raw_dt = str(entry.get("sent_date") or "").strip()
+        if not raw_dt:
+            continue
+        try:
+            dt = datetime.fromisoformat(raw_dt.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+        if (now - dt) < timedelta(hours=min_age_hours):
+            continue
+        try:
+            subj, body = make_followup_fn(entry)
+            send_smtp_email(em, subj, body, sender_name=sender_name)
+            entry["followup_sent"] = True
+            entry["followup_sent_at"] = now.isoformat()
+            sent_now += 1
+            sent_today += 1
+            if save_path:
+                save_json_state(save_path, state)
+            print(f"    -> Sent Day+2 follow-up to {em}")
+            time.sleep(4)
+        except Exception as exc:
+            print(f"    [-] Follow-up SMTP failed ({em}): {exc}")
+    return sent_now
 
 
 def resolve_smtp_credentials() -> tuple[str, str]:

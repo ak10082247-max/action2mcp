@@ -32,21 +32,21 @@ DEFAULT_SITE_RESCUE_URL = os.environ.get("SITE_RESCUE_BASE_URL") or "https://sit
 SEARCH_ROTATION = [
     ("dentist", "London"), ("dental clinic", "Manchester"), ("med spa", "Austin"),
     ("solicitor", "Bristol"), ("estate agent", "Edinburgh"), ("law firm", "Chicago"),
-    ("dentist", "Birmingham"), ("osteopath", "Brighton"), ("med spa", "Miami"),
-    ("dental clinic", "Seattle"), ("veterinary clinic", "Denver"), ("physiotherapy", "Leeds"),
-    ("chiropractor", "Boston"), ("family lawyer", "Dallas"), ("cosmetic clinic", "London"),
-    ("dentist", "San Diego"), ("estate agent", "Glasgow"), ("accounting firm", "Atlanta"),
+    ("plumber", "Birmingham"), ("hvac", "Dallas"), ("roofing", "Tampa"),
+    ("osteopath", "Brighton"), ("med spa", "Miami"), ("veterinary clinic", "Denver"),
+    ("physiotherapy", "Leeds"), ("chiropractor", "Boston"), ("family lawyer", "Houston"),
+    ("cosmetic clinic", "London"), ("estate agent", "Glasgow"), ("accounting firm", "Atlanta"),
     ("orthodontist", "Cardiff"), ("optometrist", "Portland"), ("dermatologist", "Phoenix"),
-    ("dental clinic", "Toronto"), ("solicitor", "Liverpool"), ("plastic surgeon", "Houston"),
-    ("chiropractor", "Austin"), ("physiotherapy", "Sheffield"), ("med spa", "Scottsdale"),
+    ("dental clinic", "Toronto"), ("solicitor", "Liverpool"), ("plastic surgeon", "Scottsdale"),
+    ("chiropractor", "Austin"), ("physiotherapy", "Sheffield"), ("plumber", "Seattle"),
     ("veterinary clinic", "Bristol"), ("family lawyer", "Orlando"), ("dentist", "Newcastle"),
     ("accounting firm", "Charlotte"), ("podiatrist", "Cambridge"), ("estate agent", "Bath"),
     ("cosmetic clinic", "Manchester"), ("law firm", "Philadelphia"), ("optician", "York"),
 ]
 
 BOOKING_RE = re.compile(r'<a\b[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
-BOOKING_KW = re.compile(r"(book|appoint|consult|schedule|calendly|fresha|cliniko|janeapp|contact|reserve|enquir|pricing|patient|intake|referral|form|quote|request|service)", re.IGNORECASE)
-KNOWN_BOOKING_HOSTS = ("calendly.com", "fresha.com", "cliniko.com", "janeapp.com", "acuityscheduling.com", "setmore.com")
+BOOKING_KW = re.compile(r"(book|appoint|consult|schedule|calendly|fresha|cliniko|janeapp|acuity|setmore|contact|reserve|enquir|pricing|patient|intake|referral|form|quote|request|service|\.pdf)", re.IGNORECASE)
+KNOWN_BOOKING_HOSTS = ("calendly.com", "fresha.com", "cliniko.com", "janeapp.com", "acuityscheduling.com", "setmore.com", "squareup.com")
 
 
 def check_ssl_expiry_days(hostname: str, timeout: int = 6) -> tuple[bool, int | None, str | None]:
@@ -91,7 +91,7 @@ def extract_candidate_booking_links(html: str, base_url: str) -> list[tuple[str,
         if full not in seen:
             seen.add(full)
             out.append((full, label or p.path or "/"))
-        if len(out) >= 6:
+        if len(out) >= 10:
             break
     return out
 
@@ -175,9 +175,16 @@ def diagnose_local_site(cand: dict) -> dict | None:
         except Exception:
             continue
 
-    has_schema = any(t in html for t in ('"LocalBusiness"', '"Dentist"', '"LegalService"', '"MedicalClinic"', '"Attorney"', '"VeterinaryCare"'))
+    has_schema = any(t in html for t in ('"LocalBusiness"', '"Dentist"', '"LegalService"', '"MedicalClinic"', '"Attorney"', '"VeterinaryCare"', '"Plumber"', '"RoofingContractor"'))
     ssl_urgent = ssl_broken or (ssl_days is not None and ssl_days <= 14)
-    if not broken_links and not ssl_urgent and not insecure_http_assets and (https_redirect_ok or has_schema):
+    has_actionable_leak = (
+        bool(broken_links)
+        or ssl_urgent
+        or bool(insecure_http_assets)
+        or (not https_redirect_ok and not has_schema)
+        or (missing_viewport and not has_schema)
+    )
+    if not has_actionable_leak:
         return None
 
     emails = common.extract_deliverable_emails(html, final_host)
@@ -262,14 +269,28 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
         + "\n".join(proof_lines)
         + "\n\nWhen a prospective client clicks a dead booking link or hits an SSL warning, they leave immediately.\n\n"
         f"Two fast ways to get the exact affected path(s) + ready-to-apply fix:\n"
-        f"1) Reply \"link\" to this email and I'll reply right here with the failing URL(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
+        f"1) Reply \"link\" to get the failing URL(s) + a $10 Launch Deal Stripe checkout link (was $49), OR reply \"done\" for a $99 Done-For-You complete fix (zero tech work from your team).\n"
         f"2) Or view live diagnostics & grab the custom Site Recovery Pack ZIP ($10 Deal, was $49 — 301 redirect rules, LocalBusiness JSON-LD & 3-step host handoff) at:\n"
         f"{audit_link}\n\n"
-        f"(Priority async email verification is also discounted to $29 there, normally $149.)\n\n"
+        f"(Priority async email verification is $29 there, was $149; Done-For-You full patch is $99, was $249.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )
     return subject, body
+
+
+def craft_followup_email(entry: dict, base_url: str = DEFAULT_SITE_RESCUE_URL) -> tuple[str, str]:
+    dom = entry.get("domain") or "your site"
+    raw_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'followup'})}"
+    tracked = common.build_tracked_url("play_a_local", dom, raw_link)
+    subj = f"Re: Quick check on {dom} booking / HTTPS alerts"[:96]
+    body = (
+        f"Hi again,\n\n"
+        f"Wanted to make sure my note on {dom}'s live website/booking checks reached whoever handles your site.\n\n"
+        f"Reply \"link\" for the failing path + $10 Launch Deal ZIP, or \"done\" for our $99 Done-For-You async fix — or inspect live at:\n{tracked}\n\n"
+        f"Best,\nArman\n---\nReply 'unsubscribe' to stop.\n"
+    )
+    return subj, body
 
 
 def main():
@@ -368,6 +389,14 @@ def main():
                 print(f"    [-] SMTP failed: {exc}")
 
     if args.send:
+        sent_today += common.send_due_followups(
+            state,
+            lambda e: craft_followup_email(e),
+            sender_name="Arman (SiteRescue Audit)",
+            daily_cap=args.max_emails,
+            max_per_run=4,
+            save_path=STATE_FILE,
+        )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)
         common.push_dashboard_ingest("play_a_local", post_stats, source="play_a_cron_post")
 

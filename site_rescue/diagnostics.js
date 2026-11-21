@@ -97,8 +97,10 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
   }
 
   let missingViewport = false;
+  let missingOgImage = false;
   let missingHsts = false;
   let missingXFrameOptions = false;
+  let corsCredentialsLeak = false;
   const insecureHttpAssets = [];
 
   try {
@@ -111,6 +113,9 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
     finalUrl = res.url || httpsUrl;
     missingHsts = homepageStatus > 0 && !res.headers?.get("strict-transport-security");
     missingXFrameOptions = homepageStatus > 0 && !res.headers?.get("x-frame-options");
+    corsCredentialsLeak =
+      res.headers?.get("access-control-allow-origin") === "*" &&
+      String(res.headers?.get("access-control-allow-credentials") || "").toLowerCase() === "true";
     if (res.ok) html = (await res.text()).slice(0, 300000);
   } catch (err) {
     homepageError = String(err?.message || err);
@@ -118,6 +123,7 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
 
   if (html && /<head[\s>]/i.test(html)) {
     missingViewport = !/<meta[^>]+name=["']viewport["']/i.test(html);
+    missingOgImage = !/<meta[^>]+(?:property|name)=["']og:image["']/i.test(html);
   }
   if (html && finalUrl.toLowerCase().startsWith("https://")) {
     for (const m of html.matchAll(/<(form|script)\b[^>]*(?:action|src)=["'](http:\/\/[^"']+)["']/gi)) {
@@ -163,6 +169,8 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
   if (!httpsRedirectOk && homepageStatus > 0) issues.push("Missing HTTP -> HTTPS 301 permanent redirect");
   if (!hasSchema && homepageStatus > 0) issues.push("Missing Google LocalBusiness JSON-LD schema");
   if (missingViewport) issues.push('Missing mobile <meta name="viewport"> tag (breaks mobile tap sizing & SEO)');
+  if (missingOgImage) issues.push('Missing social preview <meta property="og:image"> card (breaks link previews)');
+  if (corsCredentialsLeak) issues.push("CORS misconfiguration: Access-Control-Allow-Origin: * paired with Allow-Credentials: true");
   if (insecureHttpAssets.length > 0) {
     issues.push(`Insecure mixed-content ${insecureHttpAssets[0].tag} pointing to ${insecureHttpAssets[0].url} on HTTPS page`);
   }
@@ -177,6 +185,8 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
     https_redirect_ok: httpsRedirectOk,
     has_localbusiness_schema: hasSchema,
     missing_viewport: missingViewport,
+    missing_og_image: missingOgImage,
+    cors_credentials_leak: corsCredentialsLeak,
     insecure_http_assets: insecureHttpAssets,
     security_headers: { missing_hsts: missingHsts, missing_x_frame_options: missingXFrameOptions },
     checked_booking_links: bookingCandidates.length,
