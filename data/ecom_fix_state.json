@@ -1,5 +1,5 @@
 {
-  "cc_page": 4,
+  "cc_page": 11,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -20,7 +20,9 @@
     "casestudycoffee.com",
     "futuracoffeeroasters.com",
     "stumptowncoffee.com",
-    "nossacoffee.com"
+    "nossacoffee.com",
+    "foamshop.com",
+    "reach17.co.nz"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -42,7 +44,9 @@
     "info@casestudycoffee.com",
     "sales@futuracoffeeroasters.com",
     "info@stumptowncoffee.com",
-    "hello@nossacoffee.com"
+    "hello@nossacoffee.com",
+    "sales@foamshop.com",
+    "reachnzltd@gmail.com"
   ],
   "history": [
     {
@@ -144,9 +148,19 @@
       "domain": "nossacoffee.com",
       "email": "hello@nossacoffee.com",
       "sent_date": "2026-11-21T14:04:00.295505+00:00"
+    },
+    {
+      "domain": "foamshop.com",
+      "email": "sales@foamshop.com",
+      "sent_date": "2026-11-21T21:08:16.887876+00:00"
+    },
+    {
+      "domain": "reach17.co.nz",
+      "email": "reachnzltd@gmail.com",
+      "sent_date": "2026-11-21T21:08:22.835509+00:00"
     }
   ],
-  "updated_at": "2026-11-21T20:41:46.864781+00:00",
+  "updated_at": "2026-11-21T21:08:22.835599+00:00",
   "bounced_emails": [
     "marketing@ruceru.com",
     "xxx@xxx.xxx"
