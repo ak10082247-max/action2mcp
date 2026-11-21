@@ -614,7 +614,7 @@ test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Pr
     const u = String(url);
     if (u === "http://clinic.example.co.uk/") return new Response("", { status: 200 });
     if (u === "https://clinic.example.co.uk/") {
-      return new Response('<html><title>Bright Dental Clinic</title><a href="/book-online">Book Appointment</a></html>', { status: 200 });
+      return new Response('<html><head><title>Bright Dental Clinic</title></head><form action="http://clinic.example.co.uk/submit"></form><a href="/book-online">Book Appointment</a></html>', { status: 200 });
     }
     if (u === "https://clinic.example.co.uk/book-online") return new Response("Not Found", { status: 404 });
     if (u === "https://api.stripe.com/v1/checkout/sessions") {
@@ -655,6 +655,8 @@ test("Play A (SiteRescue): live broken booking scan, $10 Deal (was $49) / $29 Pr
     const scanData = await scanRes.json();
     assert.equal(scanData.broken_links.length, 1);
     assert.equal(scanData.broken_links[0].status, 404);
+    assert.equal(scanData.missing_viewport, true);
+    assert.equal(scanData.insecure_http_assets.length, 1);
     assert.ok(scanData.issues.some((i) => i.includes("expires in 5 day(s)")));
 
     const coRes = await siteRescueWorker.fetch(
@@ -694,8 +696,20 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
         { status: 200 },
       );
     }
-    if (u === "https://mystore.example.com/products.json?limit=3") {
-      return new Response(JSON.stringify({ products: [{ title: "Storm Tent", handle: "storm-tent", variants: [{ price: "120.00", sku: "TENT-1" }] }] }), { status: 200 });
+    if (u === "https://mystore.example.com/products.json?limit=15") {
+      return new Response(
+        JSON.stringify({
+          products: [
+            {
+              title: "Storm Tent",
+              handle: "storm-tent",
+              variants: [{ price: "120.00", sku: "TENT-1" }],
+              images: [{ src: "https://cdn.shopify.com/storm-thumb.jpg", width: 320, height: 320, position: 1 }],
+            },
+          ],
+        }),
+        { status: 200 },
+      );
     }
     if (u === "https://mystore.example.com/products/storm-tent") {
       return new Response('<html><script type="application/ld+json">{"@type":"Product","name":"Storm Tent","offers":{"price":"99.00"}}</script></html>', { status: 200 });
@@ -743,7 +757,10 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
     assert.equal(audit.currency, "GBP");
     assert.equal(audit.broken_links.length, 1);
     assert.equal(audit.deprecated_script_tags.length, 1);
+    assert.equal(audit.undersized_images.length, 1);
+    assert.equal(audit.undersized_images[0].width, 320);
     assert.ok(audit.schema_issues.some((i) => i.issue.includes("Price mismatch")));
+    assert.ok(audit.issues.some((i) => i.includes("500x500px")));
 
     const zipRes = await ecomFixWorker.fetch(
       new Request("https://ecom-fix.ak10082247.workers.dev/api/download?session_id=cs_test_ef_paid&format=zip"),
@@ -759,6 +776,8 @@ test("Play B (StoreFix): detects broken Google Product JSON-LD, ScriptTags & com
     assert.equal(checkZip.status, 0);
     assert.match(checkZip.stdout.toString(), /01-product-schema\.liquid/);
     assert.match(checkZip.stdout.toString(), /02-shopify-url-redirects\.csv/);
+    assert.match(checkZip.stdout.toString(), /06-merchant-500px-image-audit\.csv/);
+    assert.match(checkZip.stdout.toString(), /07-instant-1500px-image-padder\.html/);
   } finally {
     globalThis.fetch = origFetch;
   }

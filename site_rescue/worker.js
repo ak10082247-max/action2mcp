@@ -163,7 +163,7 @@ async function buildPackForTarget(targetDomain, tier, bodyParams = {}) {
     });
   } catch (err) {
     if (err.httpStatus === 400 || err.httpStatus === 403) throw err;
-    diag = { domain: targetDomain, business_name: targetDomain, broken_links: [], https_redirect_ok: false, has_localbusiness_schema: false, issues: [err.message] };
+    diag = { domain: targetDomain, business_name: targetDomain, broken_links: [], https_redirect_ok: false, has_localbusiness_schema: false, missing_viewport: false, insecure_http_assets: [], issues: [err.message] };
   }
   return { domain: diag.domain, diagnostic: diag, files: buildSiteRecoveryBundle(diag, tier) };
 }

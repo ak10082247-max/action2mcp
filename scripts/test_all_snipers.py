@@ -28,7 +28,7 @@ class MultiPlaySniperTests(unittest.TestCase):
 
         def fake_fetch(url, method="GET", headers=None, data=None, timeout=10, verify_ssl=True):
             if url == "https://brightdental.co.uk/":
-                html = '<html><a href="/book-online">Book Online</a> Email <a href="mailto:reception@brightdental.co.uk">reception@brightdental.co.uk</a></html>'
+                html = '<html><head></head><form action="http://brightdental.co.uk/lead"></form><a href="/book-online">Book Online</a> Email <a href="mailto:reception@brightdental.co.uk">reception@brightdental.co.uk</a></html>'
                 return 200, "https://brightdental.co.uk/", {}, html.encode()
             if url == "https://brightdental.co.uk/book-online":
                 return 404, url, {}, b"Not Found"
@@ -42,9 +42,13 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertEqual(res["email"], "reception@brightdental.co.uk")
         self.assertEqual(res["broken_links"][0]["status"], 404)
+        self.assertTrue(res["missing_viewport"])
+        self.assertEqual(len(res["insecure_http_assets"]), 1)
         subj, body = play_a.craft_site_rescue_email(res)
         self.assertIn("brightdental.co.uk", subj)
         self.assertIn("HTTP 404", body)
+        self.assertIn("mixed-content", body)
+        self.assertIn("viewport", body)
         self.assertNotIn("/book-online", body)
         self.assertIn('Reply "link"', body)
         self.assertIn("$10", body)
@@ -67,8 +71,17 @@ class MultiPlaySniperTests(unittest.TestCase):
 
     def test_play_b_ecom_fix_diagnostics_and_email(self):
         def fake_json(url, headers=None, timeout=12):
-            if "/products.json" in url:
-                return {"products": [{"title": "Oak Table", "handle": "oak-table", "variants": [{"price": "249.00"}]}]}
+            if "/products.json?limit=15" in url:
+                return {
+                    "products": [
+                        {
+                            "title": "Oak Table",
+                            "handle": "oak-table",
+                            "variants": [{"price": "249.00"}],
+                            "images": [{"src": "https://cdn.shopify.com/oak-300.jpg", "width": 300, "height": 300}],
+                        }
+                    ]
+                }
             raise RuntimeError("not woo")
 
         def fake_fetch(url, method="GET", headers=None, data=None, timeout=10, verify_ssl=True):
@@ -95,8 +108,11 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertEqual(res["email"], "support@oakgoods.com")
         self.assertTrue(any("Missing Product JSON-LD" in i for i in res["issues"]))
         self.assertTrue(any("ScriptTag" in i for i in res["issues"]))
+        self.assertTrue(any("500x500px" in i for i in res["issues"]))
         subj, body = play_b.craft_ecom_fix_email(res)
         self.assertIn("oakgoods.com", subj)
+        self.assertIn("500x500px", body)
+        self.assertIn("1500x1500px", body)
         self.assertNotIn("/collections/tables", body)
         self.assertNotIn("/products/oak-table", body)
         self.assertIn('Reply "fix"', body)
@@ -179,6 +195,7 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("Harbor SEO", subj)
         self.assertIn("pay after proof", subj)
         self.assertIn("$49 per client", body)
+        self.assertIn("500x500px", body)
         self.assertIn("/t?play=play_c_agency", body)
 
 

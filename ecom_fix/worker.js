@@ -88,7 +88,7 @@ function renderLanding(origin) {
           <strong>Store Fix Bundle (.zip)</strong>
           <span class="price"><span style="text-decoration:line-through;color:#94a3b8;font-size:0.95rem;margin-right:0.35rem;">$49</span>$10 Deal</span>
         </div>
-        <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes store-tailored Shopify <code>product-schema.liquid</code> (or WooCommerce PHP snippet), ready-to-import <code>shopify-url-redirects.csv</code>, broken-asset report, and ScriptTag migration steps.</p>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin:0.4rem 0 0.7rem;">Includes store-tailored Shopify <code>product-schema.liquid</code> (or WooCommerce PHP snippet), ready-to-import <code>shopify-url-redirects.csv</code>, Jan 31 2027 <code>500&times;500px</code> image audit CSV + offline <code>1500&times;1500px</code> auto-padder HTML tool, and ScriptTag migration steps.</p>
         <button class="btn btn-green" onclick="buyStripe('fix_pack')">Download Store Fix Bundle ($10 Deal — was $49)</button>
       </div>
 
@@ -157,7 +157,7 @@ async function buildPackForStore(targetDomain, tier) {
     diag = await analyzeEcommerceStore(targetDomain, fetch);
   } catch (err) {
     if (err.httpStatus === 400 || err.httpStatus === 403) throw err;
-    diag = { domain: targetDomain, platform: "shopify", store_name: targetDomain, currency: "USD", schema_issues: [], broken_links: [], deprecated_script_tags: [], issues: [err.message] };
+    diag = { domain: targetDomain, platform: "shopify", store_name: targetDomain, currency: "USD", schema_issues: [], undersized_images: [], broken_links: [], deprecated_script_tags: [], issues: [err.message] };
   }
   return { domain: diag.domain, diagnostic: diag, files: buildStoreFixBundle(diag, tier) };
 }

@@ -140,13 +140,23 @@ def diagnose_local_site(cand: dict) -> dict | None:
     ssl_broken, ssl_days, ssl_exp = check_ssl_expiry_days(domain)
 
     try:
-        st, final_url, _, raw_html = common.http_fetch(https_home, timeout=9, verify_ssl=False)
+        st, final_url, hdrs, raw_html = common.http_fetch(https_home, timeout=9, verify_ssl=False)
     except Exception:
         return None
     if st == 0 or st in (403, 429):
         return None
     html = raw_html.decode("utf-8", "replace")
     final_host = (urllib.parse.urlparse(final_url).hostname or domain).lower().replace("www.", "")
+    hdrs_low = {str(k).lower(): str(v) for k, v in (hdrs or {}).items()}
+    missing_hsts = "strict-transport-security" not in hdrs_low
+    missing_viewport = bool(re.search(r"<head[\s>]", html, re.I)) and not bool(
+        re.search(r'<meta[^>]+name=["\']viewport["\']', html, re.I)
+    )
+    insecure_http_assets = []
+    if final_url.lower().startswith("https://"):
+        insecure_http_assets = re.findall(
+            r'<(?:form|script)\b[^>]*(?:action|src)=["\'](http://[^"\']+)["\']', html, re.I
+        )[:5]
 
     https_redirect_ok = True
     try:
@@ -167,7 +177,7 @@ def diagnose_local_site(cand: dict) -> dict | None:
 
     has_schema = any(t in html for t in ('"LocalBusiness"', '"Dentist"', '"LegalService"', '"MedicalClinic"', '"Attorney"', '"VeterinaryCare"'))
     ssl_urgent = ssl_broken or (ssl_days is not None and ssl_days <= 14)
-    if not broken_links and not ssl_urgent and (https_redirect_ok or has_schema):
+    if not broken_links and not ssl_urgent and not insecure_http_assets and (https_redirect_ok or has_schema):
         return None
 
     emails = common.extract_deliverable_emails(html, final_host)
@@ -198,6 +208,9 @@ def diagnose_local_site(cand: dict) -> dict | None:
         "ssl_expires_at": ssl_exp,
         "https_redirect_ok": https_redirect_ok,
         "has_local_schema": has_schema,
+        "missing_viewport": missing_viewport,
+        "insecure_http_assets": insecure_http_assets,
+        "missing_hsts": missing_hsts,
     }
 
 
@@ -207,6 +220,7 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
     ssl_days = target.get("ssl_days_remaining")
     ssl_broken = bool(target.get("ssl_broken"))
     https_redirect_ok = target.get("https_redirect_ok", True)
+    insecure_http_assets = target.get("insecure_http_assets") or []
 
     # Avoid the "Free Forward" leak: state concrete severity counts without exposing exact path strings in Email #1
     proof_lines = []
@@ -219,6 +233,10 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
         proof_lines.append(f"- SSL Certificate expiring in {ssl_days} day(s) (expires {target.get('ssl_expires_at')})")
     if https_redirect_ok is False:
         proof_lines.append(f"- http://{dom} does not enforce a 301 redirect to HTTPS (triggers browser 'Not Secure' warnings)")
+    if insecure_http_assets:
+        proof_lines.append(f"- {len(insecure_http_assets)} insecure http:// form/script element(s) on your HTTPS page (triggers mixed-content blocks)")
+    if target.get("missing_viewport"):
+        proof_lines.append('- Missing mobile <meta name="viewport"> tag (causes tiny unclickable text on mobile phones)')
     if not target.get("has_local_schema"):
         proof_lines.append("- Google LocalBusiness structured JSON-LD snippet missing")
 
@@ -226,6 +244,8 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
         subject_issue = f"broken booking link (HTTP {broken[0]['status']})"
     elif ssl_broken or (ssl_days is not None and ssl_days <= 14):
         subject_issue = "expiring SSL warning"
+    elif insecure_http_assets:
+        subject_issue = "mixed-content HTTP warning on HTTPS"
     else:
         subject_issue = "HTTP redirect & Google Maps schema warning"
     subject = f"Quick heads-up on {dom}: {subject_issue}"[:96]

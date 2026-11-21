@@ -172,9 +172,10 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
     sample_price = None
     currency = "USD"
 
-    # Check Shopify /products.json
+    # Check Shopify /products.json (single request up to 15 products for JSON-LD + Jan 31 2027 500x500px image cliff)
+    undersized_images = []
     try:
-        sp_json = common.http_get_json(f"{base_origin}/products.json?limit=3", timeout=7)
+        sp_json = common.http_get_json(f"{base_origin}/products.json?limit=15", timeout=7)
         prods = sp_json.get("products") or []
         if prods:
             platform = "shopify"
@@ -186,6 +187,12 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
                     sample_price = float(v0["price"])
                 except Exception:
                     sample_price = None
+            for prod in prods[:15]:
+                for img in prod.get("images") or []:
+                    w = int(img.get("width") or 0)
+                    h = int(img.get("height") or 0)
+                    if w > 0 and h > 0 and (w < 500 or h < 500):
+                        undersized_images.append((prod.get("handle") or "", w, h))
     except Exception:
         pass
 
@@ -212,13 +219,24 @@ def diagnose_ecom_store(candidate_host: str) -> dict | None:
         currency = m_curr.group(1)
 
     issues = []
-    # 1. Product JSON-LD check
+    # 1. Product JSON-LD check + og:image fallback
     try:
         pst, _, _, praw = common.http_fetch(sample_product_url, timeout=8, verify_ssl=False)
         if pst == 200:
-            issues.extend(audit_product_jsonld(praw.decode("utf-8", "replace"), sample_price, sample_product_url))
+            phtml = praw.decode("utf-8", "replace")
+            issues.extend(audit_product_jsonld(phtml, sample_price, sample_product_url))
+            if not undersized_images:
+                mw = re.search(r'<meta[^>]+property=["\']og:image:width["\'][^>]+content=["\'](\d+)["\']', phtml, re.I)
+                mh = re.search(r'<meta[^>]+property=["\']og:image:height["\'][^>]+content=["\'](\d+)["\']', phtml, re.I)
+                if mw and mh:
+                    ow, oh = int(mw.group(1)), int(mh.group(1))
+                    if ow > 0 and oh > 0 and (ow < 500 or oh < 500):
+                        undersized_images.append((sample_product_url.rsplit("/", 1)[-1], ow, oh))
     except Exception:
         pass
+    if undersized_images:
+        _, sw, sh = undersized_images[0]
+        issues.append(f"Google Merchant Jan 31, 2027 cliff: {len(undersized_images)} product image(s) under 500x500px ({sw}x{sh}px sample)")
 
     # 2. Legacy Shopify ScriptTags ahead of March 1, 2027
     script_tags = []
@@ -292,9 +310,13 @@ def _redact_issue_summary(issues: list[str]) -> str:
     """Summarize storefront issues without giving away exact failing path strings in Email #1."""
     lines: list[str] = []
     ld_count = sum(1 for i in issues if "JSON-LD" in i or "offers." in i or "sku/gtin" in i or "Price" in i.lower() or "price" in i.lower())
+    m500_count = sum(1 for i in issues if "500x500px" in i)
     st_count = sum(1 for i in issues if "ScriptTag" in i)
     br_count = sum(1 for i in issues if "Broken storefront" in i or "HTTP " in i)
     img_count = sum(1 for i in issues if ">3MB" in i)
+    if m500_count:
+        m500_line = next((i for i in issues if "500x500px" in i), "")
+        lines.append(f"- {m500_line} (Google Merchant Jan 31, 2027 enforcement)")
     if ld_count:
         lines.append(f"- {ld_count} Google Shopping Product JSON-LD markup issue(s) (blocks rich price snippets / free listings)")
     if br_count:
@@ -305,7 +327,7 @@ def _redact_issue_summary(issues: list[str]) -> str:
         lines.append(f"- {img_count} oversized >3MB hero/banner asset(s) slowing mobile checkout")
     if not lines:
         lines.append(f"- {len(issues)} Google Shopping / theme conversion warning(s) flagged")
-    return "\n".join(lines[:3])
+    return "\n".join(lines[:4])
 
 
 def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> tuple[str, str]:
@@ -313,17 +335,17 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
     raw_audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'email1'})}"
     audit_link = common.build_tracked_url("play_b_ecom", dom, raw_audit_link)
     top_issues = _redact_issue_summary(target["issues"])
-    subject = f"Google Shopping / theme issues flagged on {dom}"[:96]
+    subject = f"Google Shopping / Merchant cliff flagged on {dom}"[:96]
     body = (
         f"Hi {dom} team,\n\n"
         f"While running an automated storefront audit on {dom} ({target['platform']}), we caught {len(target['issues'])} live revenue-leak issue(s):\n"
         f"{top_issues}\n\n"
-        f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and broken/legacy scripts hurt checkout conversion.\n\n"
+        f"Google Shopping is dropping products with mismatched Product JSON-LD now — and on Jan 31, 2027 enforces a strict 500x500px minimum across all product images (disapproving undersized SKUs).\n\n"
         f"Two fast ways to get the exact affected URL(s) + ready-to-paste fix:\n"
-        f"1) Reply \"fix\" to this email and I'll reply with the failing path(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
-        f"2) Or inspect the live diagnostic & download the custom Store Fix Bundle ($10 Deal, was $49 — paste-ready "
+        f"1) Reply \"fix\" to this email and I'll reply with the failing SKU/URL(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
+        f"2) Or inspect the live diagnostic & download the custom Store Fix Bundle ($10 Deal, was $49 — includes "
         f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
-        f"redirect CSV & ScriptTag checklist) at:\n"
+        f"redirect CSV, 500x500px SKU audit CSV + offline 1500x1500px image padder tool, and ScriptTag checklist) at:\n"
         f"{audit_link}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"

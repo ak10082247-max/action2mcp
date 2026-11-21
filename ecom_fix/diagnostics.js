@@ -85,9 +85,10 @@ export async function analyzeEcommerceStore(rawDomainOrUrl, fetchFn = fetch) {
     if (hr.ok) homeHtml = (await hr.text()).slice(0, 350000);
   } catch {}
 
-  // Detect Shopify /products.json
+  // Detect Shopify /products.json (single request up to 15 products for JSON-LD + Jan 31 2027 500x500px image cliff)
+  const undersizedImages = [];
   try {
-    const sr = await fetchFn(`${baseUrl}/products.json?limit=3`, { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" }, signal: AbortSignal.timeout(7000) });
+    const sr = await fetchFn(`${baseUrl}/products.json?limit=15`, { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" }, signal: AbortSignal.timeout(7000) });
     if (sr.ok) {
       const sj = await sr.json().catch(() => null);
       if (sj && Array.isArray(sj.products) && sj.products.length > 0) {
@@ -101,6 +102,26 @@ export async function analyzeEcommerceStore(rawDomainOrUrl, fetchFn = fetch) {
           price: v.price || null,
           sku: v.sku || p.handle,
         };
+        for (const prod of sj.products.slice(0, 15)) {
+          const v0 = (prod.variants || [])[0] || {};
+          for (const img of prod.images || []) {
+            const w = Number(img?.width || 0);
+            const h = Number(img?.height || 0);
+            if (w > 0 && h > 0 && (w < 500 || h < 500)) {
+              undersizedImages.push({
+                product_title: prod.title || prod.handle || "Product",
+                handle: prod.handle || "",
+                variant_sku: v0.sku || prod.handle || "",
+                image_src: img.src || "",
+                width: w,
+                height: h,
+                position: Number(img.position || 1),
+                min_required: 500,
+                recommended: 1500,
+              });
+            }
+          }
+        }
       }
     }
   } catch {}
@@ -151,6 +172,28 @@ export async function analyzeEcommerceStore(rawDomainOrUrl, fetchFn = fetch) {
           productUrl: sampleProduct.url,
         });
         productIssues = audited.issues;
+        if (undersizedImages.length === 0) {
+          const ogWm = pHtml.match(/<meta[^>]+property=["']og:image:width["'][^>]+content=["'](\d+)["']/i);
+          const ogHm = pHtml.match(/<meta[^>]+property=["']og:image:height["'][^>]+content=["'](\d+)["']/i);
+          const ogSm = pHtml.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i);
+          if (ogWm && ogHm) {
+            const ow = Number(ogWm[1]);
+            const oh = Number(ogHm[1]);
+            if (ow > 0 && oh > 0 && (ow < 500 || oh < 500)) {
+              undersizedImages.push({
+                product_title: sampleProduct.title || sampleProduct.handle || "Product",
+                handle: sampleProduct.handle || "",
+                variant_sku: sampleProduct.sku || "",
+                image_src: ogSm ? ogSm[1] : sampleProduct.url,
+                width: ow,
+                height: oh,
+                position: 1,
+                min_required: 500,
+                recommended: 1500,
+              });
+            }
+          }
+        }
       }
     } catch {}
   }
@@ -194,6 +237,11 @@ export async function analyzeEcommerceStore(rawDomainOrUrl, fetchFn = fetch) {
 
   const allIssues = [
     ...productIssues.map((x) => `${x.field}: ${x.issue}`),
+    ...(undersizedImages.length > 0
+      ? [
+          `Google Merchant Jan 31, 2027 cliff: ${undersizedImages.length} product image(s) below 500x500px minimum (${undersizedImages[0].width}x${undersizedImages[0].height}px sample) risk Shopping disapproval`,
+        ]
+      : []),
     ...brokenLinks.map((b) => `Broken store link '${b.label}' (${b.pathname}) -> HTTP ${b.status}`),
     ...(scriptTags.length > 0 ? [`Detected ${scriptTags.length} legacy Shopify ScriptTag(s) scheduled for deprecation March 1, 2027`] : []),
   ];
@@ -207,6 +255,7 @@ export async function analyzeEcommerceStore(rawDomainOrUrl, fetchFn = fetch) {
     currency,
     sample_product: sampleProduct,
     schema_issues: productIssues,
+    undersized_images: undersizedImages,
     broken_links: brokenLinks,
     deprecated_script_tags: scriptTags,
     issues: allIssues,
@@ -291,12 +340,86 @@ add_action('wp_head', function () {
   for (const bl of diag.broken_links || []) {
     auditRows.push(`"Broken Navigation Link","${bl.url}","HTTP ${bl.status} (${String(bl.label || "").replace(/"/g, '""')})","high"`);
   }
+  for (const img of diag.undersized_images || []) {
+    auditRows.push(
+      `"Google Merchant 500x500px Cliff (Jan 31 2027)","${img.image_src || img.handle}","${img.width}x${img.height}px < 500x500px minimum (SKU ${String(img.variant_sku || "").replace(/"/g, '""')})","high"`,
+    );
+  }
   for (const st of diag.deprecated_script_tags || []) {
     auditRows.push(`"Shopify ScriptTag Deprecation (Mar 1 2027)","${st}","Replace legacy ScriptTag with Shopify Theme App Extension","medium"`);
   }
   if (auditRows.length === 1) {
     auditRows.push(`"Google Shopping & Redirect Hygiene","https://${domain}","Store-specific Liquid/Woo schema + redirect CSV ready for installation","info"`);
   }
+
+  const imageAuditRows = [
+    "Handle,Title,Variant SKU,Image Position,Current Width,Current Height,Required Minimum,Recommended Square,Compliance Status,Image Src",
+  ];
+  for (const img of diag.undersized_images || []) {
+    imageAuditRows.push(
+      `"${String(img.handle || "").replace(/"/g, '""')}","${String(img.product_title || "").replace(/"/g, '""')}","${String(img.variant_sku || "").replace(/"/g, '""')}",${img.position || 1},${img.width},${img.height},500,1500,"DISAPPROVAL_RISK_JAN_31_2027","${String(img.image_src || "").replace(/"/g, '""')}"`,
+    );
+  }
+  if (imageAuditRows.length === 1) {
+    imageAuditRows.push(
+      `"${diag.sample_product?.handle || "sample-product"}","${String(diag.sample_product?.title || "Sample Product").replace(/"/g, '""')}","${diag.sample_product?.sku || "SKU-1"}",1,0,0,500,1500,"CHECK_IN_MERCHANT_CENTER",""`,
+    );
+  }
+
+  const padderHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>1500x1500px Google Merchant &amp; Shopify Image Auto-Padder — ${domain}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#0b101b; color:#f8fafc; max-width:900px; margin:2rem auto; padding:0 1rem; line-height:1.5; }
+    .card { background:#131a29; border:1px solid #263147; border-radius:10px; padding:1.25rem; margin-bottom:1rem; }
+    button { background:#059669; color:#fff; border:0; padding:0.7rem 1.1rem; border-radius:8px; font-weight:700; cursor:pointer; }
+    code { color:#34d399; }
+  </style>
+</head>
+<body>
+  <h1>1500&times;1500px Merchant Center Auto-Padder (${domain})</h1>
+  <div class="card">
+    <p><strong>Fixes Google Merchant Center's Jan 31, 2027 <code>500&times;500px</code> enforcement cleanly without distorting product ratios:</strong> drops any undersized local photos or pre-audited URLs onto a centered white <code>1500&times;1500px</code> canvas and downloads compliant JPEGs + a Shopify import mapping checklist.</p>
+    <p><em>Shopify CSV note:</em> Shopify product CSV imports require public <code>https://</code> image URLs in <code>Image Src</code> — upload the downloaded <code>1500x1500-*.jpg</code> files into <strong>Shopify Admin &rarr; Content &rarr; Files</strong>, then paste their CDN URLs into <code>06-merchant-500px-image-audit.csv</code>.</p>
+    <input id="picker" type="file" accept="image/*" multiple />
+    <button onclick="processFiles()">Pad Selected Images to 1500&times;1500px &amp; Download</button>
+    <pre id="log" style="color:#93c5fd;margin-top:0.8rem;"></pre>
+  </div>
+  <script>
+    const AUDIT_ROWS = ${JSON.stringify(diag.undersized_images || [])};
+    document.getElementById("log").textContent = AUDIT_ROWS.length
+      ? "Pre-audited undersized Shopify images flagged in this pack: " + AUDIT_ROWS.length + "\\n" + AUDIT_ROWS.map(r => "- " + r.handle + " (" + r.width + "x" + r.height + "px): " + r.image_src).join("\\n")
+      : "Select any undersized (<500x500px) product photos from your desktop to pad cleanly to 1500x1500px JPEG locally in your browser (zero data leaves your computer).";
+    async function processFiles() {
+      const files = Array.from(document.getElementById("picker").files || []);
+      const log = document.getElementById("log");
+      if (!files.length) { log.textContent = "Choose 1+ image files first."; return; }
+      const canvas = document.createElement("canvas");
+      canvas.width = 1500; canvas.height = 1500;
+      const ctx = canvas.getContext("2d");
+      const csv = ["Original Filename,Handle,Width,Height,Shopify Files Step"];
+      for (const f of files) {
+        const bmp = await createImageBitmap(f);
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 1500, 1500);
+        const scale = Math.min(1360 / bmp.width, 1360 / bmp.height);
+        const dw = Math.round(bmp.width * scale), dh = Math.round(bmp.height * scale);
+        ctx.drawImage(bmp, Math.round((1500 - dw) / 2), Math.round((1500 - dh) / 2), dw, dh);
+        const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.92));
+        const a = document.createElement("a");
+        const outName = "1500x1500-" + f.name.replace(/\\.[^.]+$/, "") + ".jpg";
+        a.href = URL.createObjectURL(blob); a.download = outName; a.click();
+        csv.push('"' + f.name.replace(/"/g, '""') + '","' + f.name.replace(/\\.[^.]+$/, "") + '",1500,1500,"Upload ' + outName + ' to Shopify Content -> Files"');
+      }
+      const csvBlob = new Blob([csv.join("\\n") + "\\n"], { type: "text/csv" });
+      const ca = document.createElement("a");
+      ca.href = URL.createObjectURL(csvBlob); ca.download = "1500x1500-upload-manifest.csv"; ca.click();
+      log.textContent = "Done! Downloaded " + files.length + " centered 1500x1500px JPEGs + 1500x1500-upload-manifest.csv.";
+    }
+  </script>
+</body>
+</html>`;
 
   const installGuide = [
     `# Store Fix Kit Installation Guide — ${diag.store_name || domain}`,
@@ -314,6 +437,11 @@ add_action('wp_head', function () {
     `## 3. Migrate Legacy Shopify ScriptTags (Before March 1, 2027)`,
     ...(diag.deprecated_script_tags?.length ? diag.deprecated_script_tags.map((u) => `- Detected legacy script: \`${u}\` — upgrade app embed to Shopify App Embeds (Online Store 2.0).`) : [`- No blocking legacy ScriptTags detected on the homepage probe (audit full theme checkout scripts if applicable).`]),
     ``,
+    `## 4. Fix Jan 31, 2027 Google Merchant 500x500px Product Image Cliff`,
+    ...(diag.undersized_images?.length
+      ? [`- **${diag.undersized_images.length} undersized image(s)** found in **06-merchant-500px-image-audit.csv** below Google's Jan 31, 2027 500x500px minimum.`, `- Open **07-instant-1500px-image-padder.html** locally to pad photos cleanly onto 1500x1500px white canvases, upload to Shopify **Content -> Files**, and update \`Image Src\`.`]
+      : [`- No <500x500px images found in the top 15 catalog sample; open **07-instant-1500px-image-padder.html** anytime to standardize new supplier images to 1500x1500px.`]),
+    ``,
   ].join("\n");
 
   const files = {
@@ -321,6 +449,8 @@ add_action('wp_head', function () {
     "02-shopify-url-redirects.csv": redirectsCsv,
     "03-revenue-leak-audit.csv": auditRows.join("\n") + "\n",
     "04-INSTALL-GUIDE.md": installGuide,
+    "06-merchant-500px-image-audit.csv": imageAuditRows.join("\n") + "\n",
+    "07-instant-1500px-image-padder.html": padderHtml,
   };
   if (tier === "pro_kit") {
     files["05-pro-store-diagnostic.json"] = JSON.stringify({ tier: "pro_25", domain, platform: diag.platform, currency, diagnostic: diag }, null, 2);

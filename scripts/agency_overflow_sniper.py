@@ -126,9 +126,9 @@ def craft_agency_overflow_email(target: dict) -> tuple[str, str]:
     body = (
         f"Hi {name} team,\n\n"
         f"Quick note from a fellow technical builder — do your retainers ever back up on tedious client cleanups like:\n"
-        f"- Invalid Google Merchant Product JSON-LD snippets (Shopify Liquid / WooCommerce PHP)\n"
+        f"- Invalid Google Merchant Product JSON-LD snippets & Jan 31, 2027 500x500px product image audits + 1500x1500px batch padding\n"
         f"- 404 booking/collection redirect CSVs & Apache/Nginx 301 rules\n"
-        f"- March 2027 Shopify ScriptTag deprecation audits & Dec 11 Custom GPT -> MCP tool migrations\n\n"
+        f"- March 1, 2027 Shopify ScriptTag deprecation audits & Custom GPT -> MCP tool migrations\n\n"
         f"I built deterministic automated packers for these and run white-label overflow for small agencies:\n"
         f"- Wholesale rate: $49 per client fix ZIP (mark it up cleanly under your own agency brand)\n"
         f"- Risk-free first test: $10 trial client pack — and for a verified client domain, send me the URL and I'll generate the staging fix diff first so you only pay after checking it works.\n\n"

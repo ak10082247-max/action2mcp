@@ -96,6 +96,11 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
     httpsRedirectOk = false;
   }
 
+  let missingViewport = false;
+  let missingHsts = false;
+  let missingXFrameOptions = false;
+  const insecureHttpAssets = [];
+
   try {
     const res = await fetchFn(httpsUrl, {
       method: "GET",
@@ -104,9 +109,22 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
     });
     homepageStatus = res.status;
     finalUrl = res.url || httpsUrl;
+    missingHsts = homepageStatus > 0 && !res.headers?.get("strict-transport-security");
+    missingXFrameOptions = homepageStatus > 0 && !res.headers?.get("x-frame-options");
     if (res.ok) html = (await res.text()).slice(0, 300000);
   } catch (err) {
     homepageError = String(err?.message || err);
+  }
+
+  if (html && /<head[\s>]/i.test(html)) {
+    missingViewport = !/<meta[^>]+name=["']viewport["']/i.test(html);
+  }
+  if (html && finalUrl.toLowerCase().startsWith("https://")) {
+    for (const m of html.matchAll(/<(form|script)\b[^>]*(?:action|src)=["'](http:\/\/[^"']+)["']/gi)) {
+      if (insecureHttpAssets.length < 10) {
+        insecureHttpAssets.push({ tag: m[1].toLowerCase(), url: m[2] });
+      }
+    }
   }
 
   const hasSchema = html ? hasLocalBusinessSchema(html) : false;
@@ -144,6 +162,10 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
   }
   if (!httpsRedirectOk && homepageStatus > 0) issues.push("Missing HTTP -> HTTPS 301 permanent redirect");
   if (!hasSchema && homepageStatus > 0) issues.push("Missing Google LocalBusiness JSON-LD schema");
+  if (missingViewport) issues.push('Missing mobile <meta name="viewport"> tag (breaks mobile tap sizing & SEO)');
+  if (insecureHttpAssets.length > 0) {
+    issues.push(`Insecure mixed-content ${insecureHttpAssets[0].tag} pointing to ${insecureHttpAssets[0].url} on HTTPS page`);
+  }
 
   return {
     domain: hostname,
@@ -154,6 +176,9 @@ export async function analyzeLocalBusinessSite(rawDomainOrUrl, fetchFn = fetch, 
     homepage_error: homepageError,
     https_redirect_ok: httpsRedirectOk,
     has_localbusiness_schema: hasSchema,
+    missing_viewport: missingViewport,
+    insecure_http_assets: insecureHttpAssets,
+    security_headers: { missing_hsts: missingHsts, missing_x_frame_options: missingXFrameOptions },
     checked_booking_links: bookingCandidates.length,
     broken_links: brokenLinks,
     hint_broken_url: hintMeta.brokenUrl || "",
@@ -239,6 +264,9 @@ export function buildSiteRecoveryBundle(diag, tier = "pack") {
     `          Cloudflare SSL Strict + Always Use HTTPS so browsers never show a red security warning.`,
     `   Step C (Restore Google Maps / Local Pack Trust): Paste 04-localbusiness-schema.jsonld inside your`,
     `          site's <head> wrapper inside a <script type="application/ld+json"> tag.`,
+    diag.missing_viewport ? `   Step D (Fix Mobile Conversion): Add <meta name="viewport" content="width=device-width, initial-scale=1"> inside <head>.` : "",
+    diag.insecure_http_assets?.length ? `   Step E (Eliminate Mixed-Content Form/Script Warnings): Switch ${diag.insecure_http_assets[0].url} to https://.` : "",
+    diag.security_headers?.missing_hsts ? `   Bonus Security Header: Enable Strict-Transport-Security & X-Frame-Options: SAMEORIGIN in Apache/Nginx.` : "",
     ``,
     tier === "priority" ? `PRIORITY ASYNC CONCIERGE INCLUDED: Reply or email ak10082247@gmail.com with your receipt session_id for human patch verification.\n` : "",
   ].join("\n");
