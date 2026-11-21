@@ -52,6 +52,19 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertIn("/t?play=play_a_local", body)
         self.assertIn("site-rescue.ak10082247.workers.dev", body)
 
+        subj2, body2 = play_a.craft_site_rescue_email({
+            "name": "Oak Clinic",
+            "domain": "oakclinic.co.uk",
+            "email": "info@oakclinic.co.uk",
+            "broken_links": [],
+            "ssl_broken": False,
+            "ssl_days_remaining": 60,
+            "https_redirect_ok": False,
+            "has_local_schema": False,
+        })
+        self.assertIn("HTTP redirect", subj2)
+        self.assertIn("301 redirect to HTTPS", body2)
+
     def test_play_b_ecom_fix_diagnostics_and_email(self):
         def fake_json(url, headers=None, timeout=12):
             if "/products.json" in url:
