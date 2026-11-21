@@ -1,5 +1,5 @@
 {
-  "cursor": 14,
+  "cursor": 2,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -9,7 +9,12 @@
     "drrearden.com",
     "temkinopticians.com",
     "porterssolicitors.co.uk",
-    "drartaheri.com"
+    "drartaheri.com",
+    "mjpsolicitors.co.uk",
+    "drphilbe.com",
+    "plasticsurgeon.co.nz",
+    "benjamin-opticians.co.uk",
+    "kensington-dentist.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -20,7 +25,12 @@
     "office@drrearden.com",
     "info@temkinopticians.com",
     "info@porterssolicitors.co.uk",
-    "drtahery1@gmail.com"
+    "drtahery1@gmail.com",
+    "justice@mjpsolicitors.co.uk",
+    "dr@drphilbe.com",
+    "julianlofts@plasticsurgeon.co.nz",
+    "info@benjamin-opticians.co.uk",
+    "kensingtondentists@gmail.com"
   ],
   "history": [
     {
@@ -67,9 +77,34 @@
       "domain": "drartaheri.com",
       "email": "drtahery1@gmail.com",
       "sent_date": "2026-11-21T13:44:59.603466+00:00"
+    },
+    {
+      "domain": "mjpsolicitors.co.uk",
+      "email": "justice@mjpsolicitors.co.uk",
+      "sent_date": "2026-11-21T21:07:17.630295+00:00"
+    },
+    {
+      "domain": "drphilbe.com",
+      "email": "dr@drphilbe.com",
+      "sent_date": "2026-11-21T21:07:23.326907+00:00"
+    },
+    {
+      "domain": "plasticsurgeon.co.nz",
+      "email": "julianlofts@plasticsurgeon.co.nz",
+      "sent_date": "2026-11-21T21:07:29.033126+00:00"
+    },
+    {
+      "domain": "benjamin-opticians.co.uk",
+      "email": "info@benjamin-opticians.co.uk",
+      "sent_date": "2026-11-21T21:07:35.301822+00:00"
+    },
+    {
+      "domain": "kensington-dentist.com",
+      "email": "kensingtondentists@gmail.com",
+      "sent_date": "2026-11-21T21:07:41.260228+00:00"
     }
   ],
-  "updated_at": "2026-11-21T20:04:24.322645+00:00",
+  "updated_at": "2026-11-21T21:07:41.260320+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
