@@ -112,11 +112,11 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
     page = 2 + ((max(2, int(cc_page or 2)) - 2) % 18)
     try:
         colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
-        for coll in colls[:4]:
+        for coll in colls[:6]:
             if len(hosts) >= limit_hosts:
                 break
             cdx_api = coll["cdx-api"]
-            u = f"{cdx_api}?url=myshopify.com&matchType=domain&output=json&limit=50&page={page}&fl=url"
+            u = f"{cdx_api}?url=*.myshopify.com&output=json&filter=status:200&limit=60&page={page}&fl=url"
             try:
                 st, _, _, raw = common.http_fetch(u, timeout=16, verify_ssl=False)
                 if st == 200:
@@ -136,15 +136,15 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
 
     # 2. Fast Photon + OSM batch retail shop websites (custom Shopify + WooCommerce storefronts)
     rot_idx = page % len(RETAIL_ROTATION)
-    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(12)]
-    for item in common.fetch_photon_osm_websites(retail_queries, limit_per_query=50):
+    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(20)]
+    for item in common.fetch_photon_osm_websites(retail_queries, limit_per_query=60):
         if len(hosts) >= limit_hosts:
             break
         _accept(item["domain"])
 
-    # 3. Overpass fallback only if total hosts < 50
+    # 3. Overpass fallback if total hosts < 120
     m_count = len(common.METRO_BBOXES)
-    if len(hosts) < 50:
+    if len(hosts) < 120:
         _, s, w, n_lat, e = common.METRO_BBOXES[page % m_count]
         ql = f'[out:json][timeout:18];node["shop"]["website"]({s},{w},{n_lat},{e});out tags 150;'
         for item in common.fetch_overpass_websites(ql, timeout=18):

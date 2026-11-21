@@ -77,6 +77,8 @@ def fetch_agency_candidates(cursor: int = 0, limit_queries: int = 14) -> tuple[l
 
 def inspect_agency_site(cand: dict) -> dict | None:
     domain = cand["domain"]
+    if domain.endswith((".ru", ".by", ".cn", ".ir")) or "investigation" in domain:
+        return None
     try:
         st, final_url, _, raw_html = common.http_fetch(f"https://{domain}/", timeout=9, verify_ssl=False)
     except Exception:

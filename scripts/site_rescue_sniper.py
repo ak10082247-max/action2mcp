@@ -45,7 +45,7 @@ SEARCH_ROTATION = [
 ]
 
 BOOKING_RE = re.compile(r'<a\b[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
-BOOKING_KW = re.compile(r"(book|appoint|consult|schedule|calendly|fresha|cliniko|janeapp|contact|reserve|enquir)", re.IGNORECASE)
+BOOKING_KW = re.compile(r"(book|appoint|consult|schedule|calendly|fresha|cliniko|janeapp|contact|reserve|enquir|pricing|patient|intake|referral|form|quote|request|service)", re.IGNORECASE)
 KNOWN_BOOKING_HOSTS = ("calendly.com", "fresha.com", "cliniko.com", "janeapp.com", "acuityscheduling.com", "setmore.com")
 
 
@@ -100,11 +100,11 @@ def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 8) -> 
     candidates = []
     seen_domains = set()
     n = len(SEARCH_ROTATION)
-    q_count = max(4, min(18, limit_queries))
+    q_count = max(4, min(28, limit_queries))
     batch_queries = [f"{SEARCH_ROTATION[(cursor + off) % n][0]} {SEARCH_ROTATION[(cursor + off) % n][1]}" for off in range(q_count)]
 
-    # 1. Primary: High-speed Photon + OSM batch nodes/ways API (150-250 websites in seconds, zero Overpass 502 bottlenecks)
-    for item in common.fetch_photon_osm_websites(batch_queries, limit_per_query=50):
+    # 1. Primary: High-speed Photon + OSM batch nodes/ways API (150-350 websites in seconds, zero Overpass 502 bottlenecks)
+    for item in common.fetch_photon_osm_websites(batch_queries, limit_per_query=60):
         if item["domain"] in seen_domains:
             continue
         seen_domains.add(item["domain"])
@@ -115,9 +115,9 @@ def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 8) -> 
             "city": parts[1] if len(parts) > 1 else "Metro",
         })
 
-    # 2. Secondary Overpass supplement if Photon yielded < 60 targets
+    # 2. Secondary Overpass supplement if Photon yielded < 220 targets
     m_count = len(common.METRO_BBOXES)
-    if len(candidates) < 60:
+    if len(candidates) < 220:
         city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
         ql = (
             f'[out:json][timeout:18];('

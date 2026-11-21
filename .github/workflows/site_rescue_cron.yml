@@ -38,7 +38,7 @@ jobs:
           if [ -n "$INPUT_CANARY_TO" ] && [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
             python scripts/site_rescue_sniper.py --canary-to "$INPUT_CANARY_TO"
           elif [ -n "$SMTP_USER" ] && [ -n "$SMTP_PASS" ]; then
-            python scripts/site_rescue_sniper.py --queries 16 --limit 250 --max-emails 20 --hard-stop 200 --send
+            python scripts/site_rescue_sniper.py --queries 24 --limit 350 --max-emails 20 --hard-stop 200 --send
           else
             echo "SMTP secrets not set; skipping --send."
           fi

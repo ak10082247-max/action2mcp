@@ -261,6 +261,11 @@ def discover_and_compile_gpt_actions(
         '"x-openai-isConsequential" "paths" extension:json',
         '"chatgpt.com/g/g-" "openapi" "paths"',
         '"chat.openai.com/g/g-" "openapi" "paths"',
+        '"openapi: 3.1" "servers" "chatgpt" extension:yaml',
+        '"openapi: 3.0" "gpt" "action" "paths" extension:yaml',
+        '"custom-gpt" "openapi" "paths" extension:json',
+        '"gpt" "x-openai-isConsequential" extension:yaml',
+        '"openai" "actions" "openapi" "3.1.0" extension:json',
     ]
 
     candidates = []
@@ -269,10 +274,10 @@ def discover_and_compile_gpt_actions(
     search_errors = []
 
     for q in queries:
-        if len(candidates) >= max(limit * 8, 80):
+        if len(candidates) >= max(limit * 10, 120):
             break
-        for page in (1, 2, 3, 4, 5):
-            if len(candidates) >= max(limit * 8, 80):
+        for page in (1, 2, 3, 4, 5, 6, 7, 8):
+            if len(candidates) >= max(limit * 10, 120):
                 break
             try:
                 url = f"https://api.github.com/search/code?q={urllib.parse.quote(q)}&per_page=100&page={page}"
