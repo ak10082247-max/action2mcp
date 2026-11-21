@@ -1,5 +1,5 @@
 {
-  "cursor": 14,
+  "cursor": 22,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -41,7 +41,7 @@
       "sent_date": "2026-11-20T21:03:34.751628+00:00"
     }
   ],
-  "updated_at": "2026-11-20T21:03:34.751708+00:00",
+  "updated_at": "2026-11-21T08:15:22.170526+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
