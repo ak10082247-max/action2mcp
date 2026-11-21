@@ -1,5 +1,5 @@
 {
-  "cc_page": 12,
+  "cc_page": 19,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -16,7 +16,9 @@
     "seiger.nl",
     "queenbeeflowershop.com",
     "philipsburgdutyfree.com",
-    "wantagebookshop.co.uk"
+    "wantagebookshop.co.uk",
+    "casestudycoffee.com",
+    "futuracoffeeroasters.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -34,7 +36,9 @@
     "info@seiger.nl",
     "queenbeeflowershop@gmail.com",
     "info@philipsburgdutyfree.com",
-    "hello@wantagebookshop.co.uk"
+    "hello@wantagebookshop.co.uk",
+    "info@casestudycoffee.com",
+    "sales@futuracoffeeroasters.com"
   ],
   "history": [
     {
@@ -116,9 +120,19 @@
       "domain": "wantagebookshop.co.uk",
       "email": "hello@wantagebookshop.co.uk",
       "sent_date": "2026-11-21T10:15:16.490703+00:00"
+    },
+    {
+      "domain": "casestudycoffee.com",
+      "email": "info@casestudycoffee.com",
+      "sent_date": "2026-11-21T13:35:15.018282+00:00"
+    },
+    {
+      "domain": "futuracoffeeroasters.com",
+      "email": "sales@futuracoffeeroasters.com",
+      "sent_date": "2026-11-21T13:35:20.880955+00:00"
     }
   ],
-  "updated_at": "2026-11-21T12:44:20.437979+00:00",
+  "updated_at": "2026-11-21T13:35:20.881031+00:00",
   "bounced_emails": [
     "xxx@xxx.xxx",
     "marketing@ruceru.com"
