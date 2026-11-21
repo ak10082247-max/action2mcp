@@ -235,20 +235,17 @@ def craft_site_rescue_email(target: dict, base_url: str = DEFAULT_SITE_RESCUE_UR
         q["ssl_days"] = str(ssl_days)
     raw_audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode(q)}"
     audit_link = common.build_tracked_url("play_a_local", dom, raw_audit_link)
-    fiverr_link = common.build_fiverr_tracked_url("play_a_local", dom, "play_a_local")
 
     body = (
         f"Hi {target['name']} team,\n\n"
         f"Automated health checks flagged active customer-facing issues on {dom} right now:\n"
         + "\n".join(proof_lines)
         + "\n\nWhen a prospective client clicks a dead booking link or hits an SSL warning, they leave immediately.\n\n"
-        f"Three fast ways to get the exact affected path(s) + ready-to-apply fix:\n"
+        f"Two fast ways to get the exact affected path(s) + ready-to-apply fix:\n"
         f"1) Reply \"link\" to this email and I'll reply right here with the failing URL(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
         f"2) Or view live diagnostics & grab the custom Site Recovery Pack ZIP ($10 Deal, was $49 — 301 redirect rules, LocalBusiness JSON-LD & 3-step host handoff) at:\n"
-        f"{audit_link}\n"
-        f"3) Prefer buyer escrow on a known marketplace? Order our $15 Site & Security Audit or $45 301/SSL/WordPress fix on my UK Fiverr gig:\n"
-        f"{fiverr_link}\n\n"
-        f"(Priority async email verification is also discounted to $29 on SiteRescue, normally $149.)\n\n"
+        f"{audit_link}\n\n"
+        f"(Priority async email verification is also discounted to $29 there, normally $149.)\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )

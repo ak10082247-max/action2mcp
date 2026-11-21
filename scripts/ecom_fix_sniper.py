@@ -312,7 +312,6 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
     dom = target["domain"]
     raw_audit_link = f"{base_url.rstrip('/')}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'email1'})}"
     audit_link = common.build_tracked_url("play_b_ecom", dom, raw_audit_link)
-    fiverr_link = common.build_fiverr_tracked_url("play_b_ecom", dom, "play_b_ecom")
     top_issues = _redact_issue_summary(target["issues"])
     subject = f"Google Shopping / theme issues flagged on {dom}"[:96]
     body = (
@@ -320,14 +319,12 @@ def craft_ecom_fix_email(target: dict, base_url: str = DEFAULT_ECOM_FIX_URL) -> 
         f"While running an automated storefront audit on {dom} ({target['platform']}), we caught {len(target['issues'])} live revenue-leak issue(s):\n"
         f"{top_issues}\n\n"
         f"Missing or mismatched Product JSON-LD drops Google Shopping free listings & rich price snippets, and broken/legacy scripts hurt checkout conversion.\n\n"
-        f"Three fast ways to get the exact affected URL(s) + ready-to-paste fix:\n"
+        f"Two fast ways to get the exact affected URL(s) + ready-to-paste fix:\n"
         f"1) Reply \"fix\" to this email and I'll reply with the failing path(s) + a direct Stripe checkout link (checkout.stripe.com) for our $10 Launch Deal (normally $49).\n"
         f"2) Or inspect the live diagnostic & download the custom Store Fix Bundle ($10 Deal, was $49 — paste-ready "
         f"{'WooCommerce PHP snippet' if target['platform'] == 'woocommerce' else 'Shopify product-schema.liquid snippet'} tuned to {target['currency']}, "
         f"redirect CSV & ScriptTag checklist) at:\n"
-        f"{audit_link}\n"
-        f"3) Prefer buyer escrow over an unfamiliar URL? Order our $5 Store Leak Audit or $35 Schema + 301 Fix Pack on my UK Fiverr gig:\n"
-        f"{fiverr_link}\n\n"
+        f"{audit_link}\n\n"
         f"Best,\nArman\n"
         f"---\nReply 'unsubscribe' to opt out.\n"
     )

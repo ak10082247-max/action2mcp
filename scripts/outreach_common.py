@@ -454,13 +454,6 @@ def sync_imap_bounces_and_replies(state: dict) -> bool:
 
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "https://kurox-revenue-dashboard.ak10082247.workers.dev").rstrip("/")
 
-FIVERR_GIG_URLS = {
-    "action2mcp": os.environ.get("FIVERR_GIG_MCP_URL") or "https://www.fiverr.com/s/2pQja04",
-    "play_b_ecom": os.environ.get("FIVERR_GIG_SHOPIFY_URL") or "https://www.fiverr.com/s/EmrLlZd",
-    "vibe_coding": os.environ.get("FIVERR_GIG_VIBE_URL") or "https://www.fiverr.com/s/GPlNGgZ",
-    "play_a_local": os.environ.get("FIVERR_GIG_SITE_SEC_URL") or "https://www.fiverr.com/s/Zoz3GEY",
-}
-
 
 def build_lead_hash(identifier: str) -> str:
     return hashlib.sha256(str(identifier or "").strip().lower().encode("utf-8")).hexdigest()[:16]
@@ -474,12 +467,6 @@ def build_tracked_url(play_key: str, lead_identifier: str, target_url: str, dash
         "to": target_url,
     })
     return f"{base}/t?{q}"
-
-
-def build_fiverr_tracked_url(play_key: str, lead_identifier: str, gig_key: str | None = None, dashboard_base: str = DASHBOARD_URL) -> str:
-    """Build a dashboard-tracked redirect URL targeting a live UK Fiverr escrow gig."""
-    target = FIVERR_GIG_URLS.get(gig_key or play_key) or FIVERR_GIG_URLS["play_b_ecom"]
-    return build_tracked_url(play_key, lead_identifier, target, dashboard_base=dashboard_base)
 
 
 def _dashboard_auth_headers(ingest_token: str | None = None) -> dict[str, str]:
