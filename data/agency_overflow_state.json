@@ -44,7 +44,9 @@
     "info-ufa@seotemple.ru",
     "nitin@epilogue.co.in"
   ],
-  "bounced_emails": [],
+  "bounced_emails": [
+    "hello@5kassi.com"
+  ],
   "replied_emails": [],
   "paid_sales": 0,
   "history": [
@@ -149,5 +151,8 @@
       "sent_date": "2026-11-21T12:45:44.832021+00:00"
     }
   ],
-  "updated_at": "2026-11-21T12:45:44.832090+00:00"
+  "updated_at": "2026-11-21T13:58:58.363362+00:00",
+  "post_fix_bounced_emails": [
+    "hello@5kassi.com"
+  ]
 }
