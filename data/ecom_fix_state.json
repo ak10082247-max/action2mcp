@@ -146,12 +146,14 @@
       "sent_date": "2026-11-21T14:04:00.295505+00:00"
     }
   ],
-  "updated_at": "2026-11-21T14:04:00.295588+00:00",
+  "updated_at": "2026-11-21T17:52:05.361496+00:00",
   "bounced_emails": [
-    "xxx@xxx.xxx",
-    "marketing@ruceru.com"
+    "marketing@ruceru.com",
+    "xxx@xxx.xxx"
   ],
-  "replied_emails": [],
+  "replied_emails": [
+    "info@stumptowncoffee.com"
+  ],
   "paid_sales": 0,
   "daily_cap": 20,
   "stop_loss_cap": 200,
