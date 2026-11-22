@@ -1,5 +1,5 @@
 {
-  "cursor": 26,
+  "cursor": 14,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -57,7 +57,9 @@
     {
       "domain": "mcbrideopticians.co.uk",
       "email": "mcbrideopticians@hotmail.co.uk",
-      "sent_date": "2026-11-20T12:18:26.843779+00:00"
+      "sent_date": "2026-11-20T12:18:26.843779+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T20:20:20.941895+00:00"
     },
     {
       "domain": "willmurphydentistry.co.uk",
@@ -110,7 +112,7 @@
       "sent_date": "2026-11-21T21:07:41.260228+00:00"
     }
   ],
-  "updated_at": "2026-11-22T07:59:29.330147+00:00",
+  "updated_at": "2026-11-22T20:20:21.543549+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
