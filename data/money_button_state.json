@@ -1,5 +1,5 @@
 {
-  "local_cursor": 80,
+  "local_cursor": 100,
   "cc_page": 12,
   "contacted_domains": [
     "therowdental.com",
@@ -12,7 +12,11 @@
     "cutlerandgross.com",
     "murrayhilloptical.com",
     "nycvetgroup.com",
-    "precisiondentalnyc.com"
+    "precisiondentalnyc.com",
+    "ca.fluevog.com",
+    "magnoliabakery.com",
+    "caddislife.com",
+    "jaysonhome.com"
   ],
   "contacted_emails": [
     "info@therowdental.com",
@@ -25,7 +29,11 @@
     "help@cutlerandgross.com",
     "info@murrayhilloptical.com",
     "support@snoutplans.com",
-    "info@precisiondentalnyc.com"
+    "info@precisiondentalnyc.com",
+    "chicago@fluevog.com",
+    "media@magnoliabakery.com",
+    "helpivefallenandicantgetup@caddislife.com",
+    "info@jaysonhome.com"
   ],
   "bounced_emails": [],
   "replied_emails": [],
@@ -126,7 +134,47 @@
       "kind": "CLICK_HANDLER_JS_CRASH",
       "ad_pixels": [],
       "sent_date": "2026-11-22T13:40:46.359686+00:00"
+    },
+    {
+      "domain": "ca.fluevog.com",
+      "email": "chicago@fluevog.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T23:43:49.156816+00:00"
+    },
+    {
+      "domain": "magnoliabakery.com",
+      "email": "media@magnoliabakery.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)",
+        "TikTok Pixel",
+        "Microsoft Ads UET"
+      ],
+      "sent_date": "2026-11-22T23:43:54.907474+00:00"
+    },
+    {
+      "domain": "caddislife.com",
+      "email": "helpivefallenandicantgetup@caddislife.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T23:44:00.659417+00:00"
+    },
+    {
+      "domain": "jaysonhome.com",
+      "email": "info@jaysonhome.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T23:44:06.436746+00:00"
     }
   ],
-  "updated_at": "2026-11-22T13:40:46.360685+00:00"
+  "updated_at": "2026-11-22T23:44:06.436842+00:00"
 }
