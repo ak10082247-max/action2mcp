@@ -1,5 +1,5 @@
 {
-  "cc_page": 7,
+  "cc_page": 8,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -113,7 +113,9 @@
     {
       "domain": "curtisaudiocafe.com",
       "email": "info@curtisaudiocafe.com",
-      "sent_date": "2026-11-20T10:31:22.569330+00:00"
+      "sent_date": "2026-11-20T10:31:22.569330+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T20:52:20.266349+00:00"
     },
     {
       "domain": "nashvillecrystalstore.com",
@@ -123,12 +125,16 @@
     {
       "domain": "digvinyl.co.uk",
       "email": "orders@digvinyl.co.uk",
-      "sent_date": "2026-11-20T10:31:33.994551+00:00"
+      "sent_date": "2026-11-20T10:31:33.994551+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T20:52:20.266349+00:00"
     },
     {
       "domain": "seiger.nl",
       "email": "info@seiger.nl",
-      "sent_date": "2026-11-20T10:31:39.550531+00:00"
+      "sent_date": "2026-11-20T10:31:39.550531+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T20:52:20.266349+00:00"
     },
     {
       "domain": "queenbeeflowershop.com",
@@ -176,7 +182,7 @@
       "sent_date": "2026-11-21T21:08:22.835509+00:00"
     }
   ],
-  "updated_at": "2026-11-22T10:22:50.142997+00:00",
+  "updated_at": "2026-11-22T20:52:32.051110+00:00",
   "bounced_emails": [
     "marketing@ruceru.com",
     "xxx@xxx.xxx"
