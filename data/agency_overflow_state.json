@@ -1,5 +1,5 @@
 {
-  "cursor": 20,
+  "cursor": 12,
   "contacted_domains": [
     "qodesocial.com",
     "comradeweb.com",
@@ -20,7 +20,27 @@
     "5kassi.com",
     "krasnoyarsk.seotemple.ru",
     "ufa.seotemple.ru",
-    "epilogue.co.in"
+    "epilogue.co.in",
+    "cairoflo.com",
+    "marketingbeebd.com",
+    "sharkmedia.sk",
+    "urbanlinks.me",
+    "tbpdigital.com",
+    "tower25.com",
+    "grocat.in",
+    "internet-webdesign.org",
+    "mkmarketingagency.com",
+    "vacinsurance.com",
+    "bandelliagency.com",
+    "webpuzzlemaster.com",
+    "andava.com",
+    "webvisibility.it",
+    "theadditiveagency.com",
+    "thetravelagency.co",
+    "digitall.com.tr",
+    "shorelinedigital.agency",
+    "seoforceagency.com",
+    "trishgeyeragency.com"
   ],
   "contacted_emails": [
     "hello@qodesocial.com",
@@ -42,7 +62,27 @@
     "hello@5kassi.com",
     "info-kry@seotemple.ru",
     "info-ufa@seotemple.ru",
-    "nitin@epilogue.co.in"
+    "nitin@epilogue.co.in",
+    "flo@cairoflo.com",
+    "hello@marketingbeebd.com",
+    "info@sharkmedia.sk",
+    "info@urbanlinks.me",
+    "info@tbpdigital.com",
+    "info@tower25.com",
+    "info@grocat.in",
+    "admin@internet-webdesign.org",
+    "mikolaj@mkmarketingagency.com",
+    "michael@vacinsurance.com",
+    "andrea@bandelliagency.com",
+    "info@webpuzzlemaster.com",
+    "hello@andava.com",
+    "info@webvisibility.it",
+    "info@theadditiveagency.com",
+    "unionsquare@thetravelagency.co",
+    "hello@digitall.com.tr",
+    "hello@shorelinedigital.agency",
+    "info@seoforce.es",
+    "service@geyerinsurance.com"
   ],
   "bounced_emails": [
     "hello@5kassi.com"
@@ -149,9 +189,109 @@
       "domain": "epilogue.co.in",
       "email": "nitin@epilogue.co.in",
       "sent_date": "2026-11-21T12:45:44.832021+00:00"
+    },
+    {
+      "domain": "cairoflo.com",
+      "email": "flo@cairoflo.com",
+      "sent_date": "2026-11-22T01:25:01.237059+00:00"
+    },
+    {
+      "domain": "marketingbeebd.com",
+      "email": "hello@marketingbeebd.com",
+      "sent_date": "2026-11-22T01:25:07.128539+00:00"
+    },
+    {
+      "domain": "sharkmedia.sk",
+      "email": "info@sharkmedia.sk",
+      "sent_date": "2026-11-22T01:25:12.695117+00:00"
+    },
+    {
+      "domain": "urbanlinks.me",
+      "email": "info@urbanlinks.me",
+      "sent_date": "2026-11-22T01:25:18.297813+00:00"
+    },
+    {
+      "domain": "tbpdigital.com",
+      "email": "info@tbpdigital.com",
+      "sent_date": "2026-11-22T01:25:24.190268+00:00"
+    },
+    {
+      "domain": "tower25.com",
+      "email": "info@tower25.com",
+      "sent_date": "2026-11-22T01:25:29.909389+00:00"
+    },
+    {
+      "domain": "grocat.in",
+      "email": "info@grocat.in",
+      "sent_date": "2026-11-22T01:25:35.498607+00:00"
+    },
+    {
+      "domain": "internet-webdesign.org",
+      "email": "admin@internet-webdesign.org",
+      "sent_date": "2026-11-22T01:25:41.073359+00:00"
+    },
+    {
+      "domain": "mkmarketingagency.com",
+      "email": "mikolaj@mkmarketingagency.com",
+      "sent_date": "2026-11-22T01:25:46.669307+00:00"
+    },
+    {
+      "domain": "vacinsurance.com",
+      "email": "michael@vacinsurance.com",
+      "sent_date": "2026-11-22T01:25:52.308993+00:00"
+    },
+    {
+      "domain": "bandelliagency.com",
+      "email": "andrea@bandelliagency.com",
+      "sent_date": "2026-11-22T01:25:58.014448+00:00"
+    },
+    {
+      "domain": "webpuzzlemaster.com",
+      "email": "info@webpuzzlemaster.com",
+      "sent_date": "2026-11-22T01:26:03.609186+00:00"
+    },
+    {
+      "domain": "andava.com",
+      "email": "hello@andava.com",
+      "sent_date": "2026-11-22T01:26:09.151768+00:00"
+    },
+    {
+      "domain": "webvisibility.it",
+      "email": "info@webvisibility.it",
+      "sent_date": "2026-11-22T01:26:14.792690+00:00"
+    },
+    {
+      "domain": "theadditiveagency.com",
+      "email": "info@theadditiveagency.com",
+      "sent_date": "2026-11-22T01:26:20.325502+00:00"
+    },
+    {
+      "domain": "thetravelagency.co",
+      "email": "unionsquare@thetravelagency.co",
+      "sent_date": "2026-11-22T01:26:25.863305+00:00"
+    },
+    {
+      "domain": "digitall.com.tr",
+      "email": "hello@digitall.com.tr",
+      "sent_date": "2026-11-22T01:26:31.452012+00:00"
+    },
+    {
+      "domain": "shorelinedigital.agency",
+      "email": "hello@shorelinedigital.agency",
+      "sent_date": "2026-11-22T01:26:37.039542+00:00"
+    },
+    {
+      "domain": "seoforceagency.com",
+      "email": "info@seoforce.es",
+      "sent_date": "2026-11-22T01:26:42.629558+00:00"
+    },
+    {
+      "domain": "trishgeyeragency.com",
+      "email": "service@geyerinsurance.com",
+      "sent_date": "2026-11-22T01:26:48.235853+00:00"
     }
   ],
-  "updated_at": "2026-11-21T13:58:58.363362+00:00",
+  "updated_at": "2026-11-22T01:26:48.235933+00:00",
   "post_fix_bounced_emails": [
     "hello@5kassi.com"
   ]
