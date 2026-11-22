@@ -1,5 +1,5 @@
 {
-  "cc_page": 18,
+  "cc_page": 7,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -85,22 +85,30 @@
     {
       "domain": "pagepublications.co",
       "email": "info@pagepublications.co",
-      "sent_date": "2026-11-19T22:41:10.672053+00:00"
+      "sent_date": "2026-11-19T22:41:10.672053+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T10:22:34.866770+00:00"
     },
     {
       "domain": "pagesofthenight.myshopify.com",
       "email": "pagesofthenight@yahoo.com",
-      "sent_date": "2026-11-19T22:41:26.387900+00:00"
+      "sent_date": "2026-11-19T22:41:26.387900+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T10:22:34.866770+00:00"
     },
     {
       "domain": "pinoyshki.com",
       "email": "pinoyshki@gmail.com",
-      "sent_date": "2026-11-19T23:00:57.033847+00:00"
+      "sent_date": "2026-11-19T23:00:57.033847+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T10:22:34.866770+00:00"
     },
     {
       "domain": "nuflours.com",
       "email": "customerservice@nuflours.com",
-      "sent_date": "2026-11-19T23:01:02.945051+00:00"
+      "sent_date": "2026-11-19T23:01:02.945051+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-22T10:22:34.866770+00:00"
     },
     {
       "domain": "curtisaudiocafe.com",
@@ -168,7 +176,7 @@
       "sent_date": "2026-11-21T21:08:22.835509+00:00"
     }
   ],
-  "updated_at": "2026-11-22T00:45:31.968894+00:00",
+  "updated_at": "2026-11-22T10:22:50.142997+00:00",
   "bounced_emails": [
     "marketing@ruceru.com",
     "xxx@xxx.xxx"
