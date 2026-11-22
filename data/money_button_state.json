@@ -1,0 +1,132 @@
+{
+  "local_cursor": 80,
+  "cc_page": 12,
+  "contacted_domains": [
+    "therowdental.com",
+    "duncanandtoddgroup.com",
+    "sophiehyettaesthetics.co.uk",
+    "cameronoptom.com",
+    "dermalclinic.co.uk",
+    "fioritalia.co.uk",
+    "mademoisellemacaron.co.uk",
+    "cutlerandgross.com",
+    "murrayhilloptical.com",
+    "nycvetgroup.com",
+    "precisiondentalnyc.com"
+  ],
+  "contacted_emails": [
+    "info@therowdental.com",
+    "help@duncanandtodd.com",
+    "hello@rfuenzalida.com",
+    "vision@cameronoptom.com",
+    "info@dermalclinic.co.uk",
+    "info@fioritalia.co.uk",
+    "bonjour@mademoisellemacaron.co.uk",
+    "help@cutlerandgross.com",
+    "info@murrayhilloptical.com",
+    "support@snoutplans.com",
+    "info@precisiondentalnyc.com"
+  ],
+  "bounced_emails": [],
+  "replied_emails": [],
+  "paid_sales": 0,
+  "history": [
+    {
+      "domain": "therowdental.com",
+      "email": "info@therowdental.com",
+      "kind": "MOBILE_CTA_BLOCKED",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T13:30:09.131075+00:00"
+    },
+    {
+      "domain": "duncanandtoddgroup.com",
+      "email": "help@duncanandtodd.com",
+      "kind": "MOBILE_CTA_BLOCKED",
+      "ad_pixels": [
+        "Meta Pixel (fbq)"
+      ],
+      "sent_date": "2026-11-22T13:30:16.693190+00:00"
+    },
+    {
+      "domain": "sophiehyettaesthetics.co.uk",
+      "email": "hello@rfuenzalida.com",
+      "kind": "MOBILE_CTA_BLOCKED",
+      "ad_pixels": [],
+      "sent_date": "2026-11-22T13:30:24.140908+00:00"
+    },
+    {
+      "domain": "cameronoptom.com",
+      "email": "vision@cameronoptom.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [],
+      "sent_date": "2026-11-22T13:30:32.247491+00:00"
+    },
+    {
+      "domain": "dermalclinic.co.uk",
+      "email": "info@dermalclinic.co.uk",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T13:34:44.341865+00:00"
+    },
+    {
+      "domain": "fioritalia.co.uk",
+      "email": "info@fioritalia.co.uk",
+      "kind": "CART_ADD_API_FAILED",
+      "ad_pixels": [],
+      "sent_date": "2026-11-22T13:34:51.634864+00:00"
+    },
+    {
+      "domain": "mademoisellemacaron.co.uk",
+      "email": "bonjour@mademoisellemacaron.co.uk",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)",
+        "Microsoft Ads UET"
+      ],
+      "sent_date": "2026-11-22T13:40:17.770845+00:00"
+    },
+    {
+      "domain": "cutlerandgross.com",
+      "email": "help@cutlerandgross.com",
+      "kind": "CART_ADD_API_FAILED",
+      "ad_pixels": [
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T13:40:25.003979+00:00"
+    },
+    {
+      "domain": "murrayhilloptical.com",
+      "email": "info@murrayhilloptical.com",
+      "kind": "MOBILE_CTA_BLOCKED",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T13:40:32.116768+00:00"
+    },
+    {
+      "domain": "nycvetgroup.com",
+      "email": "support@snoutplans.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-22T13:40:39.233206+00:00"
+    },
+    {
+      "domain": "precisiondentalnyc.com",
+      "email": "info@precisiondentalnyc.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [],
+      "sent_date": "2026-11-22T13:40:46.359686+00:00"
+    }
+  ],
+  "updated_at": "2026-11-22T13:40:46.360685+00:00"
+}
