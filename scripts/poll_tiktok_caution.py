@@ -939,7 +939,7 @@ def poll_apify(
     queries: list[str],
     actor_id: str = "clockworks~free-tiktok-scraper",
     max_items: int = 40,
-    min_balance_usd: float = 0.08,
+    min_balance_usd: float = 0.02,
     profiles: list[str] | None = None,
     post_urls: list[str] | None = None,
 ) -> list[tuple[str, dict]]:
@@ -1104,15 +1104,15 @@ def poll_apify(
             kw_pool = [q for q in queries if not q.startswith("#")] or ["anthony joshua not following the script"]
             high_priority_kws = (
                 [f"@{p}" for p in clean_profiles[:2]]
-                + kw_pool[:6]
+                + kw_pool[:10]
                 + [q for q in queries if q.startswith("#")][:3]
             )
-            per_kw = max(25, min(60, remaining // max(1, min(6, len(high_priority_kws)))))
-            for idx, kw in enumerate(high_priority_kws[:6]):
-                avail = apify_remaining_usd - spent_est - 0.02
-                if avail < 0.03 or len(all_results) >= max_items:
+            per_kw = max(25, min(50, remaining // max(1, min(10, len(high_priority_kws)))))
+            for idx, kw in enumerate(high_priority_kws[:10]):
+                avail = apify_remaining_usd - spent_est - 0.01
+                if avail < 0.02 or len(all_results) >= max_items:
                     break
-                cap_usd = max(0.03, min(round(per_kw * 0.0005 + 0.02, 2), 0.12, avail))
+                cap_usd = max(0.02, min(round(per_kw * 0.0005 + 0.015, 2), 0.10, avail))
                 inp = {
                     "keyword": kw,
                     "sortType": 0,
