@@ -1,5 +1,5 @@
 {
-  "cursor": 12,
+  "cursor": 4,
   "contacted_domains": [
     "qodesocial.com",
     "comradeweb.com",
@@ -40,7 +40,27 @@
     "digitall.com.tr",
     "shorelinedigital.agency",
     "seoforceagency.com",
-    "trishgeyeragency.com"
+    "trishgeyeragency.com",
+    "kirbyinsuranceagencybhm.com",
+    "seoagencynewcastle.com",
+    "freisicht.net",
+    "colorpeak.co.uk",
+    "samsonwebdesign.co.uk",
+    "stambaughdesigns.co",
+    "energise.co.nz",
+    "boundlesstech.net",
+    "icepick.co",
+    "visibleone.com",
+    "alixx-web.de",
+    "imaginewebsolution.com",
+    "webdesignandseocompany.co.uk",
+    "weblinknepal.com",
+    "afternet.gr",
+    "ondigitalmarketing.nl",
+    "samsulnet.com",
+    "seobank.ca",
+    "digitalmarketingservpro.com",
+    "jasminesandlerdigitalmarketingmedia.com"
   ],
   "contacted_emails": [
     "hello@qodesocial.com",
@@ -82,7 +102,27 @@
     "hello@digitall.com.tr",
     "hello@shorelinedigital.agency",
     "info@seoforce.es",
-    "service@geyerinsurance.com"
+    "service@geyerinsurance.com",
+    "kirbyinusre@aol.com",
+    "info@seoagencynewcastle.com",
+    "info@freisicht.net",
+    "info@colorpeak.co.uk",
+    "enquiries@samsonwebdesign.co.uk",
+    "jordan@stambaughdesigns.co",
+    "info@energise.co.nz",
+    "info@boundlesstech.net",
+    "nick@icepick.co",
+    "info@visibleone.com.hk",
+    "fragen@alixx-web.de",
+    "info@imaginewebsolution.com",
+    "support@wdseo.co.uk",
+    "info@weblinknepal.com",
+    "sales@afternet.gr",
+    "info@ondigitalmarketing.nl",
+    "support@samsulnet.com",
+    "info@seobank.ca",
+    "brian@digitalmarketingservpro.com",
+    "jasmine@jasminesandler.com"
   ],
   "bounced_emails": [
     "hello@5kassi.com"
@@ -289,9 +329,109 @@
       "domain": "trishgeyeragency.com",
       "email": "service@geyerinsurance.com",
       "sent_date": "2026-11-22T01:26:48.235853+00:00"
+    },
+    {
+      "domain": "kirbyinsuranceagencybhm.com",
+      "email": "kirbyinusre@aol.com",
+      "sent_date": "2026-11-23T01:50:14.168601+00:00"
+    },
+    {
+      "domain": "seoagencynewcastle.com",
+      "email": "info@seoagencynewcastle.com",
+      "sent_date": "2026-11-23T01:50:19.966309+00:00"
+    },
+    {
+      "domain": "freisicht.net",
+      "email": "info@freisicht.net",
+      "sent_date": "2026-11-23T01:50:25.855905+00:00"
+    },
+    {
+      "domain": "colorpeak.co.uk",
+      "email": "info@colorpeak.co.uk",
+      "sent_date": "2026-11-23T01:50:31.676196+00:00"
+    },
+    {
+      "domain": "samsonwebdesign.co.uk",
+      "email": "enquiries@samsonwebdesign.co.uk",
+      "sent_date": "2026-11-23T01:50:37.665678+00:00"
+    },
+    {
+      "domain": "stambaughdesigns.co",
+      "email": "jordan@stambaughdesigns.co",
+      "sent_date": "2026-11-23T01:50:43.548518+00:00"
+    },
+    {
+      "domain": "energise.co.nz",
+      "email": "info@energise.co.nz",
+      "sent_date": "2026-11-23T01:50:49.353684+00:00"
+    },
+    {
+      "domain": "boundlesstech.net",
+      "email": "info@boundlesstech.net",
+      "sent_date": "2026-11-23T01:50:55.148605+00:00"
+    },
+    {
+      "domain": "icepick.co",
+      "email": "nick@icepick.co",
+      "sent_date": "2026-11-23T01:51:00.968137+00:00"
+    },
+    {
+      "domain": "visibleone.com",
+      "email": "info@visibleone.com.hk",
+      "sent_date": "2026-11-23T01:51:06.789481+00:00"
+    },
+    {
+      "domain": "alixx-web.de",
+      "email": "fragen@alixx-web.de",
+      "sent_date": "2026-11-23T01:51:12.606391+00:00"
+    },
+    {
+      "domain": "imaginewebsolution.com",
+      "email": "info@imaginewebsolution.com",
+      "sent_date": "2026-11-23T01:51:18.475615+00:00"
+    },
+    {
+      "domain": "webdesignandseocompany.co.uk",
+      "email": "support@wdseo.co.uk",
+      "sent_date": "2026-11-23T01:51:24.215679+00:00"
+    },
+    {
+      "domain": "weblinknepal.com",
+      "email": "info@weblinknepal.com",
+      "sent_date": "2026-11-23T01:51:30.000734+00:00"
+    },
+    {
+      "domain": "afternet.gr",
+      "email": "sales@afternet.gr",
+      "sent_date": "2026-11-23T01:51:35.786536+00:00"
+    },
+    {
+      "domain": "ondigitalmarketing.nl",
+      "email": "info@ondigitalmarketing.nl",
+      "sent_date": "2026-11-23T01:51:41.644925+00:00"
+    },
+    {
+      "domain": "samsulnet.com",
+      "email": "support@samsulnet.com",
+      "sent_date": "2026-11-23T01:51:47.454162+00:00"
+    },
+    {
+      "domain": "seobank.ca",
+      "email": "info@seobank.ca",
+      "sent_date": "2026-11-23T01:51:53.230303+00:00"
+    },
+    {
+      "domain": "digitalmarketingservpro.com",
+      "email": "brian@digitalmarketingservpro.com",
+      "sent_date": "2026-11-23T01:51:58.966850+00:00"
+    },
+    {
+      "domain": "jasminesandlerdigitalmarketingmedia.com",
+      "email": "jasmine@jasminesandler.com",
+      "sent_date": "2026-11-23T01:52:04.803892+00:00"
     }
   ],
-  "updated_at": "2026-11-22T01:26:48.235933+00:00",
+  "updated_at": "2026-11-23T01:52:04.804004+00:00",
   "post_fix_bounced_emails": [
     "hello@5kassi.com"
   ]
