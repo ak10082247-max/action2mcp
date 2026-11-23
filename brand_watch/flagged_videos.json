@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": "7702510622650518817",
+    "videoId": "7702510622650518817",
+    "sourceType": "apify",
+    "url": "https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817?_r=1&u_code=elfi92ik9jal3f&preview_pb=0&sharer_language=en&_d=elh0ia0cibi4l6&share_item_id=7702510622650518817&source=h5_m",
+    "playerUrl": "https://www.tiktok.com/player/v1/7702510622650518817",
+    "authorUsername": "@maskedtruthmt",
+    "authorName": "maskedtruthmt",
+    "authorUrl": "https://www.tiktok.com/@maskedtruthmt",
+    "description": "Watch what happened to Anthony Joshua after not following the script…👁️ #maskedtruthmt #fyp",
+    "voiceToText": "",
+    "hashtags": [
+      "maskedtruthmt"
+    ],
+    "thumbnailUrl": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast2a-p-0037-euttp/o0GGhuNeFeL4nekfTrvvAEYJ16IRQtUhYzo0gA~tplv-tiktokx-cropcenter:500:800.jpeg?biz_tag=musically_video.video_cover&dr=10397&idc=no1a&ps=13740610&refresh_token=943db0eb&shcp=9b759fb9&shp=c1333099&t=4d5b0474&x-expires=1795482000&x-signature=C2PxrjWtJ10KYkBKgkMm3%2BCzFmw%3D",
+    "cautionText": "{\"ktf_info\":{\"show_warning\":true,\"caution_label\":\"Caution:\",\"warning_text\":\"%s Video flagged for unverified content.\",\"show_message_on_share\":true,\"message_text_on_share\":\"This video was flagged for unverified content.\",\"label_category\":1,\"label_title\":\"Sharing is limited to one chat at a time\",\"label_desc\":\"This is to help limit the spread of potentially harmful content.\",\"title_text_on_share\":null,\"link_on_share\":null},\"tns_im_info\":{\"label_category\":1,\"caution_label\":\"Caution\",\"thumbnail_label\":\"May contain inaccurate information.\"}}",
+    "matchedField": "misc_info",
+    "brandTag": "apify:novi~tiktok-scraper-ultimate",
+    "capturedAt": "2026-11-23T19:33:05.110825+00:00"
+  }
+]
