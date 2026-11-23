@@ -57,7 +57,15 @@ DEFAULT_DISCOVERY_QUERIES = [
     "flagged for unverified content",
     "not following the script",
     "#maskedtruth",
+    "#notfollowingthescript",
+    "#unverifiedcontent",
+    "anthony joshua not following the script",
+    "before this gets deleted",
     "staged video exposed",
+]
+
+DEFAULT_SUSPECT_PROFILES = [
+    "maskedtruthmt",
 ]
 
 WARNING_FIELDS = (
@@ -71,9 +79,29 @@ WARNING_FIELDS = (
     "videoLabel",
     "cautionLabel",
     "warningText",
+    "moderationInfo",
+    "flagInfo",
+    "maskInfo",
+    "warning",
+    "anchors",
+    "badges",
 )
 
-WARNING_SUBKEYS = ("text", "content", "label", "title", "desc", "warning", "msg")
+WARNING_SUBKEYS = ("text", "content", "label", "title", "desc", "warning", "msg", "reason")
+TOP_LEVEL_IGNORED_KEYS = {
+    "text", "desc", "title", "video_description", "voice_to_text", "voiceToText",
+    "transcript", "comments", "hashtags", "hashtag_names", "suggestedWords",
+    "diversificationLabels", "author", "authorMeta", "channel", "music",
+    "musicMeta", "challenges", "textExtra", "effectStickers",
+}
+NESTED_IGNORED_KEYS = {
+    "comments", "hashtags", "hashtag_names", "suggestedWords", "diversificationLabels",
+    "author", "authorMeta", "channel", "music", "musicMeta", "challenges", "effectStickers",
+}
+WARNING_KEY_RE = re.compile(
+    r"(?:warn|caution|risk|flag|moderation|notice|banner|badge|label|mask|anchor|penalty|verify)",
+    re.IGNORECASE,
+)
 
 
 def _extract_root(raw_item: dict) -> dict:
@@ -92,28 +120,40 @@ def _extract_root(raw_item: dict) -> dict:
 def _collect_warning_strings(raw_item: dict) -> list[tuple[str, str]]:
     root = _extract_root(raw_item)
     candidates: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
 
-    def push(field: str, value) -> None:
-        if value is None:
+    def push_text(field: str, text: str) -> None:
+        cleaned = str(text or "").strip()
+        if cleaned and (field, cleaned) not in seen:
+            seen.add((field, cleaned))
+            candidates.append((field, cleaned))
+
+    def scan_node(field: str, value, depth: int = 0) -> None:
+        if value is None or depth > 5:
             return
         if isinstance(value, str):
-            text = value.strip()
-            if text:
-                candidates.append((field, text))
+            push_text(field, value)
         elif isinstance(value, list):
             for entry in value:
-                push(field, entry)
+                scan_node(field, entry, depth + 1)
         elif isinstance(value, dict):
-            for subkey in WARNING_SUBKEYS:
-                subval = value.get(subkey)
-                if isinstance(subval, str) and subval.strip():
-                    candidates.append((field, subval.strip()))
+            for k, subval in value.items():
+                if k in NESTED_IGNORED_KEYS:
+                    continue
+                if isinstance(subval, str):
+                    if k in WARNING_SUBKEYS or WARNING_KEY_RE.search(k):
+                        push_text(field, subval)
+                elif isinstance(subval, (dict, list)):
+                    scan_node(field, subval, depth + 1)
 
     for field in WARNING_FIELDS:
         if field in root:
-            push(field, root.get(field))
-        elif field in raw_item:
-            push(field, raw_item.get(field))
+            scan_node(field, root.get(field))
+        if isinstance(raw_item, dict) and field in raw_item:
+            scan_node(field, raw_item.get(field))
+    for k, v in root.items():
+        if k not in TOP_LEVEL_IGNORED_KEYS and WARNING_KEY_RE.search(str(k)):
+            scan_node(str(k), v)
     return candidates
 
 
@@ -422,11 +462,140 @@ def poll_rapidapi(queries: list[str], max_items: int = 20) -> list[tuple[str, di
     return results
 
 
+DEFAULT_MAX_PER_TARGET = 30
+FACTCHECK_TIKTOK_URL_RE = re.compile(
+    r"https?://(?:www\.|m\.|vm\.|vt\.)?tiktok\.com/@[A-Za-z0-9_.]+/video/\d+"
+)
+FACTCHECK_HANDLE_RE = re.compile(r"tiktok\.com/(@[A-Za-z0-9_.]{2,35})")
+
+
+def harvest_free_factcheck_targets(max_articles: int = 20) -> tuple[list[str], list[str]]:
+    """Harvest public TikTok video URLs and creator handles from IFCN fact-checker feeds ($0)."""
+    video_urls: set[str] = set()
+    handles: set[str] = set()
+    article_urls: list[str] = []
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; CautionWatchFactHarvest/1.0)", "Accept": "text/html,application/xml,*/*"}
+
+    for source_url in (
+        "https://leadstories.com/atom.xml",
+        "https://www.politifact.com/rss/factchecks/",
+        "https://www.politifact.com/search/?q=tiktok",
+        "https://checkyourfact.com/?s=tiktok",
+    ):
+        try:
+            st, _, _, raw = http_fetch(source_url, headers=headers, timeout=8, verify_ssl=False)
+            if st >= 400:
+                continue
+            txt = raw.decode("utf-8", "replace")
+            for u in FACTCHECK_TIKTOK_URL_RE.findall(txt):
+                video_urls.add(u)
+            for h in FACTCHECK_HANDLE_RE.findall(txt):
+                handles.add(h.lstrip("@"))
+            if "politifact.com/search" in source_url:
+                for rel in re.findall(r'href="(/factchecks/\d{4}/[^"#? ]+)"', txt):
+                    full = f"https://www.politifact.com{rel}"
+                    if full not in article_urls:
+                        article_urls.append(full)
+            elif "checkyourfact.com" in source_url:
+                for link in re.findall(r'href="(https?://checkyourfact\.com/\d{4}/[^"#? ]+)"', txt):
+                    if link not in article_urls:
+                        article_urls.append(link)
+        except Exception:
+            continue
+
+    for art_url in article_urls[:max_articles]:
+        try:
+            st, _, _, raw = http_fetch(art_url, headers=headers, timeout=6, verify_ssl=False)
+            if st >= 400:
+                continue
+            txt = raw.decode("utf-8", "replace")
+            for u in FACTCHECK_TIKTOK_URL_RE.findall(txt):
+                video_urls.add(u)
+            for h in FACTCHECK_HANDLE_RE.findall(txt):
+                handles.add(h.lstrip("@"))
+        except Exception:
+            continue
+
+    for u in video_urls:
+        m = FACTCHECK_HANDLE_RE.search(u)
+        if m:
+            handles.add(m.group(1).lstrip("@"))
+    return sorted(video_urls), sorted(handles)
+
+
+def collect_discovery_profiles(
+    leads: list[dict],
+    existing_flagged: list[dict] | None = None,
+    harvested_handles: list[str] | None = None,
+    extra_profiles: list[str] | None = None,
+    cap: int = 8,
+) -> list[str]:
+    profiles: list[str] = []
+    seen: set[str] = set()
+
+    def add_p(handle: str) -> None:
+        cleaned = str(handle or "").strip().lstrip("@")
+        if cleaned and re.fullmatch(r"[A-Za-z0-9_.]{2,35}", cleaned) and cleaned.lower() not in seen:
+            seen.add(cleaned.lower())
+            profiles.append(cleaned)
+
+    for p in (extra_profiles or []):
+        add_p(p)
+    for p in DEFAULT_SUSPECT_PROFILES:
+        add_p(p)
+    for lead in leads:
+        for chunk in re.split(r"[,;\n\s]+", str(lead.get("keywords") or "")):
+            if chunk.strip().startswith("@"):
+                add_p(chunk.strip())
+    for item in (existing_flagged or []):
+        add_p(str(item.get("authorUsername") or ""))
+    for h in (harvested_handles or []):
+        if h.lower() not in {"tiktok", "maga"}:
+            add_p(h)
+    return profiles[:cap]
+
+
+def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: int = 8) -> dict:
+    """Summarize raw scraper keys & non-empty warning/penalty strings without exposing secrets."""
+    key_counts: dict[str, int] = {}
+    warning_signals: list[dict] = []
+    sample_previews: list[dict] = []
+
+    for src, raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        root = _extract_root(raw)
+        for k in list(raw.keys())[:40]:
+            key_counts[k] = key_counts.get(k, 0) + 1
+        cands = _collect_warning_strings(raw)
+        if cands and len(warning_signals) < sample_limit:
+            warning_signals.append({
+                "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                "warnings": [{ "field": f, "text": t[:160] } for f, t in cands[:4]],
+            })
+        if len(sample_previews) < 4:
+            author = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
+            sample_previews.append({
+                "source": src,
+                "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                "author": str((author.get("name") or author.get("username") or author.get("uniqueId") or "") if isinstance(author, dict) else "")[:40],
+                "has_warnInfo": bool(root.get("warnInfo") or raw.get("warnInfo")),
+                "text": str(root.get("text") or root.get("desc") or root.get("title") or "")[:80],
+            })
+    return {
+        "top_keys": sorted(key_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:20],
+        "warning_signals_seen": warning_signals,
+        "sample_previews": sample_previews,
+    }
+
+
 def poll_apify(
     queries: list[str],
     actor_id: str = "clockworks~free-tiktok-scraper",
-    max_items: int = 20,
+    max_items: int = 40,
     min_balance_usd: float = 0.25,
+    profiles: list[str] | None = None,
+    post_urls: list[str] | None = None,
 ) -> list[tuple[str, dict]]:
     token = (os.environ.get("APIFY_TOKEN") or "").strip()
     if not token:
@@ -435,7 +604,6 @@ def poll_apify(
         usage = http_get_json(f"https://api.apify.com/v2/users/me/usage/monthly?token={urllib.parse.quote(token)}", timeout=10)
         data = usage.get("data") if isinstance(usage, dict) else {}
         used = float(data.get("totalUsageCreditsUsdAfterVolumeDiscount") or data.get("totalUsageCreditsUsdBeforeVolumeDiscount") or 0.0)
-        # Monthly free tier cap check (Apify free plan is $5/mo; abort if <= min_balance_usd headroom left)
         limits = http_get_json(f"https://api.apify.com/v2/users/me/limits?token={urllib.parse.quote(token)}", timeout=10)
         max_monthly = float((limits.get("data") or {}).get("monthlyUsageUsd") or 5.0)
         if max_monthly - used <= min_balance_usd:
@@ -447,56 +615,63 @@ def poll_apify(
 
     hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:3]
     search_terms = [q for q in queries if not q.startswith("#")][:3]
-    per_query = max(1, min(max_items, 20))
+    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:3]
+    clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
+    actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["clockworks~free-tiktok-scraper"]
+    all_results: list[tuple[str, dict]] = []
 
-    if "apidojo" in actor_id:
-        actor_input = {
-            "keywords": search_terms or ["flagged for unverified content"],
-            "maxItems": per_query,
-            "customMapFunction": """(object) => {
-  return {
-    id: object.id || object.aweme_id,
-    webVideoUrl: object.postPage || object.webVideoUrl || object.url,
-    text: object.title || object.desc || object.text || '',
-    authorMeta: object.channel || object.authorMeta || object.author || {},
-    hashtags: object.hashtags || [],
-    videoMeta: object.video || object.videoMeta || {},
-    warnInfo: object.warnInfo || object.warningInfo || null,
-    labelTop: object.labelTop || null,
-    contentDesc: object.contentDesc || null,
-    riskInfos: object.riskInfos || object.risk_infos || null,
-    voice_to_text: object.voice_to_text || object.voiceToText || ''
-  };
-}""",
-        }
-    else:
-        actor_input = {
-            "hashtags": hashtags,
-            "searchQueries": search_terms or ["flagged for unverified content"],
-            "resultsPerPage": per_query,
-            "shouldDownloadCovers": False,
-            "shouldDownloadVideos": False,
-        }
+    per_actor_budget = max(10, max_items // max(1, len(actors)))
+    for single_actor in actors:
+        remaining = max(1, min(per_actor_budget, max_items - len(all_results)))
+        if len(all_results) >= max_items:
+            break
+        if "apidojo" in single_actor:
+            start_urls = [f"https://www.tiktok.com/@{p}" for p in clean_profiles] + clean_post_urls
+            actor_input = {
+                "keywords": search_terms or ["flagged for unverified content"],
+                "maxItems": remaining,
+                "customMapFunction": "(object) => ({ ...object })",
+            }
+            if start_urls:
+                actor_input["startUrls"] = start_urls[:8]
+            dataset_limit = remaining
+        else:
+            target_groups = max(1, len(clean_profiles) + len(hashtags) + len(search_terms))
+            per_target = max(3, min(DEFAULT_MAX_PER_TARGET, max(6, remaining // target_groups)))
+            actor_input = {
+                "shouldDownloadCovers": False,
+                "shouldDownloadVideos": False,
+                "resultsPerPage": per_target,
+            }
+            if clean_profiles:
+                actor_input["profiles"] = clean_profiles
+            if hashtags:
+                actor_input["hashtags"] = hashtags
+            if search_terms or (not clean_profiles and not hashtags and not clean_post_urls):
+                actor_input["searchQueries"] = search_terms or ["flagged for unverified content"]
+            if clean_post_urls:
+                actor_input["postURLs"] = clean_post_urls
+            dataset_limit = max(remaining, per_target * target_groups)
 
-    run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=90"
-    status, _, _, raw = http_fetch(
-        run_url,
-        method="POST",
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        data=json.dumps(actor_input).encode("utf-8"),
-        timeout=95,
-    )
-    if status >= 400:
-        raise RuntimeError(f"Apify run start HTTP {status}: {raw.decode('utf-8', 'replace')[:300]}")
-    run_data = json.loads(raw.decode("utf-8", "replace")).get("data") or {}
-    dataset_id = run_data.get("defaultDatasetId")
-    if not dataset_id:
-        return []
-    items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={per_query}"
-    items = http_get_json(items_url, timeout=30)
-    if not isinstance(items, list):
-        return []
-    return [(search_terms[0] if search_terms else "apify", it) for it in items if isinstance(it, dict)]
+        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor)}/runs?token={urllib.parse.quote(token)}&waitForFinish=120"
+        status, _, _, raw = http_fetch(
+            run_url,
+            method="POST",
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            data=json.dumps(actor_input).encode("utf-8"),
+            timeout=125,
+        )
+        if status >= 400:
+            raise RuntimeError(f"Apify run start HTTP {status} ({single_actor}): {raw.decode('utf-8', 'replace')[:300]}")
+        run_data = json.loads(raw.decode("utf-8", "replace")).get("data") or {}
+        dataset_id = run_data.get("defaultDatasetId")
+        if not dataset_id:
+            continue
+        items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={dataset_limit}"
+        items = http_get_json(items_url, timeout=30)
+        if isinstance(items, list):
+            all_results.extend((f"apify:{single_actor}", it) for it in items if isinstance(it, dict))
+    return all_results
 
 
 def sync_records_to_worker(records: list[dict], worker_base: str = BRAND_WATCH_URL) -> dict | None:
@@ -693,8 +868,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live", action="store_true", help="Actually call external scraper APIs & send subscriber alerts.")
     parser.add_argument("--provider", choices=("auto", "ensembledata", "rapidapi", "apify"), default="auto")
     parser.add_argument("--apify-actor", default="clockworks~free-tiktok-scraper")
-    parser.add_argument("--max-items", type=int, default=20, help="Hard cap on fetched raw items per run.")
+    parser.add_argument("--max-items", type=int, default=40, help="Hard cap on fetched raw items per run.")
     parser.add_argument("--query", action="append", default=[], help="Extra keyword or #hashtag query.")
+    parser.add_argument("--profile", action="append", default=[], help="Extra TikTok @username profile to poll.")
+    parser.add_argument("--no-harvest-free", action="store_true", help="Skip free fact-checker URL harvesting.")
     parser.add_argument("--input-json", default="", help="Process local raw scraper JSON list without spending API credits.")
     parser.add_argument("--sync-worker", action="store_true", help="Push stored records to Worker /api/ingest-caution.")
     parser.add_argument("--send-alerts", action="store_true", help="Allow dispatching email/webhook alerts to matched leads.")
@@ -703,8 +880,15 @@ def main(argv: list[str] | None = None) -> int:
     BRAND_WATCH_URL_RUNTIME = (
         os.environ.get("BRAND_WATCH_URL") or BRAND_WATCH_URL
     ).rstrip("/")
+    existing = load_flagged_videos(FLAGGED_JSON_PATH)
     leads = fetch_subscriber_leads(BRAND_WATCH_URL_RUNTIME)
     queries = collect_discovery_queries(leads, args.query)
+
+    harvested_urls: list[str] = []
+    harvested_handles: list[str] = []
+    if args.live and not args.no_harvest_free:
+        harvested_urls, harvested_handles = harvest_free_factcheck_targets()
+    profiles = collect_discovery_profiles(leads, existing, harvested_handles, args.profile)
 
     raw_items: list[tuple[str, dict]] = []
     if args.input_json:
@@ -719,7 +903,15 @@ def main(argv: list[str] | None = None) -> int:
         if len(raw_items) < args.max_items and prov in ("auto", "rapidapi") and os.environ.get("RAPIDAPI_KEY"):
             raw_items.extend(poll_rapidapi(queries, max_items=args.max_items - len(raw_items)))
         if len(raw_items) < args.max_items and prov in ("auto", "apify") and os.environ.get("APIFY_TOKEN"):
-            raw_items.extend(poll_apify(queries, actor_id=args.apify_actor, max_items=args.max_items - len(raw_items)))
+            raw_items.extend(
+                poll_apify(
+                    queries,
+                    actor_id=args.apify_actor,
+                    max_items=args.max_items - len(raw_items),
+                    profiles=profiles,
+                    post_urls=harvested_urls,
+                )
+            )
 
     provider_label = args.provider if args.input_json == "" else "local_json"
     caution_records: list[dict] = []
@@ -731,7 +923,6 @@ def main(argv: list[str] | None = None) -> int:
         else:
             rejected_count += 1
 
-    existing = load_flagged_videos(FLAGGED_JSON_PATH)
     merged, added = merge_caution_records(existing, caution_records)
     if added or (raw_items and args.input_json):
         write_flagged_artifacts(merged, FLAGGED_JSON_PATH, SEED_JS_PATH)
@@ -753,6 +944,8 @@ def main(argv: list[str] | None = None) -> int:
                 "ok": True,
                 "live": args.live,
                 "queries": queries,
+                "profiles": profiles,
+                "harvested_factcheck_urls": len(harvested_urls),
                 "leads_loaded": len(leads),
                 "raw_scanned": len(raw_items),
                 "strict_caution_accepted": len(caution_records),
@@ -761,6 +954,7 @@ def main(argv: list[str] | None = None) -> int:
                 "total_archived": len(merged),
                 "worker_sync": worker_sync,
                 "alerts": alert_summary,
+                "diagnostics": summarize_raw_diagnostics(raw_items) if raw_items else None,
             },
             indent=2,
         )

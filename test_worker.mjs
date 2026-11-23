@@ -1146,13 +1146,13 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
   );
 
-  // Strict Caution extractor rejects clean and unrelated warning labels
+  // Strict Caution extractor rejects clean, caption-only mentions, and unrelated warning labels
   assert.equal(
     extractUnverifiedCautionRecord({
       id: "111",
       webVideoUrl: "https://www.tiktok.com/@clean/video/111",
       warnInfo: [],
-      text: "Normal boxing clip",
+      text: "Normal boxing clip Caution: Video flagged for unverified content in caption",
     }),
     null,
   );
@@ -1164,6 +1164,13 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
       labelTop: "Creator labeled as AI-generated",
     }),
     null,
+  );
+  assert.ok(
+    extractUnverifiedCautionRecord({
+      id: "333",
+      webVideoUrl: "https://www.tiktok.com/@nested/video/333",
+      anchors: [{ extraInfo: { warning: "Caution: Video flagged for unverified content." } }],
+    }),
   );
   const cautionHit = extractUnverifiedCautionRecord({
     id: "7709208502949940500",

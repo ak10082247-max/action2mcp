@@ -20,7 +20,7 @@ class CautionPollerTests(unittest.TestCase):
             "id": "101",
             "webVideoUrl": "https://www.tiktok.com/@clean/video/101",
             "warnInfo": [],
-            "text": "Normal sports highlight",
+            "text": "Reaction video talking about Caution: Video flagged for unverified content",
         }))
         self.assertIsNone(poller.is_unverified_caution_match({
             "id": "102",
@@ -33,6 +33,14 @@ class CautionPollerTests(unittest.TestCase):
             "webVideoUrl": "https://www.tiktok.com/@stunt/video/103",
             "warningText": "Participating in this activity could result in you or others getting hurt.",
         }))
+        nested = poller.is_unverified_caution_match({
+            "id": "104",
+            "anchors": [{"extraInfo": {"warning": "Caution: Video flagged for unverified content."}}],
+        })
+        self.assertIsNotNone(nested)
+        profiles = poller.collect_discovery_profiles([], [], ["uuunews02", "maskedtruthmt"], [])
+        self.assertEqual(profiles[0], "maskedtruthmt")
+        self.assertIn("uuunews02", profiles)
 
     def test_extracts_caution_unverified_across_raw_schemas(self):
         apify_raw = {

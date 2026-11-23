@@ -31,31 +31,59 @@ export function validateTikTokVideoUrl(rawUrl) {
   return { cleanUrl, host, pathname: parsed.pathname };
 }
 
+const TOP_LEVEL_IGNORED_KEYS = new Set([
+  "text", "desc", "title", "video_description", "voice_to_text", "voiceToText",
+  "transcript", "comments", "hashtags", "hashtag_names", "suggestedWords",
+  "diversificationLabels", "author", "authorMeta", "channel", "music",
+  "musicMeta", "challenges", "textExtra", "effectStickers",
+]);
+const NESTED_IGNORED_KEYS = new Set([
+  "comments", "hashtags", "hashtag_names", "suggestedWords", "diversificationLabels",
+  "author", "authorMeta", "channel", "music", "musicMeta", "challenges", "effectStickers",
+]);
+const WARNING_KEY_RE = /(?:warn|caution|risk|flag|moderation|notice|banner|badge|label|mask|anchor|penalty|verify)/i;
+
 function collectCandidateWarningStrings(rawItem) {
   const out = [];
   const root = rawItem?.aweme_detail || rawItem?.itemStruct || rawItem?.itemInfo?.itemStruct || rawItem || {};
-  const pushVal = (field, val) => {
-    if (!val) return;
+  const seen = new Set();
+  const pushText = (field, text) => {
+    const clean = String(text || "").trim();
+    if (!clean) return;
+    const key = `${field}:${clean}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push({ field, text: clean });
+    }
+  };
+  const scanNode = (field, val, depth = 0) => {
+    if (!val || depth > 5) return;
     if (typeof val === "string") {
-      if (val.trim()) out.push({ field, text: val.trim() });
+      pushText(field, val);
     } else if (Array.isArray(val)) {
-      for (const el of val) pushVal(field, el);
+      for (const el of val) scanNode(field, el, depth + 1);
     } else if (typeof val === "object") {
-      for (const k of ["text", "content", "label", "title", "desc", "warning", "msg"]) {
-        if (typeof val[k] === "string" && val[k].trim()) out.push({ field, text: val[k].trim() });
+      for (const [k, v] of Object.entries(val)) {
+        if (NESTED_IGNORED_KEYS.has(k)) continue;
+        if (typeof v === "string") {
+          if (["text", "content", "label", "title", "desc", "warning", "msg", "reason"].includes(k) || WARNING_KEY_RE.test(k)) {
+            pushText(field, v);
+          }
+        } else if (v && typeof v === "object") {
+          scanNode(field, v, depth + 1);
+        }
       }
     }
   };
-  pushVal("warnInfo", root.warnInfo);
-  pushVal("warningInfo", root.warningInfo);
-  pushVal("riskInfos", root.riskInfos);
-  pushVal("risk_infos", root.risk_infos);
-  pushVal("labelTop", root.labelTop);
-  pushVal("contentDesc", root.contentDesc);
-  pushVal("video_label", root.video_label);
-  pushVal("videoLabel", root.videoLabel);
-  pushVal("cautionLabel", root.cautionLabel);
-  pushVal("warningText", root.warningText);
+  for (const field of ["warnInfo", "warningInfo", "riskInfos", "risk_infos", "labelTop", "contentDesc", "video_label", "videoLabel", "cautionLabel", "warningText", "moderationInfo", "flagInfo", "maskInfo", "warning", "anchors", "badges"]) {
+    if (root[field] !== undefined) scanNode(field, root[field]);
+    if (rawItem?.[field] !== undefined) scanNode(field, rawItem[field]);
+  }
+  for (const [k, v] of Object.entries(root)) {
+    if (!TOP_LEVEL_IGNORED_KEYS.has(k) && WARNING_KEY_RE.test(k)) {
+      scanNode(k, v);
+    }
+  }
   return out;
 }
 

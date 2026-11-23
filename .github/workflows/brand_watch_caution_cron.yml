@@ -23,7 +23,11 @@ on:
       max_items:
         description: 'Hard cap on raw items scanned per run'
         required: false
-        default: '10'
+        default: '45'
+      extra_profile:
+        description: 'Optional extra TikTok @username profile to poll'
+        required: false
+        default: ''
 
 jobs:
   poll_caution_videos:
@@ -56,10 +60,15 @@ jobs:
           INPUT_RUN_LIVE: ${{ inputs.run_live || 'true' }}
           INPUT_PROVIDER: ${{ inputs.provider || 'auto' }}
           INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'clockworks~free-tiktok-scraper' }}
-          INPUT_MAX_ITEMS: ${{ inputs.max_items || '10' }}
+          INPUT_MAX_ITEMS: ${{ inputs.max_items || '45' }}
+          INPUT_EXTRA_PROFILE: ${{ inputs.extra_profile || '' }}
         run: |
           if [ "$INPUT_RUN_LIVE" = "true" ] && { [ -n "$ENSEMBLEDATA_TOKEN" ] || [ -n "$RAPIDAPI_KEY" ] || [ -n "$APIFY_TOKEN" ]; }; then
-            python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS"
+            EXTRA_ARG=""
+            if [ -n "$INPUT_EXTRA_PROFILE" ]; then
+              EXTRA_ARG="--profile $INPUT_EXTRA_PROFILE"
+            fi
+            python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS" $EXTRA_ARG
           else
             echo "Dry run (no live scraper token enabled or run_live=false)."
             python scripts/poll_tiktok_caution.py
