@@ -68,9 +68,29 @@ function parseMiscInfoCaution(rawMisc) {
   return formatted || "Caution: Video flagged for unverified content.";
 }
 
+function unwrapAwemeRoot(rawItem) {
+  if (!rawItem || typeof rawItem !== "object") return {};
+  for (const key of ["aweme_detail", "aweme_info", "itemStruct"]) {
+    const val = rawItem[key];
+    if (val && typeof val === "object" && !Array.isArray(val)) return val;
+    if (typeof val === "string" && val.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(val);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch {
+        // ignore malformed wrapper
+      }
+    }
+  }
+  if (rawItem.itemInfo?.itemStruct && typeof rawItem.itemInfo.itemStruct === "object") {
+    return rawItem.itemInfo.itemStruct;
+  }
+  return rawItem;
+}
+
 function collectCandidateWarningStrings(rawItem) {
   const out = [];
-  const root = rawItem?.aweme_detail || rawItem?.itemStruct || rawItem?.itemInfo?.itemStruct || rawItem || {};
+  const root = unwrapAwemeRoot(rawItem);
   const seen = new Set();
   const pushText = (field, text) => {
     const clean = String(text || "").trim();
@@ -150,7 +170,7 @@ function extractContentDescFallback(root) {
  */
 export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scraper_api") {
   if (!rawItem || typeof rawItem !== "object") return null;
-  const root = rawItem.aweme_detail || rawItem.itemStruct || rawItem.itemInfo?.itemStruct || rawItem;
+  const root = unwrapAwemeRoot(rawItem);
   const candidates = collectCandidateWarningStrings(rawItem);
   const hit = candidates.find((c) => UNVERIFIED_CAUTION_RE.test(c.text));
   if (!hit) return null;

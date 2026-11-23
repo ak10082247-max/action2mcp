@@ -104,6 +104,13 @@ DEFAULT_DISCOVERY_QUERIES = [
 ]
 
 DEFAULT_SUSPECT_PROFILES = [
+    "maskedtruthnews",
+    "unmasked_truth101",
+    "th3.mask3d.truth",
+    "vfortruths",
+    "masterysoulreality",
+    "we.are.changee",
+    ".masked.truth",
     "maskedtruthmt",
 ]
 
@@ -152,10 +159,17 @@ WARNING_KEY_RE = re.compile(
 def _extract_root(raw_item: dict) -> dict:
     if not isinstance(raw_item, dict):
         return {}
-    for key in ("aweme_detail", "itemStruct"):
+    for key in ("aweme_detail", "aweme_info", "itemStruct"):
         val = raw_item.get(key)
         if isinstance(val, dict):
             return val
+        if isinstance(val, str) and val.strip().startswith("{"):
+            try:
+                parsed = json.loads(val)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                pass
     item_info = raw_item.get("itemInfo")
     if isinstance(item_info, dict) and isinstance(item_info.get("itemStruct"), dict):
         return item_info["itemStruct"]
@@ -1022,8 +1036,8 @@ def poll_apify(
             kw_only = [q for q in queries if not q.startswith("#")]
             tag_list = [q.lstrip("#") for q in queries if q.startswith("#")]
             if clean_profiles:
-                p_lim = min(70, max(35, remaining // 3))
-                for p in clean_profiles[:2]:
+                p_lim = min(60, max(30, remaining // 4))
+                for p in clean_profiles[:4]:
                     xt_jobs.append((
                         {
                             "type": "USER",
@@ -1039,8 +1053,8 @@ def poll_apify(
                         f"#user_{p}",
                     ))
             if tag_list and queries:
-                t_lim = min(60, max(25, remaining // 4))
-                for t in tag_list[:2]:
+                t_lim = min(50, max(25, remaining // 5))
+                for t in tag_list[:3]:
                     xt_jobs.append((
                         {
                             "type": "HASHTAG",
@@ -1056,19 +1070,19 @@ def poll_apify(
                         f"#tag_{t}",
                     ))
             if kw_only:
-                s_lim = max(40, remaining // 2)
-                for idx, chunk in enumerate([kw_only[:10], kw_only[10:20]]):
+                s_lim = max(40, remaining // 3)
+                for idx, chunk in enumerate([kw_only[10:22], kw_only[22:34]]):
                     if not chunk:
                         continue
                     xt_jobs.append((
                         {
                             "type": "SEARCH",
-                            "region": "GB" if idx == 0 else "US",
+                            "region": "US" if idx == 0 else "GB",
                             "url": "",
                             "keywords": chunk,
                             "maxItems": s_lim,
                             "isUnlimited": False,
-                            "sortType": 0,
+                            "sortType": 1,
                             "publishTime": "ALL_TIME",
                         },
                         s_lim,
@@ -1233,6 +1247,29 @@ def poll_apify(
             dataset_limit = max(remaining, per_target * target_groups)
 
         all_results.extend(_run_apify_job(single_actor, actor_input, dataset_limit))
+
+    # Also harvest recent SUCCEEDED Apify datasets from this account ($0 credit cost) so no aweme_info item is missed
+    try:
+        runs_meta = http_get_json(
+            f"https://api.apify.com/v2/actor-runs?token={urllib.parse.quote(token)}&limit=12&desc=true",
+            timeout=12,
+        )
+        run_items = ((runs_meta.get("data") or {}).get("items") or []) if isinstance(runs_meta, dict) else []
+        seen_ds: set[str] = set()
+        for r_info in run_items:
+            if not isinstance(r_info, dict) or r_info.get("status") != "SUCCEEDED":
+                continue
+            ds_id = str(r_info.get("defaultDatasetId") or "").strip()
+            if not ds_id or ds_id in seen_ds:
+                continue
+            seen_ds.add(ds_id)
+            ds_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(ds_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit=250"
+            cached_items = _fetch_large_json(ds_url, timeout=25)
+            if isinstance(cached_items, list):
+                all_results.extend((f"apify:cached_dataset:{ds_id[:8]}", it) for it in cached_items if isinstance(it, dict))
+    except Exception:
+        pass
+
     return all_results
 
 
