@@ -925,21 +925,23 @@ def poll_apify(
     queries: list[str],
     actor_id: str = "clockworks~free-tiktok-scraper",
     max_items: int = 40,
-    min_balance_usd: float = 0.25,
+    min_balance_usd: float = 0.08,
     profiles: list[str] | None = None,
     post_urls: list[str] | None = None,
 ) -> list[tuple[str, dict]]:
     token = (os.environ.get("APIFY_TOKEN") or "").strip()
     if not token:
         return []
+    apify_remaining_usd = 5.0
     try:
         usage = http_get_json(f"https://api.apify.com/v2/users/me/usage/monthly?token={urllib.parse.quote(token)}", timeout=10)
         data = usage.get("data") if isinstance(usage, dict) else {}
         used = float(data.get("totalUsageCreditsUsdAfterVolumeDiscount") or data.get("totalUsageCreditsUsdBeforeVolumeDiscount") or 0.0)
         limits = http_get_json(f"https://api.apify.com/v2/users/me/limits?token={urllib.parse.quote(token)}", timeout=10)
         max_monthly = float((limits.get("data") or {}).get("monthlyUsageUsd") or 5.0)
-        if max_monthly - used <= min_balance_usd:
-            raise RuntimeError(f"Apify safety stop triggered: remaining ${max_monthly - used:.3f} <= ${min_balance_usd:.2f}")
+        apify_remaining_usd = max(0.0, max_monthly - used)
+        if apify_remaining_usd <= min_balance_usd:
+            raise RuntimeError(f"Apify safety stop triggered: remaining ${apify_remaining_usd:.3f} <= ${min_balance_usd:.2f}")
     except RuntimeError:
         raise
     except Exception:
@@ -959,8 +961,17 @@ def poll_apify(
     actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["novi~tiktok-scraper-ultimate"]
     all_results: list[tuple[str, dict]] = []
 
-    def _run_apify_job(single_actor_id: str, actor_input: dict, dataset_limit: int, tag_prefix: str = "") -> list[tuple[str, dict]]:
-        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=180"
+    def _run_apify_job(
+        single_actor_id: str,
+        actor_input: dict,
+        dataset_limit: int,
+        tag_prefix: str = "",
+        charge_cap_usd: float | None = None,
+    ) -> list[tuple[str, dict]]:
+        extra_q = "&memory=512" if "novi~" in single_actor_id else ""
+        if charge_cap_usd is not None and charge_cap_usd > 0:
+            extra_q += f"&maxTotalChargeUsd={charge_cap_usd:.2f}"
+        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=180{extra_q}"
         status, _, _, raw = http_fetch(
             run_url,
             method="POST",
@@ -989,62 +1000,69 @@ def poll_apify(
         if "novi~" in single_actor:
             novi_jobs: list[tuple[dict, int, str]] = []
             # Dedicated startUrls jobs WITHOUT keywords (novi ignores startUrls whenever keywords are supplied)
-            profile_tag_urls: list[str] = []
-            seen_u: set[str] = set()
-            for u in (
-                [f"https://www.tiktok.com/@{p}" for p in clean_profiles]
-                + [f"https://www.tiktok.com/tag/{q.lstrip('#')}" for q in queries if q.startswith("#")][:5]
-            ):
-                if u and u not in seen_u:
-                    seen_u.add(u)
-                    profile_tag_urls.append(u)
+            prof_urls = [f"https://www.tiktok.com/@{p}" for p in clean_profiles]
+            tag_urls = [f"https://www.tiktok.com/tag/{q.lstrip('#')}" for q in queries if q.startswith("#")][:6]
 
             kw_only = [q for q in queries if not q.startswith("#")]
             if not kw_only:
-                all_urls = (clean_post_urls + profile_tag_urls)[:45]
+                all_urls = (prof_urls + clean_post_urls + tag_urls)[:45]
                 if all_urls:
                     novi_jobs.append(({"startUrls": all_urls, "maxItems": remaining}, remaining, "#urls"))
             else:
-                direct_budget = min(len(clean_post_urls) + 5, max(20, remaining // 6)) if clean_post_urls else 0
+                direct_budget = min(max(len(clean_post_urls), 1), max(40, remaining // 4)) if clean_post_urls else 0
                 if clean_post_urls and direct_budget > 0:
                     novi_jobs.append((
                         {"startUrls": clean_post_urls[:45], "maxItems": direct_budget},
                         direct_budget,
                         "#direct",
                     ))
-                prof_budget = min(220, max(80, (remaining - direct_budget) // 3)) if profile_tag_urls else 0
-                if profile_tag_urls and prof_budget > 0:
+                prof_budget = min(150, max(70, (remaining - direct_budget) // 3)) if prof_urls else 0
+                if prof_urls and prof_budget > 0:
                     novi_jobs.append((
-                        {"startUrls": profile_tag_urls[:10], "maxItems": prof_budget},
+                        {"startUrls": prof_urls[:8], "maxItems": prof_budget},
                         prof_budget,
                         "#profiles",
                     ))
-                kw_budget = max(40, remaining - direct_budget - prof_budget)
-                kw_pool = kw_only or ["anthony joshua not following the script"]
-                if kw_budget <= 120 and len(kw_pool) <= 10:
-                    kw_chunks = [kw_pool]
-                else:
-                    n_kw = min(3, max(1, (kw_budget + 119) // 120))
-                    c_sz = max(1, (len(kw_pool) + n_kw - 1) // n_kw)
-                    kw_chunks = [kw_pool[i:i + c_sz] for i in range(0, len(kw_pool), c_sz)][:3]
-                per_kw = max(30, kw_budget // max(1, len(kw_chunks)))
-                for idx, chunk in enumerate(kw_chunks):
-                    loc = "GB" if idx % 2 == 1 else "US"
+                tag_budget = min(120, max(50, (remaining - direct_budget - prof_budget) // 4)) if (tag_urls and remaining > 220) else 0
+                if tag_urls and tag_budget > 0:
                     novi_jobs.append((
-                        {"keywords": chunk, "maxItems": per_kw, "location": loc, "sortType": "MOST_LIKED"},
-                        per_kw,
-                        f"#b{idx + 1}",
+                        {"startUrls": tag_urls[:6], "maxItems": tag_budget},
+                        tag_budget,
+                        "#tags",
                     ))
+                kw_budget = max(0, remaining - direct_budget - prof_budget - tag_budget)
+                if kw_budget >= 25:
+                    kw_pool = kw_only or ["anthony joshua not following the script"]
+                    if kw_budget <= 120 and len(kw_pool) <= 10:
+                        kw_chunks = [kw_pool]
+                    else:
+                        n_kw = min(3, max(1, (kw_budget + 119) // 120))
+                        c_sz = max(1, (len(kw_pool) + n_kw - 1) // n_kw)
+                        kw_chunks = [kw_pool[i:i + c_sz] for i in range(0, len(kw_pool), c_sz)][:3]
+                    per_kw = max(30, kw_budget // max(1, len(kw_chunks)))
+                    for idx, chunk in enumerate(kw_chunks):
+                        loc = "GB" if idx % 2 == 1 else "US"
+                        novi_jobs.append((
+                            {"keywords": chunk, "maxItems": per_kw, "location": loc, "sortType": "MOST_LIKED"},
+                            per_kw,
+                            f"#b{idx + 1}",
+                        ))
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=min(2, len(novi_jobs))) as pool:
-                futs = [pool.submit(_run_apify_job, single_actor, inp, dlim, tpf) for inp, dlim, tpf in novi_jobs]
-                for fut in concurrent.futures.as_completed(futs):
-                    try:
-                        all_results.extend(fut.result())
-                    except Exception as exc:
-                        print(f"[novi batch error] {exc}", file=sys.stderr)
-                        if len(novi_jobs) == 1:
-                            raise
+            spent_est = 0.0
+            for inp, dlim, tpf in novi_jobs:
+                avail = apify_remaining_usd - spent_est - 0.02
+                if avail < 0.04:
+                    break
+                est_charge = round(dlim * 0.00045 + 0.03, 2)
+                cap_usd = max(0.04, min(est_charge, 0.16, avail))
+                try:
+                    batch_res = _run_apify_job(single_actor, inp, dlim, tpf, charge_cap_usd=cap_usd)
+                    all_results.extend(batch_res)
+                    spent_est += max(0.01, len(batch_res) * 0.00035)
+                except Exception as exc:
+                    print(f"[novi batch error {tpf}] {exc}", file=sys.stderr)
+                    if len(novi_jobs) == 1:
+                        raise
             continue
         if "apidojo" in single_actor and "profile" in single_actor:
             if not clean_profiles:
