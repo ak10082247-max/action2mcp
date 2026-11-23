@@ -399,8 +399,9 @@ def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None
 
     for q in (extra_queries or []):
         add_q(q)
-    for q in DEFAULT_DISCOVERY_QUERIES:
-        add_q(q)
+    if not extra_queries:
+        for q in DEFAULT_DISCOVERY_QUERIES:
+            add_q(q)
     return queries[:cap]
 
 
@@ -787,7 +788,7 @@ def poll_apify(
             dataset_limit = remaining
         else:
             target_groups = max(1, len(clean_profiles) + len(hashtags) + len(search_terms))
-            per_target = max(3, min(DEFAULT_MAX_PER_TARGET, max(6, remaining // target_groups)))
+            per_target = max(5, min(70, remaining // target_groups))
             actor_input = {
                 "shouldDownloadCovers": False,
                 "shouldDownloadVideos": False,
@@ -798,7 +799,7 @@ def poll_apify(
             if hashtags:
                 actor_input["hashtags"] = hashtags
             if search_terms or (not clean_profiles and not hashtags and not clean_post_urls):
-                actor_input["searchQueries"] = search_terms or ["flagged for unverified content"]
+                actor_input["searchQueries"] = search_terms
             if clean_post_urls:
                 actor_input["postURLs"] = clean_post_urls
             dataset_limit = max(remaining, per_target * target_groups)
@@ -1023,6 +1024,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile", action="append", default=[], help="Extra TikTok @username profile to poll.")
     parser.add_argument("--no-harvest-free", action="store_true", help="Skip free fact-checker URL harvesting.")
     parser.add_argument("--no-ssr-enrich", action="store_true", help="Skip passive TikTok video page SSR enrichment.")
+    parser.add_argument("--profiles-only", action="store_true", help="Poll ONLY suspect/subscribed profiles without keyword/hashtag dilution.")
     parser.add_argument("--input-json", default="", help="Process local raw scraper JSON list without spending API credits.")
     parser.add_argument("--sync-worker", action="store_true", help="Push stored records to Worker /api/ingest-caution.")
     parser.add_argument("--send-alerts", action="store_true", help="Allow dispatching email/webhook alerts to matched leads.")
@@ -1033,10 +1035,10 @@ def main(argv: list[str] | None = None) -> int:
     ).rstrip("/")
     existing = load_flagged_videos(FLAGGED_JSON_PATH)
     leads = fetch_subscriber_leads(BRAND_WATCH_URL_RUNTIME)
-    queries = collect_discovery_queries(leads, args.query)
+    queries = [] if args.profiles_only else collect_discovery_queries(leads, args.query)
 
     harvested_urls: list[str] = []
-    if args.live and not args.no_harvest_free:
+    if args.live and not args.no_harvest_free and not args.profiles_only:
         harvested_urls, _ = harvest_free_factcheck_targets()
     profiles = collect_discovery_profiles(leads, existing, args.profile)
 

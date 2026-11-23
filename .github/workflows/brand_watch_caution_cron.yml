@@ -28,6 +28,10 @@ on:
         description: 'Optional extra TikTok @username profile to poll'
         required: false
         default: ''
+      profiles_only:
+        description: 'If true, scrape full suspect profiles only without query dilution'
+        required: false
+        default: 'false'
 
 jobs:
   poll_caution_videos:
@@ -62,11 +66,15 @@ jobs:
           INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'apidojo~tiktok-profile-scraper,apidojo~tiktok-scraper' }}
           INPUT_MAX_ITEMS: ${{ inputs.max_items || '120' }}
           INPUT_EXTRA_PROFILE: ${{ inputs.extra_profile || '' }}
+          INPUT_PROFILES_ONLY: ${{ inputs.profiles_only || 'false' }}
         run: |
           if [ "$INPUT_RUN_LIVE" = "true" ] && { [ -n "$ENSEMBLEDATA_TOKEN" ] || [ -n "$RAPIDAPI_KEY" ] || [ -n "$APIFY_TOKEN" ]; }; then
             EXTRA_ARG=""
             if [ -n "$INPUT_EXTRA_PROFILE" ]; then
               EXTRA_ARG="--profile $INPUT_EXTRA_PROFILE"
+            fi
+            if [ "$INPUT_PROFILES_ONLY" = "true" ]; then
+              EXTRA_ARG="$EXTRA_ARG --profiles-only"
             fi
             python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS" $EXTRA_ARG
           else
