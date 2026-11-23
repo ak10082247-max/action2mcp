@@ -125,7 +125,9 @@
     "jasmine@jasminesandler.com"
   ],
   "bounced_emails": [
-    "hello@5kassi.com"
+    "hello@5kassi.com",
+    "info@imaginewebsolution.com",
+    "kirbyinusre@aol.com"
   ],
   "replied_emails": [],
   "paid_sales": 0,
@@ -431,8 +433,10 @@
       "sent_date": "2026-11-23T01:52:04.803892+00:00"
     }
   ],
-  "updated_at": "2026-11-23T01:52:04.804004+00:00",
+  "updated_at": "2026-11-23T05:30:12.556468+00:00",
   "post_fix_bounced_emails": [
-    "hello@5kassi.com"
+    "hello@5kassi.com",
+    "info@imaginewebsolution.com",
+    "kirbyinusre@aol.com"
   ]
 }
