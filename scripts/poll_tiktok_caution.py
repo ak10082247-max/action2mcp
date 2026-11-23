@@ -55,14 +55,18 @@ UNVERIFIED_CAUTION_RE = re.compile(
 )
 
 DEFAULT_DISCOVERY_QUERIES = [
+    "they showed anthony joshua what happens",
+    "anthony joshua not following the script",
     "flagged for unverified content",
+    "caution video flagged for unverified",
     "not following the script",
+    "before this gets deleted",
+    "fake breaking news footage",
+    "staged video exposed",
     "#maskedtruth",
     "#notfollowingthescript",
     "#unverifiedcontent",
-    "anthony joshua not following the script",
-    "before this gets deleted",
-    "staged video exposed",
+    "#censoredtruth",
 ]
 
 DEFAULT_SUSPECT_PROFILES = [
@@ -596,11 +600,15 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
         )[:40]
         if author_name:
             author_counts[author_name] = author_counts.get(author_name, 0) + 1
-        cands = _collect_warning_strings(raw)
+        cands = [
+            (f, t) for f, t in _collect_warning_strings(raw)
+            if len(t) >= 6 and any(ch.isalpha() for ch in t)
+        ]
         if cands and len(warning_signals) < sample_limit:
             warning_signals.append({
                 "source": src,
                 "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
                 "warnings": [{"field": f, "text": t[:160]} for f, t in cands[:4]],
             })
         text_val = str(root.get("text") or root.get("desc") or root.get("title") or "")
@@ -714,7 +722,7 @@ def enrich_items_with_tiktok_ssr(
     if not to_fetch:
         return out
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
         future_map = {ex.submit(fetch_tiktok_ssr_item_struct, url): idx for idx, url in to_fetch}
         for fut in concurrent.futures.as_completed(future_map):
             idx = future_map[fut]
@@ -726,7 +734,7 @@ def enrich_items_with_tiktok_ssr(
                 continue
             target = out[idx][1]
             target["_ssr_itemStruct"] = True
-            for k in ("warnInfo", "warningInfo", "riskInfos", "labelTop", "contentDesc", "maskType", "penaltyContext", "desc", "id", "video", "author"):
+            for k in ("warnInfo", "warningInfo", "riskInfos", "labelTop", "contentDesc", "maskType", "penaltyContext", "desc", "id", "video", "author", "IsAigc", "AIGCDescription"):
                 if struct.get(k) not in (None, "") and not target.get(k):
                     target[k] = struct.get(k)
     return out
@@ -756,8 +764,8 @@ def poll_apify(
     except Exception:
         pass
 
-    hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:4]
-    search_terms = [q for q in queries if not q.startswith("#")][:4]
+    hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:5]
+    search_terms = [q for q in queries if not q.startswith("#")][:7]
     clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:5]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
     actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["clockworks~free-tiktok-scraper"]
@@ -1025,6 +1033,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-harvest-free", action="store_true", help="Skip free fact-checker URL harvesting.")
     parser.add_argument("--no-ssr-enrich", action="store_true", help="Skip passive TikTok video page SSR enrichment.")
     parser.add_argument("--profiles-only", action="store_true", help="Poll ONLY suspect/subscribed profiles without keyword/hashtag dilution.")
+    parser.add_argument("--search-only", action="store_true", help="Poll ONLY search/hashtag queries & fact-check URLs without profile crawls.")
     parser.add_argument("--input-json", default="", help="Process local raw scraper JSON list without spending API credits.")
     parser.add_argument("--sync-worker", action="store_true", help="Push stored records to Worker /api/ingest-caution.")
     parser.add_argument("--send-alerts", action="store_true", help="Allow dispatching email/webhook alerts to matched leads.")
@@ -1040,7 +1049,7 @@ def main(argv: list[str] | None = None) -> int:
     harvested_urls: list[str] = []
     if args.live and not args.no_harvest_free and not args.profiles_only:
         harvested_urls, _ = harvest_free_factcheck_targets()
-    profiles = collect_discovery_profiles(leads, existing, args.profile)
+    profiles = [] if args.search_only else collect_discovery_profiles(leads, existing, args.profile)
 
     raw_items: list[tuple[str, dict]] = []
     if args.input_json:
@@ -1068,7 +1077,7 @@ def main(argv: list[str] | None = None) -> int:
             raw_items = enrich_items_with_tiktok_ssr(
                 raw_items,
                 extra_urls=harvested_urls,
-                max_fetches=max(60, args.max_items),
+                max_fetches=max(140, args.max_items + 25),
             )
 
     provider_label = args.provider if args.input_json == "" else "local_json"

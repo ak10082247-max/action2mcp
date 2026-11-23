@@ -19,17 +19,21 @@ on:
       apify_actor:
         description: 'Apify actor ID(s) if provider uses Apify'
         required: false
-        default: 'apidojo~tiktok-profile-scraper,apidojo~tiktok-scraper'
+        default: 'clockworks~free-tiktok-scraper'
       max_items:
         description: 'Hard cap on raw items scanned per run'
         required: false
-        default: '120'
+        default: '30'
       extra_profile:
         description: 'Optional extra TikTok @username profile to poll'
         required: false
         default: ''
       profiles_only:
         description: 'If true, scrape full suspect profiles only without query dilution'
+        required: false
+        default: 'false'
+      search_only:
+        description: 'If true, scrape keyword/hashtag search queries only'
         required: false
         default: 'false'
 
@@ -63,10 +67,11 @@ jobs:
           BRAND_WATCH_URL: https://brand-watch.ak10082247.workers.dev
           INPUT_RUN_LIVE: ${{ inputs.run_live || 'true' }}
           INPUT_PROVIDER: ${{ inputs.provider || 'auto' }}
-          INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'apidojo~tiktok-profile-scraper,apidojo~tiktok-scraper' }}
-          INPUT_MAX_ITEMS: ${{ inputs.max_items || '120' }}
+          INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'clockworks~free-tiktok-scraper' }}
+          INPUT_MAX_ITEMS: ${{ inputs.max_items || '30' }}
           INPUT_EXTRA_PROFILE: ${{ inputs.extra_profile || '' }}
           INPUT_PROFILES_ONLY: ${{ inputs.profiles_only || 'false' }}
+          INPUT_SEARCH_ONLY: ${{ inputs.search_only || 'false' }}
         run: |
           if [ "$INPUT_RUN_LIVE" = "true" ] && { [ -n "$ENSEMBLEDATA_TOKEN" ] || [ -n "$RAPIDAPI_KEY" ] || [ -n "$APIFY_TOKEN" ]; }; then
             EXTRA_ARG=""
@@ -75,6 +80,9 @@ jobs:
             fi
             if [ "$INPUT_PROFILES_ONLY" = "true" ]; then
               EXTRA_ARG="$EXTRA_ARG --profiles-only"
+            fi
+            if [ "$INPUT_SEARCH_ONLY" = "true" ]; then
+              EXTRA_ARG="$EXTRA_ARG --search-only"
             fi
             python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS" $EXTRA_ARG
           else
