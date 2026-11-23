@@ -32,16 +32,41 @@ export function validateTikTokVideoUrl(rawUrl) {
 }
 
 const TOP_LEVEL_IGNORED_KEYS = new Set([
-  "text", "desc", "title", "video_description", "voice_to_text", "voiceToText",
+  "text", "desc", "description", "title", "video_description", "voice_to_text", "voiceToText",
   "transcript", "comments", "hashtags", "hashtag_names", "suggestedWords",
   "diversificationLabels", "author", "authorMeta", "channel", "music",
-  "musicMeta", "challenges", "textExtra", "effectStickers",
+  "musicMeta", "challenges", "textExtra", "effectStickers", "content_desc", "content_desc_extra",
 ]);
 const NESTED_IGNORED_KEYS = new Set([
   "comments", "hashtags", "hashtag_names", "suggestedWords", "diversificationLabels",
   "author", "authorMeta", "channel", "music", "musicMeta", "challenges", "effectStickers",
+  "content_desc", "content_desc_extra",
 ]);
 const WARNING_KEY_RE = /(?:warn|caution|risk|flag|moderation|notice|banner|badge|label|mask|anchor|penalty|verify)/i;
+
+function parseMiscInfoCaution(rawMisc) {
+  let obj = rawMisc;
+  if (typeof rawMisc === "string") {
+    const trimmed = rawMisc.trim();
+    if (!trimmed.startsWith("{")) return null;
+    try {
+      obj = JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const ktf = obj.ktf_info;
+  if (!ktf || typeof ktf !== "object") return null;
+  if (ktf.show_warning === false) return null;
+  const warnTemplate = String(ktf.warning_text || ktf.message_text_on_share || "").trim();
+  if (!UNVERIFIED_CAUTION_RE.test(warnTemplate)) return null;
+  const label = String(ktf.caution_label || "Caution:").trim();
+  const formatted = (warnTemplate.includes("%s") ? warnTemplate.replace("%s", label) : warnTemplate)
+    .replace(/\s+/g, " ")
+    .trim();
+  return formatted || "Caution: Video flagged for unverified content.";
+}
 
 function collectCandidateWarningStrings(rawItem) {
   const out = [];
@@ -58,7 +83,23 @@ function collectCandidateWarningStrings(rawItem) {
   };
   const scanNode = (field, val, depth = 0) => {
     if (!val || depth > 5) return;
+    if (field === "misc_info") {
+      const ktfText = parseMiscInfoCaution(val);
+      if (ktfText) {
+        pushText("misc_info.ktf_info", ktfText);
+        return;
+      }
+      if (typeof val === "string" && val.trim().startsWith("{")) return;
+      if (typeof val === "object" && !Array.isArray(val) && val.ktf_info !== undefined) return;
+    }
     if (typeof val === "string") {
+      if (field === "cautionText" && val.trim().startsWith("{")) {
+        const ktfText = parseMiscInfoCaution(val);
+        if (ktfText) {
+          pushText("misc_info.ktf_info", ktfText);
+          return;
+        }
+      }
       pushText(field, val);
     } else if (Array.isArray(val)) {
       for (const el of val) scanNode(field, el, depth + 1);
@@ -75,7 +116,7 @@ function collectCandidateWarningStrings(rawItem) {
       }
     }
   };
-  for (const field of ["warnInfo", "warningInfo", "riskInfos", "risk_infos", "labelTop", "label_top", "label_top_text", "contentDesc", "content_desc", "content_desc_extra", "video_label", "videoLabel", "video_labels", "cautionLabel", "warningText", "moderationInfo", "flagInfo", "maskInfo", "mask_infos", "warning", "anchors", "badges", "banners", "standard_component_info", "misc_info"]) {
+  for (const field of ["misc_info", "warnInfo", "warningInfo", "riskInfos", "risk_infos", "labelTop", "label_top", "label_top_text", "contentDesc", "video_label", "videoLabel", "video_labels", "cautionLabel", "warningText", "moderationInfo", "flagInfo", "maskInfo", "mask_infos", "warning", "anchors", "badges"]) {
     if (root[field] !== undefined) scanNode(field, root[field]);
     if (rawItem?.[field] !== undefined) scanNode(field, rawItem[field]);
   }
@@ -85,6 +126,22 @@ function collectCandidateWarningStrings(rawItem) {
     }
   }
   return out;
+}
+
+function extractContentDescFallback(root) {
+  const raw = root?.content_desc;
+  let arr = raw;
+  if (typeof raw === "string" && raw.trim().startsWith("[")) {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      arr = null;
+    }
+  }
+  if (Array.isArray(arr)) {
+    return arr.map((x) => String(x || "").trim()).filter(Boolean).join(" ").trim();
+  }
+  return "";
 }
 
 /**
@@ -99,20 +156,33 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
   if (!hit) return null;
 
   const videoId = String(root.id || root.aweme_id || root.video_id || root.videoId || "").trim();
+  const rawCandidateUrl = String(root.webVideoUrl || root.url || root.share_url || "").trim();
+  const urlHandleMatch = rawCandidateUrl.match(/tiktok\.com\/@([^/?#]+)/i);
   const authorMeta = root.authorMeta || root.author || root.channel || {};
-  const rawUser = String(
-    authorMeta.unique_id || authorMeta.name || authorMeta.username || authorMeta.uniqueId || root.author_username || root.handle || "",
+  let rawUser = String(
+    authorMeta.unique_id ||
+      authorMeta.name ||
+      authorMeta.username ||
+      authorMeta.uniqueId ||
+      root.author_username ||
+      (root.authorUsername && root.authorUsername !== "unknown" ? root.authorUsername : "") ||
+      root.handle ||
+      (urlHandleMatch ? urlHandleMatch[1] : "") ||
+      "",
   )
     .trim()
     .replace(/^@+/, "");
+  if (rawUser.toLowerCase() === "unknown" && urlHandleMatch?.[1]) {
+    rawUser = urlHandleMatch[1].trim().replace(/^@+/, "");
+  }
   const authorHandle = rawUser ? `@${rawUser}` : "";
-  const rawUrl = String(
-    root.webVideoUrl ||
-      root.url ||
-      root.share_url ||
-      (videoId && rawUser ? `https://www.tiktok.com/@${rawUser}/video/${videoId}` : "") ||
-      (videoId ? `https://www.tiktok.com/video/${videoId}` : ""),
-  ).trim();
+  const canonicalFallback = videoId && rawUser ? `https://www.tiktok.com/@${rawUser}/video/${videoId}` : videoId ? `https://www.tiktok.com/video/${videoId}` : "";
+  let rawUrl = rawCandidateUrl || canonicalFallback;
+  if (/^https?:\/\/[^/]*tiktok\.com\/@[^/?#]+\/video\/\d+/i.test(rawUrl)) {
+    rawUrl = rawUrl.split("?")[0];
+  } else if (!rawUrl && canonicalFallback) {
+    rawUrl = canonicalFallback;
+  }
   if (!videoId && !rawUrl) return null;
 
   const hashtags = (Array.isArray(root.hashtags) ? root.hashtags : Array.isArray(root.hashtag_names) ? root.hashtag_names : Array.isArray(root.cha_list) ? root.cha_list : [])
@@ -121,32 +191,55 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
     .filter(Boolean);
 
   const videoMeta = root.videoMeta || root.video || {};
+  const coverStr =
+    typeof videoMeta.cover === "string"
+      ? videoMeta.cover
+      : Array.isArray(videoMeta.cover?.url_list) && videoMeta.cover.url_list[0]
+        ? videoMeta.cover.url_list[0]
+        : Array.isArray(videoMeta.origin_cover?.url_list) && videoMeta.origin_cover.url_list[0]
+          ? videoMeta.origin_cover.url_list[0]
+          : "";
   const thumb = String(
     root.thumbnailUrl ||
       root.thumbnail_url ||
       videoMeta.coverUrl ||
-      videoMeta.cover ||
-      (Array.isArray(videoMeta.cover?.url_list) ? videoMeta.cover.url_list[0] : "") ||
+      coverStr ||
       authorMeta.avatar ||
       "",
   ).trim() || null;
 
   const extractedId = videoId || (rawUrl.match(/\/video\/(\d+)/) || [])[1] || rawUrl.slice(-24);
+  const resolvedAuthorName = String(
+    (root.authorName && root.authorName !== "Unknown creator" ? root.authorName : "") ||
+      authorMeta.nickName ||
+      authorMeta.nickname ||
+      authorMeta.name ||
+      rawUser ||
+      "Unknown creator",
+  ).trim();
+  const desc = String(
+    root.text || root.desc || root.description || root.video_description || root.title || extractContentDescFallback(root) || "",
+  )
+    .trim()
+    .slice(0, 600);
+  const resolvedMatchedField =
+    hit.field === "cautionText" && root.matchedField ? String(root.matchedField).trim() : hit.field;
+
   return {
     id: String(extractedId),
     videoId: String(extractedId),
-    sourceType: sourceProvider,
+    sourceType: String(root.sourceType || sourceProvider),
     url: rawUrl,
     playerUrl: /^\d+$/.test(String(extractedId)) ? `https://www.tiktok.com/player/v1/${extractedId}` : null,
     authorUsername: authorHandle || String(authorMeta.nickName || authorMeta.nickname || "unknown"),
-    authorName: String(authorMeta.nickName || authorMeta.nickname || authorMeta.name || rawUser || "Unknown creator").trim(),
+    authorName: resolvedAuthorName,
     authorUrl: rawUser ? `https://www.tiktok.com/@${rawUser}` : "",
-    description: String(root.text || root.desc || root.video_description || root.title || "").trim().slice(0, 600),
+    description: desc,
     voiceToText: String(root.voice_to_text || root.voiceToText || root.transcript || "").trim().slice(0, 1200),
     hashtags,
     thumbnailUrl: thumb,
     cautionText: hit.text,
-    matchedField: hit.field,
+    matchedField: resolvedMatchedField,
     brandTag: String(root.brandTag || root.query || "").trim().slice(0, 120),
     capturedAt: String(root.capturedAt || root.createTimeISO || new Date().toISOString()),
   };

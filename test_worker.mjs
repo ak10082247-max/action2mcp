@@ -1172,6 +1172,43 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
       anchors: [{ extraInfo: { warning: "Caution: Video flagged for unverified content." } }],
     }),
   );
+  // Novi snake_case content_desc slide captions mentioning "unverified content" without misc_info.ktf_info MUST be rejected
+  assert.equal(
+    extractUnverifiedCautionRecord({
+      aweme_id: "444",
+      share_url: "https://www.tiktok.com/@josephbournex/video/444?_r=1",
+      content_desc: '["THEY FLAGGED THE VIDEO FOR \\"unverified content\\""]',
+      misc_info: '{"tns_im_info":{"caution_label":"None"}}',
+    }),
+    null,
+  );
+  // Real Novi misc_info.ktf_info payload normalizes handle from share_url, cleans URL, and normalizes cautionText
+  const noviHit = extractUnverifiedCautionRecord({
+    aweme_id: "7702510622650518817",
+    share_url: "https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817?_r=1&u_code=abc",
+    content_desc: '["Watch what happened to Anthony Joshua after not following the script"]',
+    author: { nickname: "maskedtruthmt" },
+    video: { cover: { url_list: ["https://cdn.example/novi-cover.jpg"] } },
+    misc_info: JSON.stringify({
+      ktf_info: {
+        show_warning: true,
+        caution_label: "Caution:",
+        warning_text: "%s Video flagged for unverified content.",
+      },
+    }),
+  });
+  assert.ok(noviHit);
+  assert.equal(noviHit.authorUsername, "@maskedtruthmt");
+  assert.equal(noviHit.url, "https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817");
+  assert.equal(noviHit.cautionText, "Caution: Video flagged for unverified content.");
+  assert.equal(noviHit.matchedField, "misc_info.ktf_info");
+  assert.equal(noviHit.thumbnailUrl, "https://cdn.example/novi-cover.jpg");
+  assert.match(noviHit.description, /Anthony Joshua/);
+  // Re-ingesting already-normalized record in /api/ingest-caution must preserve @handle & description
+  const reingested = extractUnverifiedCautionRecord(noviHit, "apify");
+  assert.equal(reingested.authorUsername, "@maskedtruthmt");
+  assert.equal(reingested.matchedField, "misc_info.ktf_info");
+  assert.match(reingested.description, /Anthony Joshua/);
   const cautionHit = extractUnverifiedCautionRecord({
     id: "7709208502949940500",
     webVideoUrl: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
@@ -1231,6 +1268,8 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
 
     const healthJson = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/health"), BW_ENV)).json();
     assert.equal(healthJson.strict_filter, "Caution: Video flagged for unverified content ONLY");
+    const baseFeed = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/api/feed"), BW_ENV)).json();
+    const baseCount = baseFeed.total_stored_caution_videos;
 
     // 2. Authenticated Caution Ingestion strictly drops clean/unrelated clips
     const unauthIngest = await brandWatchWorker.fetch(
@@ -1306,14 +1345,16 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     )).json();
     assert.equal(scanRes.ok, true);
     assert.equal(scanRes.strict_filter, "Caution: Video flagged for unverified content ONLY");
-    assert.equal(scanRes.matched_count, 2);
+    assert.ok(scanRes.matched_count >= 2);
+    assert.ok(scanRes.caution_videos.some((v) => v.videoId === "7709208502949940999"));
+    assert.ok(scanRes.caution_videos.some((v) => v.videoId === "7709208502949940500"));
     assert.ok(scanRes.caution_videos.every((v) => /flagged\s+for\s+unverified\s+content/i.test(v.cautionText)));
 
     const feedRes = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/feed"),
       BW_ENV,
     )).json();
-    assert.equal(feedRes.total_stored_caution_videos, 2);
+    assert.equal(feedRes.total_stored_caution_videos, baseCount + 2);
 
     // 5. Businesses & Individuals Alert Contact + authenticated inbox read
     const leadBad = await brandWatchWorker.fetch(

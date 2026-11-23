@@ -68,10 +68,39 @@ DEFAULT_DISCOVERY_QUERIES = [
     "miracle cancer cure secret",
     "ufo landing footage real",
     "fake hurricane tornado footage",
+    "cloned celebrity video proof",
+    "leaked insider audio exposed",
+    "rigged election ballot video",
+    "martial law declared tonight",
+    "emergency broadcast tonight alert",
+    "ww3 started today breaking",
+    "yellowstone eruption live footage",
+    "hidden under ice antarctica",
+    "nasa leaked alien footage",
+    "giant skeleton discovered proof",
+    "doctors wont tell you secret cure",
+    "poison in tap water warning",
+    "they tried to delete this video",
+    "deepfake voice scandal leaked",
+    "airplane UFO spotted from window",
+    "chemtrails toxic spraying proof",
+    "simulated moon landing proof",
+    "celebrity faked death proof",
+    "tiktok flagged this unverified",
+    "shadow government leaked footage",
+    "vaccine microchip truth exposed",
+    "ancient giant bones unearthed",
+    "earthquake warning tonight live",
+    "tsunami alert breaking live",
     "#maskedtruth",
+    "#maskedtruthmt",
     "#notfollowingthescript",
     "#unverifiedcontent",
     "#censoredtruth",
+    "#beforeitsdeleted",
+    "#exposedtruth",
+    "#deepfakeexposed",
+    "#fakebreakingnews",
 ]
 
 DEFAULT_SUSPECT_PROFILES = [
@@ -79,6 +108,7 @@ DEFAULT_SUSPECT_PROFILES = [
 ]
 
 WARNING_FIELDS = (
+    "misc_info",
     "warnInfo",
     "warningInfo",
     "riskInfos",
@@ -87,8 +117,6 @@ WARNING_FIELDS = (
     "label_top",
     "label_top_text",
     "contentDesc",
-    "content_desc",
-    "content_desc_extra",
     "video_label",
     "videoLabel",
     "video_labels",
@@ -101,21 +129,19 @@ WARNING_FIELDS = (
     "warning",
     "anchors",
     "badges",
-    "banners",
-    "standard_component_info",
-    "misc_info",
 )
 
 WARNING_SUBKEYS = ("text", "content", "label", "title", "desc", "warning", "msg", "reason")
 TOP_LEVEL_IGNORED_KEYS = {
-    "text", "desc", "title", "video_description", "voice_to_text", "voiceToText",
+    "text", "desc", "description", "title", "video_description", "voice_to_text", "voiceToText",
     "transcript", "comments", "hashtags", "hashtag_names", "suggestedWords",
     "diversificationLabels", "author", "authorMeta", "channel", "music",
-    "musicMeta", "challenges", "textExtra", "effectStickers",
+    "musicMeta", "challenges", "textExtra", "effectStickers", "content_desc", "content_desc_extra",
 }
 NESTED_IGNORED_KEYS = {
     "comments", "hashtags", "hashtag_names", "suggestedWords", "diversificationLabels",
     "author", "authorMeta", "channel", "music", "musicMeta", "challenges", "effectStickers",
+    "content_desc", "content_desc_extra",
 }
 WARNING_KEY_RE = re.compile(
     r"(?:warn|caution|risk|flag|moderation|notice|banner|badge|label|mask|anchor|penalty|verify)",
@@ -136,6 +162,44 @@ def _extract_root(raw_item: dict) -> dict:
     return raw_item
 
 
+def _parse_misc_info_caution(raw_misc) -> str | None:
+    obj = raw_misc
+    if isinstance(raw_misc, str):
+        trimmed = raw_misc.strip()
+        if not trimmed.startswith("{"):
+            return None
+        try:
+            obj = json.loads(trimmed)
+        except Exception:
+            return None
+    if not isinstance(obj, dict):
+        return None
+    ktf = obj.get("ktf_info")
+    if not isinstance(ktf, dict):
+        return None
+    if ktf.get("show_warning") is False:
+        return None
+    warn_tmpl = str(ktf.get("warning_text") or ktf.get("message_text_on_share") or "").strip()
+    if not UNVERIFIED_CAUTION_RE.search(warn_tmpl):
+        return None
+    label = str(ktf.get("caution_label") or "Caution:").strip()
+    formatted = (warn_tmpl.replace("%s", label) if "%s" in warn_tmpl else warn_tmpl)
+    formatted = re.sub(r"\s+", " ", formatted).strip()
+    return formatted or "Caution: Video flagged for unverified content."
+
+
+def _extract_content_desc_fallback(root: dict) -> str:
+    raw = root.get("content_desc")
+    if isinstance(raw, str) and raw.strip().startswith("["):
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            raw = None
+    if isinstance(raw, list):
+        return " ".join(str(x or "").strip() for x in raw if str(x or "").strip()).strip()
+    return ""
+
+
 def _collect_warning_strings(raw_item: dict) -> list[tuple[str, str]]:
     root = _extract_root(raw_item)
     candidates: list[tuple[str, str]] = []
@@ -150,7 +214,21 @@ def _collect_warning_strings(raw_item: dict) -> list[tuple[str, str]]:
     def scan_node(field: str, value, depth: int = 0) -> None:
         if value is None or depth > 5:
             return
+        if field == "misc_info":
+            ktf_text = _parse_misc_info_caution(value)
+            if ktf_text:
+                push_text("misc_info.ktf_info", ktf_text)
+                return
+            if isinstance(value, str) and value.strip().startswith("{"):
+                return
+            if isinstance(value, dict) and "ktf_info" in value:
+                return
         if isinstance(value, str):
+            if field == "cautionText" and value.strip().startswith("{"):
+                ktf_text = _parse_misc_info_caution(value)
+                if ktf_text:
+                    push_text("misc_info.ktf_info", ktf_text)
+                    return
             push_text(field, value)
         elif isinstance(value, list):
             for entry in value:
@@ -206,26 +284,38 @@ def extract_caution_record(
         or ""
     ).strip()
 
+    raw_candidate_url = str(root.get("webVideoUrl") or root.get("url") or root.get("share_url") or "").strip()
+    url_handle_match = re.search(r"tiktok\.com/@([^/?#]+)", raw_candidate_url, re.IGNORECASE)
+    url_handle = url_handle_match.group(1).strip().lstrip("@") if url_handle_match else ""
+
     author_meta = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
     if not isinstance(author_meta, dict):
         author_meta = {}
-    raw_user = str(
+    candidate_user = str(
         author_meta.get("unique_id")
         or author_meta.get("name")
         or author_meta.get("username")
         or author_meta.get("uniqueId")
         or root.get("author_username")
+        or (root.get("authorUsername") if str(root.get("authorUsername") or "").lower() != "unknown" else "")
         or root.get("handle")
+        or url_handle
         or ""
     ).strip().lstrip("@")
+    if candidate_user.lower() == "unknown" and url_handle:
+        candidate_user = url_handle
+    raw_user = candidate_user
 
-    raw_url = str(
-        root.get("webVideoUrl")
-        or root.get("url")
-        or root.get("share_url")
-        or (f"https://www.tiktok.com/@{raw_user}/video/{video_id}" if video_id and raw_user else "")
-        or (f"https://www.tiktok.com/video/{video_id}" if video_id else "")
-    ).strip()
+    canonical_fallback = (
+        f"https://www.tiktok.com/@{raw_user}/video/{video_id}"
+        if video_id and raw_user
+        else (f"https://www.tiktok.com/video/{video_id}" if video_id else "")
+    )
+    raw_url = raw_candidate_url or canonical_fallback
+    if re.match(r"^https?://[^/]*tiktok\.com/@[^/?#]+/video/\d+", raw_url, re.IGNORECASE):
+        raw_url = raw_url.split("?")[0]
+    elif not raw_url and canonical_fallback:
+        raw_url = canonical_fallback
 
     if not video_id and raw_url:
         m = re.search(r"/video/(\d+)", raw_url)
@@ -237,7 +327,8 @@ def extract_caution_record(
 
     author_handle = f"@{raw_user}" if raw_user else str(author_meta.get("nickName") or author_meta.get("nickname") or "unknown")
     author_name = str(
-        author_meta.get("nickName")
+        (root.get("authorName") if root.get("authorName") != "Unknown creator" else "")
+        or author_meta.get("nickName")
         or author_meta.get("nickname")
         or author_meta.get("name")
         or raw_user
@@ -261,6 +352,9 @@ def extract_caution_record(
     if isinstance(cover, dict):
         url_list = cover.get("url_list") or []
         cover = url_list[0] if url_list else ""
+    if not cover and isinstance(video_meta.get("origin_cover"), dict):
+        origin_list = video_meta["origin_cover"].get("url_list") or []
+        cover = origin_list[0] if origin_list else ""
     thumb = str(
         root.get("thumbnailUrl")
         or root.get("thumbnail_url")
@@ -272,8 +366,10 @@ def extract_caution_record(
     desc = str(
         root.get("text")
         or root.get("desc")
+        or root.get("description")
         or root.get("video_description")
         or root.get("title")
+        or _extract_content_desc_fallback(root)
         or ""
     ).strip()[:600]
     voice = str(
@@ -288,11 +384,16 @@ def extract_caution_record(
         or root.get("createTimeISO")
         or datetime.now(timezone.utc).isoformat()
     )
+    resolved_matched_field = (
+        str(root.get("matchedField") or "").strip()
+        if matched_field == "cautionText" and root.get("matchedField")
+        else matched_field
+    )
 
     return {
         "id": str(video_id),
         "videoId": str(video_id),
-        "sourceType": source_provider,
+        "sourceType": str(root.get("sourceType") or source_provider),
         "url": raw_url,
         "playerUrl": f"https://www.tiktok.com/player/v1/{video_id}" if video_id.isdigit() else None,
         "authorUsername": author_handle,
@@ -303,7 +404,7 @@ def extract_caution_record(
         "hashtags": hashtags,
         "thumbnailUrl": thumb,
         "cautionText": caution_text,
-        "matchedField": matched_field,
+        "matchedField": resolved_matched_field,
         "brandTag": str(root.get("brandTag") or root.get("query") or query_tag or "").strip()[:120],
         "capturedAt": captured_at,
     }
@@ -343,6 +444,20 @@ def write_flagged_artifacts(
         fh.write(seed_banner)
 
 
+def _normalize_existing_record(rec: dict) -> dict:
+    out = dict(rec)
+    caution = str(out.get("cautionText") or "")
+    if caution.strip().startswith("{"):
+        parsed = _parse_misc_info_caution(caution)
+        if parsed:
+            out["cautionText"] = parsed
+            out["matchedField"] = "misc_info.ktf_info"
+    u = str(out.get("url") or "")
+    if re.match(r"^https?://[^/]*tiktok\.com/@[^/?#]+/video/\d+", u, re.IGNORECASE) and "?" in u:
+        out["url"] = u.split("?")[0]
+    return out
+
+
 def merge_caution_records(existing: list[dict], incoming: list[dict], limit: int = 500) -> tuple[list[dict], list[dict]]:
     by_id: dict[str, dict] = {}
     ordered_ids: list[str] = []
@@ -351,7 +466,7 @@ def merge_caution_records(existing: list[dict], incoming: list[dict], limit: int
     for rec in existing:
         vid = str(rec.get("id") or rec.get("videoId") or "").strip()
         if vid and vid not in by_id:
-            by_id[vid] = rec
+            by_id[vid] = _normalize_existing_record(rec)
             ordered_ids.append(vid)
 
     new_ids: list[str] = []
@@ -363,10 +478,21 @@ def merge_caution_records(existing: list[dict], incoming: list[dict], limit: int
             added.append(rec)
             new_ids.append(vid)
         else:
-            # Preserve richer fallback metadata if already stored
+            # Preserve richer fallback metadata and prefer cleaner URL/cautionText/author
             merged = dict(by_id[vid])
             for k, v in rec.items():
-                if v and not merged.get(k):
+                cur = merged.get(k)
+                if k == "cautionText" and isinstance(cur, str) and cur.strip().startswith("{") and isinstance(v, str) and not v.strip().startswith("{"):
+                    merged[k] = v
+                elif k == "matchedField" and cur in ("misc_info", "cautionText") and v == "misc_info.ktf_info":
+                    merged[k] = v
+                elif k == "url" and isinstance(cur, str) and "?" in cur and isinstance(v, str) and "?" not in v:
+                    merged[k] = v
+                elif k == "authorUsername" and (not cur or str(cur).lower() == "unknown") and v and str(v).lower() != "unknown":
+                    merged[k] = v
+                elif k == "authorName" and (not cur or cur == "Unknown creator") and v and v != "Unknown creator":
+                    merged[k] = v
+                elif v and not cur:
                     merged[k] = v
             by_id[vid] = merged
             continue
@@ -400,7 +526,7 @@ def fetch_subscriber_leads(worker_base: str = BRAND_WATCH_URL) -> list[dict]:
         return []
 
 
-def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None = None, cap: int = 16) -> list[str]:
+def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None = None, cap: int = 48) -> list[str]:
     queries: list[str] = []
     seen: set[str] = set()
 
@@ -812,16 +938,71 @@ def poll_apify(
 
     hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:5]
     search_terms = [q for q in queries if not q.startswith("#")][:12]
+    all_novi_terms: list[str] = []
+    seen_novi: set[str] = set()
+    for term in list(queries) + [f"@{p}" for p in (profiles or []) if p.strip()]:
+        clean_t = str(term or "").strip()
+        if clean_t and clean_t.lower() not in seen_novi:
+            seen_novi.add(clean_t.lower())
+            all_novi_terms.append(clean_t)
     clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:5]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
-    actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["clockworks~free-tiktok-scraper"]
+    actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["novi~tiktok-scraper-ultimate"]
     all_results: list[tuple[str, dict]] = []
+
+    def _run_apify_job(single_actor_id: str, actor_input: dict, dataset_limit: int, tag_prefix: str = "") -> list[tuple[str, dict]]:
+        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=120"
+        status, _, _, raw = http_fetch(
+            run_url,
+            method="POST",
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            data=json.dumps(actor_input).encode("utf-8"),
+            timeout=125,
+        )
+        if status >= 400:
+            raise RuntimeError(f"Apify run start HTTP {status} ({single_actor_id}): {raw.decode('utf-8', 'replace')[:300]}")
+        run_data = json.loads(raw.decode("utf-8", "replace")).get("data") or {}
+        dataset_id = run_data.get("defaultDatasetId")
+        if not dataset_id:
+            return []
+        items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={dataset_limit}"
+        items = _fetch_large_json(items_url, timeout=60)
+        label = f"apify:{single_actor_id}{tag_prefix}"
+        if isinstance(items, list):
+            return [(label, it) for it in items if isinstance(it, dict)]
+        return []
 
     per_actor_budget = max(10, max_items // max(1, len(actors)))
     for single_actor in actors:
         remaining = max(1, min(per_actor_budget, max_items - len(all_results)))
         if len(all_results) >= max_items:
             break
+        if "novi~" in single_actor:
+            novi_pool = all_novi_terms or ["flagged for unverified content"]
+            if remaining <= 120 and len(novi_pool) <= 12:
+                chunks = [novi_pool]
+            else:
+                batch_count = min(5, max(2, min(len(novi_pool) // 6 or 1, (remaining + 119) // 120)))
+                chunk_size = max(1, (len(novi_pool) + batch_count - 1) // batch_count)
+                chunks = [novi_pool[i:i + chunk_size] for i in range(0, len(novi_pool), chunk_size)][:5]
+            per_chunk = max(25, remaining // max(1, len(chunks)))
+            novi_jobs: list[tuple[dict, int, str]] = []
+            for idx, chunk in enumerate(chunks):
+                inp: dict = {"keywords": chunk, "maxItems": per_chunk}
+                if idx == 0 and clean_post_urls and remaining <= 25:
+                    inp["startUrls"] = clean_post_urls[:5]
+                elif idx == 0 and not queries and clean_profiles:
+                    inp["startUrls"] = [f"https://www.tiktok.com/@{p}" for p in clean_profiles]
+                novi_jobs.append((inp, per_chunk, f"#b{idx + 1}"))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(novi_jobs))) as pool:
+                futs = [pool.submit(_run_apify_job, single_actor, inp, dlim, tpf) for inp, dlim, tpf in novi_jobs]
+                for fut in concurrent.futures.as_completed(futs):
+                    try:
+                        all_results.extend(fut.result())
+                    except Exception:
+                        if len(novi_jobs) == 1:
+                            raise
+            continue
         if "apidojo" in single_actor and "profile" in single_actor:
             if not clean_profiles:
                 continue
@@ -848,14 +1029,6 @@ def poll_apify(
                 "shouldDownloadCovers": False,
             }
             dataset_limit = max(remaining, len(actor_input["postURLs"]))
-        elif "novi~" in single_actor:
-            actor_input = {
-                "keywords": search_terms[:12] or ["flagged for unverified content"],
-                "maxItems": remaining,
-            }
-            if clean_post_urls and remaining <= 25:
-                actor_input["startUrls"] = clean_post_urls[:5]
-            dataset_limit = remaining
         elif "xmolodtsov~" in single_actor:
             actor_input = {
                 "keywords": search_terms[:2] or ["Anthony Joshua not following the script"],
@@ -880,24 +1053,7 @@ def poll_apify(
                 actor_input["postURLs"] = clean_post_urls
             dataset_limit = max(remaining, per_target * target_groups)
 
-        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor)}/runs?token={urllib.parse.quote(token)}&waitForFinish=120"
-        status, _, _, raw = http_fetch(
-            run_url,
-            method="POST",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            data=json.dumps(actor_input).encode("utf-8"),
-            timeout=125,
-        )
-        if status >= 400:
-            raise RuntimeError(f"Apify run start HTTP {status} ({single_actor}): {raw.decode('utf-8', 'replace')[:300]}")
-        run_data = json.loads(raw.decode("utf-8", "replace")).get("data") or {}
-        dataset_id = run_data.get("defaultDatasetId")
-        if not dataset_id:
-            continue
-        items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={dataset_limit}"
-        items = _fetch_large_json(items_url, timeout=60)
-        if isinstance(items, list):
-            all_results.extend((f"apify:{single_actor}", it) for it in items if isinstance(it, dict))
+        all_results.extend(_run_apify_job(single_actor, actor_input, dataset_limit))
     return all_results
 
 
@@ -905,19 +1061,41 @@ def sync_records_to_worker(records: list[dict], worker_base: str = BRAND_WATCH_U
     token = _resolve_ingest_token()
     if not token or not records:
         return None
-    status, _, _, raw = http_fetch(
-        f"{worker_base}/api/ingest-caution",
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {token}",
-        },
-        data=json.dumps({"source": "automated_caution_poller", "items": records}).encode("utf-8"),
-        timeout=20,
-    )
-    if status >= 400:
-        raise RuntimeError(f"Worker /api/ingest-caution HTTP {status}: {raw.decode('utf-8', 'replace')[:250]}")
-    return json.loads(raw.decode("utf-8", "replace"))
+    total_accepted = 0
+    total_rejected = 0
+    latest_merged_total = 0
+    synced_items: list[dict] = []
+    batches = 0
+    chunk_size = 15
+    for idx in range(0, len(records), chunk_size):
+        chunk = records[idx:idx + chunk_size]
+        status, _, _, raw = http_fetch(
+            f"{worker_base}/api/ingest-caution",
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}",
+            },
+            data=json.dumps({"source": "automated_caution_poller", "items": chunk}).encode("utf-8"),
+            timeout=25,
+        )
+        if status >= 400:
+            raise RuntimeError(f"Worker /api/ingest-caution HTTP {status}: {raw.decode('utf-8', 'replace')[:250]}")
+        resp = json.loads(raw.decode("utf-8", "replace"))
+        batches += 1
+        total_accepted += int(resp.get("accepted") or 0)
+        total_rejected += int(resp.get("rejected") or 0)
+        latest_merged_total = max(latest_merged_total, int(resp.get("merged_total") or 0))
+        if isinstance(resp.get("items"), list):
+            synced_items.extend(resp["items"])
+    return {
+        "ok": True,
+        "batches": batches,
+        "accepted": total_accepted,
+        "rejected": total_rejected,
+        "merged_total": latest_merged_total,
+        "items": synced_items[:15],
+    }
 
 
 def _parse_lead_keywords(lead: dict) -> list[str]:
@@ -1094,7 +1272,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CautionWatch strict TikTok unverified-content poller.")
     parser.add_argument("--live", action="store_true", help="Actually call external scraper APIs & send subscriber alerts.")
     parser.add_argument("--provider", choices=("auto", "ensembledata", "rapidapi", "apify"), default="auto")
-    parser.add_argument("--apify-actor", default="clockworks~free-tiktok-scraper")
+    parser.add_argument("--apify-actor", default="novi~tiktok-scraper-ultimate")
     parser.add_argument("--max-items", type=int, default=40, help="Hard cap on fetched raw items per run.")
     parser.add_argument("--query", action="append", default=[], help="Extra keyword or #hashtag query.")
     parser.add_argument("--profile", action="append", default=[], help="Extra TikTok @username profile to poll.")
@@ -1161,12 +1339,13 @@ def main(argv: list[str] | None = None) -> int:
             rejected_count += 1
 
     merged, added = merge_caution_records(existing, caution_records)
-    if added or (raw_items and args.input_json):
+    if added or merged != existing or (raw_items and args.input_json):
         write_flagged_artifacts(merged, FLAGGED_JSON_PATH, SEED_JS_PATH)
 
     worker_sync = None
-    if (args.live or args.sync_worker) and (added or caution_records):
-        worker_sync = sync_records_to_worker(added or caution_records, BRAND_WATCH_URL_RUNTIME)
+    if (args.live or args.sync_worker) and (added or caution_records or merged != existing):
+        to_sync = merged if merged != existing else (added or caution_records)
+        worker_sync = sync_records_to_worker(to_sync, BRAND_WATCH_URL_RUNTIME)
 
     alert_summary = dispatch_subscriber_alerts(
         added or caution_records,

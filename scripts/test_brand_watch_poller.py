@@ -33,6 +33,13 @@ class CautionPollerTests(unittest.TestCase):
             "webVideoUrl": "https://www.tiktok.com/@stunt/video/103",
             "warningText": "Participating in this activity could result in you or others getting hurt.",
         }))
+        # Novi creator slide text mentioning "unverified content" without ktf_info MUST be rejected
+        self.assertIsNone(poller.is_unverified_caution_match({
+            "aweme_id": "105",
+            "share_url": "https://www.tiktok.com/@josephbournex/video/105?_r=1",
+            "content_desc": '["THEY FLAGGED MY VIDEO FOR \\"unverified content\\""]',
+            "misc_info": '{"tns_im_info":{"label_category":0}}',
+        }))
         nested = poller.is_unverified_caution_match({
             "id": "104",
             "anchors": [{"extraInfo": {"warning": "Caution: Video flagged for unverified content."}}],
@@ -76,6 +83,28 @@ class CautionPollerTests(unittest.TestCase):
         self.assertEqual(rec2["videoId"], "7710000000000000001")
         self.assertEqual(rec2["matchedField"], "labelTop")
         self.assertEqual(rec2["thumbnailUrl"], "https://cdn.example/c.jpg")
+
+        novi_raw = {
+            "aweme_id": "7702510622650518817",
+            "share_url": "https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817?_r=1&u_code=xyz",
+            "content_desc": '["Watch what happened to Anthony Joshua"]',
+            "author": {"nickname": "maskedtruthmt"},
+            "video": {"cover": {"url_list": ["https://cdn.example/novi.jpg"]}},
+            "misc_info": json.dumps({
+                "ktf_info": {
+                    "show_warning": True,
+                    "caution_label": "Caution:",
+                    "warning_text": "%s Video flagged for unverified content.",
+                }
+            }),
+        }
+        rec3 = poller.extract_caution_record(novi_raw, source_provider="apify")
+        self.assertIsNotNone(rec3)
+        self.assertEqual(rec3["authorUsername"], "@maskedtruthmt")
+        self.assertEqual(rec3["url"], "https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817")
+        self.assertEqual(rec3["cautionText"], "Caution: Video flagged for unverified content.")
+        self.assertEqual(rec3["matchedField"], "misc_info.ktf_info")
+        self.assertIn("Anthony Joshua", rec3["description"])
 
     def test_persistence_merge_and_alert_matching_with_dedupe(self):
         rec = poller.extract_caution_record({
