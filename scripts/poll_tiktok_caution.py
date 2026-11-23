@@ -56,14 +56,18 @@ UNVERIFIED_CAUTION_RE = re.compile(
 )
 
 DEFAULT_DISCOVERY_QUERIES = [
-    "they showed anthony joshua what happens",
-    "anthony joshua not following the script",
     "flagged for unverified content",
     "caution video flagged for unverified",
+    "they showed anthony joshua what happens",
+    "anthony joshua not following the script",
     "not following the script",
     "before this gets deleted",
     "fake breaking news footage",
     "staged video exposed",
+    "celebrity death hoax tiktok",
+    "miracle cancer cure secret",
+    "ufo landing footage real",
+    "fake hurricane tornado footage",
     "#maskedtruth",
     "#notfollowingthescript",
     "#unverifiedcontent",
@@ -80,17 +84,26 @@ WARNING_FIELDS = (
     "riskInfos",
     "risk_infos",
     "labelTop",
+    "label_top",
+    "label_top_text",
     "contentDesc",
+    "content_desc",
+    "content_desc_extra",
     "video_label",
     "videoLabel",
+    "video_labels",
     "cautionLabel",
     "warningText",
     "moderationInfo",
     "flagInfo",
     "maskInfo",
+    "mask_infos",
     "warning",
     "anchors",
     "badges",
+    "banners",
+    "standard_component_info",
+    "misc_info",
 )
 
 WARNING_SUBKEYS = ("text", "content", "label", "title", "desc", "warning", "msg", "reason")
@@ -197,7 +210,8 @@ def extract_caution_record(
     if not isinstance(author_meta, dict):
         author_meta = {}
     raw_user = str(
-        author_meta.get("name")
+        author_meta.get("unique_id")
+        or author_meta.get("name")
         or author_meta.get("username")
         or author_meta.get("uniqueId")
         or root.get("author_username")
@@ -208,6 +222,7 @@ def extract_caution_record(
     raw_url = str(
         root.get("webVideoUrl")
         or root.get("url")
+        or root.get("share_url")
         or (f"https://www.tiktok.com/@{raw_user}/video/{video_id}" if video_id and raw_user else "")
         or (f"https://www.tiktok.com/video/{video_id}" if video_id else "")
     ).strip()
@@ -231,10 +246,10 @@ def extract_caution_record(
 
     raw_tags = root.get("hashtags")
     if not isinstance(raw_tags, list):
-        raw_tags = root.get("hashtag_names") if isinstance(root.get("hashtag_names"), list) else []
+        raw_tags = root.get("hashtag_names") if isinstance(root.get("hashtag_names"), list) else root.get("cha_list") if isinstance(root.get("cha_list"), list) else []
     hashtags: list[str] = []
     for tag in raw_tags:
-        val = tag if isinstance(tag, str) else (tag.get("name") or tag.get("title") or "") if isinstance(tag, dict) else ""
+        val = tag if isinstance(tag, str) else (tag.get("name") or tag.get("title") or tag.get("cha_name") or "") if isinstance(tag, dict) else ""
         cleaned = str(val).strip().lstrip("#")
         if cleaned and cleaned not in hashtags:
             hashtags.append(cleaned)
@@ -385,7 +400,7 @@ def fetch_subscriber_leads(worker_base: str = BRAND_WATCH_URL) -> list[dict]:
         return []
 
 
-def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None = None, cap: int = 12) -> list[str]:
+def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None = None, cap: int = 16) -> list[str]:
     queries: list[str] = []
     seen: set[str] = set()
 
@@ -563,6 +578,8 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
     key_counts: dict[str, int] = {}
     author_counts: dict[str, int] = {}
     warning_signals: list[dict] = []
+    risk_infos_contents: dict[str, int] = {}
+    unverified_hits_anywhere: list[dict] = []
     penalty_anomalies: list[dict] = []
     sample_previews: list[dict] = []
     target_hits: list[dict] = []
@@ -586,7 +603,7 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
             if len(penalty_anomalies) < sample_limit:
                 penalty_anomalies.append({
                     "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
-                    "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
+                    "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or root.get("share_url") or "")[:100],
                     "text": str(root.get("text") or root.get("desc") or root.get("title") or "")[:90],
                     "warnInfo": root.get("warnInfo") or raw.get("warnInfo"),
                     "maskType": root.get("maskType"),
@@ -596,21 +613,40 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
             key_counts[k] = key_counts.get(k, 0) + 1
         author_obj = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
         author_name = str(
-            (author_obj.get("name") or author_obj.get("username") or author_obj.get("uniqueId") or "")
+            (author_obj.get("unique_id") or author_obj.get("name") or author_obj.get("username") or author_obj.get("uniqueId") or "")
             if isinstance(author_obj, dict)
             else ""
         )[:40]
         if author_name:
             author_counts[author_name] = author_counts.get(author_name, 0) + 1
+        ri = root.get("risk_infos") or raw.get("risk_infos") or {}
+        if isinstance(ri, dict) and str(ri.get("content") or "").strip():
+            rc = str(ri.get("content")).strip()
+            risk_infos_contents[rc] = risk_infos_contents.get(rc, 0) + 1
+        non_caption_blob = json.dumps({
+            k: v for k, v in root.items()
+            if k not in {"desc", "text", "title", "original_client_text", "share_url", "cha_list", "hashtags", "hashtag_names", "suggest_words", "suggestedWords", "search_desc"}
+        }, ensure_ascii=False)
+        if "unverified" in non_caption_blob.lower() and len(unverified_hits_anywhere) < 10:
+            for k, v in root.items():
+                if k in {"desc", "text", "title", "original_client_text", "share_url", "cha_list", "hashtags", "suggest_words", "suggestedWords", "search_desc"}:
+                    continue
+                if "unverified" in json.dumps(v, ensure_ascii=False).lower():
+                    unverified_hits_anywhere.append({
+                        "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                        "author": author_name,
+                        "key": k,
+                        "value": json.dumps(v, ensure_ascii=False)[:240],
+                    })
         cands = [
             (f, t) for f, t in _collect_warning_strings(raw)
-            if len(t) >= 6 and any(ch.isalpha() for ch in t)
+            if len(t) >= 6 and any(ch.isalpha() for ch in t) and not t.startswith("http")
         ]
         if cands and len(warning_signals) < sample_limit:
             warning_signals.append({
                 "source": src,
                 "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
-                "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
+                "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or root.get("share_url") or "")[:100],
                 "warnings": [{"field": f, "text": t[:160]} for f, t in cands[:4]],
             })
         text_val = str(root.get("text") or root.get("desc") or root.get("title") or "")
@@ -642,6 +678,8 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
         "ssr_enriched_count": ssr_checked,
         "all_keys": [f"{k}:{v}" for k, v in sorted(key_counts.items())],
         "authors_seen": sorted(author_counts.items(), key=lambda kv: -kv[1])[:15],
+        "risk_infos_contents": sorted(risk_infos_contents.items(), key=lambda kv: -kv[1]),
+        "unverified_hits_anywhere": unverified_hits_anywhere,
         "warning_signals_seen": warning_signals,
         "penalty_anomalies": penalty_anomalies,
         "target_hits": target_hits,
@@ -773,7 +811,7 @@ def poll_apify(
         pass
 
     hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:5]
-    search_terms = [q for q in queries if not q.startswith("#")][:7]
+    search_terms = [q for q in queries if not q.startswith("#")][:12]
     clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:5]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
     actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["clockworks~free-tiktok-scraper"]
@@ -812,10 +850,10 @@ def poll_apify(
             dataset_limit = max(remaining, len(actor_input["postURLs"]))
         elif "novi~" in single_actor:
             actor_input = {
-                "keywords": search_terms[:2] or ["Anthony Joshua not following the script"],
+                "keywords": search_terms[:12] or ["flagged for unverified content"],
                 "maxItems": remaining,
             }
-            if clean_post_urls:
+            if clean_post_urls and remaining <= 25:
                 actor_input["startUrls"] = clean_post_urls[:5]
             dataset_limit = remaining
         elif "xmolodtsov~" in single_actor:

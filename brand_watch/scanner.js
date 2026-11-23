@@ -75,7 +75,7 @@ function collectCandidateWarningStrings(rawItem) {
       }
     }
   };
-  for (const field of ["warnInfo", "warningInfo", "riskInfos", "risk_infos", "labelTop", "contentDesc", "video_label", "videoLabel", "cautionLabel", "warningText", "moderationInfo", "flagInfo", "maskInfo", "warning", "anchors", "badges"]) {
+  for (const field of ["warnInfo", "warningInfo", "riskInfos", "risk_infos", "labelTop", "label_top", "label_top_text", "contentDesc", "content_desc", "content_desc_extra", "video_label", "videoLabel", "video_labels", "cautionLabel", "warningText", "moderationInfo", "flagInfo", "maskInfo", "mask_infos", "warning", "anchors", "badges", "banners", "standard_component_info", "misc_info"]) {
     if (root[field] !== undefined) scanNode(field, root[field]);
     if (rawItem?.[field] !== undefined) scanNode(field, rawItem[field]);
   }
@@ -101,7 +101,7 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
   const videoId = String(root.id || root.aweme_id || root.video_id || root.videoId || "").trim();
   const authorMeta = root.authorMeta || root.author || root.channel || {};
   const rawUser = String(
-    authorMeta.name || authorMeta.username || authorMeta.uniqueId || root.author_username || root.handle || "",
+    authorMeta.unique_id || authorMeta.name || authorMeta.username || authorMeta.uniqueId || root.author_username || root.handle || "",
   )
     .trim()
     .replace(/^@+/, "");
@@ -109,13 +109,14 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
   const rawUrl = String(
     root.webVideoUrl ||
       root.url ||
+      root.share_url ||
       (videoId && rawUser ? `https://www.tiktok.com/@${rawUser}/video/${videoId}` : "") ||
       (videoId ? `https://www.tiktok.com/video/${videoId}` : ""),
   ).trim();
   if (!videoId && !rawUrl) return null;
 
-  const hashtags = (Array.isArray(root.hashtags) ? root.hashtags : Array.isArray(root.hashtag_names) ? root.hashtag_names : [])
-    .map((h) => (typeof h === "string" ? h : h?.name || h?.title || ""))
+  const hashtags = (Array.isArray(root.hashtags) ? root.hashtags : Array.isArray(root.hashtag_names) ? root.hashtag_names : Array.isArray(root.cha_list) ? root.cha_list : [])
+    .map((h) => (typeof h === "string" ? h : h?.name || h?.title || h?.cha_name || ""))
     .map((x) => String(x).trim().replace(/^#/, ""))
     .filter(Boolean);
 
