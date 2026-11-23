@@ -11,7 +11,7 @@ import { computeStopLossVerdict } from "./edge_helpers.js";
 import siteRescueWorker from "./site_rescue/worker.js";
 import ecomFixWorker from "./ecom_fix/worker.js";
 import brandWatchWorker from "./brand_watch/worker.js";
-import { validateTikTokVideoUrl } from "./brand_watch/scanner.js";
+import { validateTikTokVideoUrl, extractUnverifiedCautionRecord } from "./brand_watch/scanner.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 function createMemoryKv() {
@@ -1138,13 +1138,46 @@ test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhook
   }
 });
 
-test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, captures B2B leads & serves dossier ZIP", async () => {
+test("CautionWatch strictly filters unverified-content Caution videos, ingests, captures Business/Individual alert leads & serves dossier ZIP", async () => {
   assert.throws(() => validateTikTokVideoUrl("http://127.0.0.1:8080/admin"), /valid tiktok\.com domain/);
   assert.throws(() => validateTikTokVideoUrl("https://evil.example.com/@x/video/1"), /valid tiktok\.com domain/);
   assert.equal(
     validateTikTokVideoUrl("https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500").cleanUrl,
     "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
   );
+
+  // Strict Caution extractor rejects clean and unrelated warning labels
+  assert.equal(
+    extractUnverifiedCautionRecord({
+      id: "111",
+      webVideoUrl: "https://www.tiktok.com/@clean/video/111",
+      warnInfo: [],
+      text: "Normal boxing clip",
+    }),
+    null,
+  );
+  assert.equal(
+    extractUnverifiedCautionRecord({
+      id: "222",
+      webVideoUrl: "https://www.tiktok.com/@ai/video/222",
+      warnInfo: [{ text: "Contains AI-generated media" }],
+      labelTop: "Creator labeled as AI-generated",
+    }),
+    null,
+  );
+  const cautionHit = extractUnverifiedCautionRecord({
+    id: "7709208502949940500",
+    webVideoUrl: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+    authorMeta: { name: "maskedtruthmt", nickName: "maskedtruthmt" },
+    text: "Watch what happened to Anthony Joshua after not following the script #maskedtruth",
+    voice_to_text: "Transcript mentioning Anthony Joshua",
+    hashtags: [{ name: "maskedtruth" }],
+    warnInfo: [{ text: "Caution: Video flagged for unverified content." }],
+  });
+  assert.ok(cautionHit);
+  assert.equal(cautionHit.videoId, "7709208502949940500");
+  assert.equal(cautionHit.matchedField, "warnInfo");
+  assert.equal(cautionHit.authorUsername, "@maskedtruthmt");
 
   const origFetch = globalThis.fetch;
   const kv = createMemoryKv();
@@ -1156,42 +1189,12 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
     B2B_CONTACT_EMAIL: "armkhan18@gmail.com",
   };
 
-  globalThis.fetch = async (input, init) => {
+  globalThis.fetch = async (input) => {
     const u = typeof input === "string" ? input : input.url;
-    if (u.startsWith("https://toolbox.google.com/factcheck/api/search")) {
-      const payload = [
-        [
-          "claims_response",
-          [
-            [
-              [
-                "Anthony Joshua staged video claim on TikTok",
-                ["@maskedtruthmt"],
-                1795000000,
-                [[["AFP Fact Check", "factcheck.afp.com", ["Analyst"], "gb"], "https://factcheck.afp.com/doc.test", 1795003600, "Altered video", null, null, "en", ["gb"], "Claimed boxing clip is AI-generated"]],
-              ],
-              null,
-              0.9,
-            ],
-          ],
-        ],
-      ];
-      return new Response(`)]}'\n${JSON.stringify(payload)}`, { status: 200 });
-    }
-    if (u.startsWith("https://news.google.com/rss/search")) {
-      const rss = `<rss><channel><item><title>Fact check: Anthony Joshua TikTok claim unverified - Reuters</title><link>https://www.reuters.com/fact-check/test</link><pubDate>Mon, 23 Nov 2026 12:00:00 GMT</pubDate><source>Reuters</source></item></channel></rss>`;
-      return new Response(rss, { status: 200, headers: { "Content-Type": "application/xml" } });
-    }
-    if (u.startsWith("https://urlscan.io/api/v1/search/")) {
-      return new Response(
-        JSON.stringify({ results: [{ page: { url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500" } }] }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    }
     if (u.startsWith("https://www.tiktok.com/oembed?")) {
       return new Response(
         JSON.stringify({
-          title: "Watch what happened after not following the script #maskedtruth",
+          title: "Watch what happened to Anthony Joshua #maskedtruth",
           author_name: "maskedtruthmt",
           author_url: "https://www.tiktok.com/@maskedtruthmt",
           thumbnail_url: "https://p16-sign.tiktokcdn.example/thumb.jpg",
@@ -1213,13 +1216,65 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
   };
 
   try {
-    // 1. Landing HTML + B2B section present
+    // 1. Landing HTML + Health strict filter check
     const homeRes = await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/"), BW_ENV);
     assert.equal(homeRes.status, 200);
     const homeHtml = await homeRes.text();
-    assert.match(homeHtml, /For Brands, Agencies &amp; Talent — B2B Contact/);
+    assert.match(homeHtml, /Contact for Live Alerts \(Businesses &amp; Individuals\)/);
 
-    // 2. Log Caution Clip via official TikTok oEmbed verification -> KV Queue
+    const healthJson = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/health"), BW_ENV)).json();
+    assert.equal(healthJson.strict_filter, "Caution: Video flagged for unverified content ONLY");
+
+    // 2. Authenticated Caution Ingestion strictly drops clean/unrelated clips
+    const unauthIngest = await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/ingest-caution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [] }),
+      }),
+      BW_ENV,
+    );
+    assert.equal(unauthIngest.status, 401);
+
+    const ingestRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/ingest-caution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ADMIN_TOK}` },
+        body: JSON.stringify({
+          source: "apify_caution_poller",
+          items: [
+            { id: "1001", webVideoUrl: "https://www.tiktok.com/@clean/video/1001", warnInfo: [] },
+            { id: "1002", webVideoUrl: "https://www.tiktok.com/@ai/video/1002", warnInfo: [{ text: "Contains AI-generated media" }] },
+            {
+              id: "7709208502949940999",
+              webVideoUrl: "https://www.tiktok.com/@rumorclip/video/7709208502949940999",
+              authorMeta: { name: "rumorclip" },
+              text: "Unverified Anthony Joshua clip #maskedtruth",
+              labelTop: "Caution: Video flagged for unverified content.",
+            },
+          ],
+        }),
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(ingestRes.ok, true);
+    assert.equal(ingestRes.accepted, 1);
+    assert.equal(ingestRes.rejected, 2);
+
+    // 3. Report rejects non-Caution labels with 422, accepts Caution clip via oEmbed verification
+    const badReport = await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+          cautionLabel: "Misleading financial advice",
+        }),
+      }),
+      BW_ENV,
+    );
+    assert.equal(badReport.status, 422);
+
     const repRes = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/report", {
         method: "POST",
@@ -1227,6 +1282,7 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
         body: JSON.stringify({
           url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
           brandTag: "Anthony Joshua",
+          voiceToText: "Watch what happened to Anthony Joshua after not following the script",
           cautionLabel: "Caution: Video flagged for unverified content",
         }),
       }),
@@ -1234,22 +1290,25 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
     )).json();
     assert.equal(repRes.ok, true);
     assert.equal(repRes.persisted, true);
-    assert.equal(repRes.entry.handle, "@maskedtruthmt");
+    assert.equal(repRes.entry.authorUsername, "@maskedtruthmt");
 
-    // 3. Multi-source live extraction scan
+    // 4. Scan & Feed endpoints return ONLY verified Caution videos
     const scanRes = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=Anthony%20Joshua"),
       BW_ENV,
     )).json();
     assert.equal(scanRes.ok, true);
-    assert.equal(scanRes.counts.caution_watchlist, 1);
-    assert.equal(scanRes.counts.fact_checks, 1);
-    assert.equal(scanRes.counts.news_rumors, 1);
-    assert.equal(scanRes.counts.tiktok_oembeds, 1);
-    assert.equal(scanRes.fact_checks[0].verdict, "Altered video");
-    assert.ok(scanRes.tiktok_clips[0].captionRisk.riskScore >= 20);
+    assert.equal(scanRes.strict_filter, "Caution: Video flagged for unverified content ONLY");
+    assert.equal(scanRes.matched_count, 2);
+    assert.ok(scanRes.caution_videos.every((v) => /flagged\s+for\s+unverified\s+content/i.test(v.cautionText)));
 
-    // 4. B2B Lead capture + authenticated inbox read
+    const feedRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/feed"),
+      BW_ENV,
+    )).json();
+    assert.equal(feedRes.total_stored_caution_videos, 2);
+
+    // 5. Businesses & Individuals Alert Contact + authenticated inbox read
     const leadBad = await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/contact", {
         method: "POST",
@@ -1265,6 +1324,7 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          account_type: "Individual / Creator / Public Figure",
           company: "Matchroom PR",
           contact_name: "Alex",
           email: "alex@matchroom.example",
@@ -1286,9 +1346,9 @@ test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, ca
     )).json();
     assert.equal(authLeads.ok, true);
     assert.equal(authLeads.count, 1);
-    assert.equal(authLeads.leads[0].company, "Matchroom PR");
+    assert.equal(authLeads.leads[0].account_type, "Individual / Creator / Public Figure");
 
-    // 5. Stripe Dossier Checkout + Verified ZIP Download
+    // 6. Stripe Dossier Checkout + Verified ZIP Download
     const ck = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/checkout?tier=audit&domain=Anthony%20Joshua&format=json"),
       BW_ENV,

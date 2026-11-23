@@ -1,6 +1,6 @@
 /**
- * BrandWatch: B2B Unverified-Rumor, AI-Fake & TikTok Caution Watch Portal
- * Live multi-source rumor extraction + TikTok oEmbed inspector + Caution Watch Queue + B2B Contact & Stripe Checkout.
+ * CautionWatch: Strict "Caution: Video flagged for unverified content" Poller Portal
+ * Displays ONLY verified Caution-unverified TikTok clips + Businesses & Individuals Live Alert Intake.
  */
 
 import {
@@ -19,19 +19,20 @@ import {
 } from "../edge_helpers.js";
 import { cleanSecret, hasSigningSecretConfigured } from "../stripe_billing.js";
 import {
+  extractUnverifiedCautionRecord,
   resolveTikTokOembed,
-  loadQueueEntries,
-  runBrandRumorScan,
-  buildBrandWatchDossier,
+  loadCautionFeedEntries,
+  runCautionOnlyScan,
+  buildCautionDossier,
 } from "./scanner.js";
 
 export const BRAND_WATCH_PLANS = {
   audit: {
     id: "audit",
-    sku: "brandwatch-audit-v1",
-    name: "B2B Brand Rumor & Flagged-Video Dossier Pack — $49",
+    sku: "cautionwatch-dossier-v1",
+    name: "Caution-Flagged Video Evidence Dossier (.zip) — $49",
     description:
-      "Downloadable B2B BrandWatch Evidence ZIP tailored to your brand or executive: Fact-Check records, rumor press logs, resolved TikTok oEmbed snapshots, CSV evidence sheet, and takedown escalation brief.",
+      "Instant Evidence ZIP of archived Caution-flagged TikTok videos matching your business or name (saved caption, @handle, thumbnail & voice-to-text fallback if deleted).",
     amountCents: 4900,
     amountMicro: 49000000,
     originalCents: 14900,
@@ -41,10 +42,10 @@ export const BRAND_WATCH_PLANS = {
   },
   retainer: {
     id: "retainer",
-    sku: "brandwatch-retainer-v1",
-    name: "Priority Weekly B2B Brand & Caution Watch Setup — $199",
+    sku: "cautionwatch-alerts-v1",
+    name: "Priority Live Caution-Video Alert Feed Setup — $199",
     description:
-      "Full custom rumor/impersonation keyword watch setup, priority async triage with our engineering team, plus full downloadable Evidence Dossier ZIP.",
+      "Dedicated automated polling for your business, brand, or personal name across high-risk TikTok keywords + instant live email/webhook alerts on Caution matches.",
     amountCents: 19900,
     amountMicro: 199000000,
     originalCents: 39900,
@@ -54,7 +55,7 @@ export const BRAND_WATCH_PLANS = {
   },
 };
 
-const MAX_KV_LIST = 150;
+const MAX_KV_LIST = 200;
 
 async function appendKvIndexItem(kv, indexKey, itemKeyPrefix, id, payload) {
   if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function") return false;
@@ -85,162 +86,130 @@ function isAuthorizedAdmin(req, env) {
 }
 
 function renderLanding(origin, contactEmail) {
-  const bookmarkletHref = `javascript:(function(){var u=location.href;if(!/tiktok\\.com/i.test(u)){alert('Open a TikTok video page first.');return;}window.open('${origin}/?inspect='+encodeURIComponent(u)+'#caution-inspector','_blank');})();`;
+  const bookmarkletHref = `javascript:(function(){var u=location.href;if(!/tiktok\\.com/i.test(u)){alert('Open a TikTok video showing the Caution unverified banner first.');return;}window.open('${origin}/?log='+encodeURIComponent(u)+'#log-caution','_blank');})();`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BrandWatch — B2B Caution-Tagged Video, AI-Fake &amp; Rumor Intelligence</title>
+  <title>CautionWatch — Verified Unverified-Content TikTok Feed &amp; Live Alerts</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#070a10; color:#f1f5f9; max-width:1160px; margin:0 auto; padding:1.5rem 1rem 4rem; line-height:1.55; }
     a { color:#38bdf8; }
-    header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; border-bottom:1px solid #1e293b; padding-bottom:1rem; margin-bottom:1.3rem; }
-    h1 { margin:0; font-size:1.85rem; color:#f8fafc; letter-spacing:-0.02em; }
-    .badge { display:inline-block; background:#1e293b; border:1px solid #334155; color:#fbbf24; font-size:0.75rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px; }
-    .notice { background:#0f172a; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:0.85rem 1rem; font-size:0.86rem; color:#cbd5e1; margin-bottom:1.25rem; }
-    .grid { display:grid; grid-template-columns:1.3fr 0.95fr; gap:1.25rem; align-items:start; }
+    header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; border-bottom:1px solid #1e293b; padding-bottom:1rem; margin-bottom:1.2rem; }
+    h1 { margin:0.2rem 0 0; font-size:1.8rem; color:#f8fafc; }
+    .badge { display:inline-block; background:#451a03; border:1px solid #d97706; color:#fbbf24; font-size:0.75rem; font-weight:700; padding:0.22rem 0.65rem; border-radius:999px; }
+    .notice { background:#0f172a; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:0.85rem 1rem; font-size:0.85rem; color:#cbd5e1; margin-bottom:1.2rem; }
+    .grid { display:grid; grid-template-columns:1.35fr 0.95fr; gap:1.25rem; align-items:start; }
     @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
     .card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:1.2rem; margin-bottom:1rem; }
     .row { display:flex; gap:0.6rem; flex-wrap:wrap; }
     input, textarea, select { width:100%; background:#060911; color:#f8fafc; border:1px solid #334155; border-radius:8px; padding:0.68rem 0.8rem; font-size:0.9rem; margin:0.35rem 0 0.75rem; font-family:inherit; }
     label { display:block; font-size:0.8rem; font-weight:600; color:#94a3b8; }
     .btn { display:inline-block; padding:0.7rem 1.05rem; border-radius:8px; font-weight:700; cursor:pointer; border:0; color:#fff; background:#0284c7; text-align:center; font-size:0.9rem; text-decoration:none; }
-    .btn:hover { opacity:0.92; }
     .btn-amber { background:#d97706; }
     .btn-green { background:#059669; }
-    .btn-ghost { background:#1e293b; color:#e2e8f0; border:1px solid #334155; }
-    .chip { background:#1e293b; border:1px solid #334155; color:#cbd5e1; padding:0.28rem 0.65rem; border-radius:999px; font-size:0.78rem; cursor:pointer; }
     .feed-item { background:#0b1120; border:1px solid #1e293b; border-radius:10px; padding:0.95rem; margin-top:0.75rem; }
-    .pill { display:inline-block; font-size:0.72rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; margin-right:0.35rem; }
-    .pill-warn { background:#451a03; color:#fbbf24; border:1px solid #92400e; }
-    .pill-blue { background:#0c4a6e; color:#7dd3fc; border:1px solid #075985; }
-    .pill-red { background:#450a0a; color:#fca5a5; border:1px solid #991b1b; }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; margin:0.9rem 0; }
-    @media(max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
-    .stat { background:#0b1120; border:1px solid #1e293b; border-radius:8px; padding:0.65rem; text-align:center; }
-    .stat strong { display:block; font-size:1.25rem; color:#38bdf8; }
-    .stat span { font-size:0.74rem; color:#94a3b8; }
+    .caution-bar { background:#1f2937; border:1px solid #4b5563; border-radius:8px; padding:0.45rem 0.7rem; font-size:0.8rem; font-weight:700; color:#f8fafc; margin-bottom:0.55rem; display:flex; align-items:center; gap:0.45rem; }
+    .pill { display:inline-block; font-size:0.72rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; margin-right:0.35rem; background:#0c4a6e; color:#7dd3fc; border:1px solid #075985; }
+    .embed-box { margin-top:0.6rem; border-radius:8px; overflow:hidden; border:1px solid #1e293b; background:#05070c; }
+    .fallback-box { margin-top:0.55rem; background:#05070c; border:1px dashed #334155; border-radius:8px; padding:0.65rem; font-size:0.8rem; color:#cbd5e1; }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <span class="badge">B2B BRAND &amp; PUBLIC-FIGURE PROTECTION</span>
-      <h1>BrandWatch — Unverified Video &amp; Rumor Radar</h1>
+      <span class="badge">STRICT FILTER: "Caution: Video flagged for unverified content" ONLY</span>
+      <h1>CautionWatch — Live Flagged TikTok Tracker &amp; Alert Portal</h1>
     </div>
-    <div class="row">
-      <a class="btn btn-amber" href="#b2b-contact">B2B Contact / Request Takedown Watch</a>
+    <div>
+      <a class="btn btn-amber" href="#alert-contact">Request Live Alerts (Businesses &amp; Individuals)</a>
     </div>
   </header>
 
   <div class="notice">
-    <strong>Honest Extraction Scope:</strong> TikTok hides its in-app <em>"Caution: Video flagged for unverified content"</em> UI banner from public oEmbed and Search APIs (and we never bypass platform anti-bot gates). Instead, BrandWatch extracts verifiable intelligence in real time by uniting:
-    <strong>(1)</strong> Google Fact Check Explorer debunk feeds, <strong>(2)</strong> Breaking rumor/deepfake press tracking, <strong>(3)</strong> Indexed TikTok URLs resolved live via official TikTok oEmbed + risk-cue scoring, and <strong>(4)</strong> A live Caution Watch URL Queue + Bookmarklet for flagged clips spotted in the wild.
+    <strong>Zero-Noise Strict Policy:</strong> This site indexes and displays <strong>only</strong> TikTok videos verified to carry the official <code>"Caution: Video flagged for unverified content"</code> label (extracted via raw scraper <code>warnInfo</code> / <code>labelTop</code> / <code>contentDesc</code> fields or direct verified operator submissions). All unflagged videos, general news, and unrelated posts are excluded. Official TikTok embeds load directly from TikTok, with saved caption/thumbnail/transcript fallback records kept in case the creator deletes the post.
   </div>
 
   <div class="grid">
     <div>
       <div class="card">
-        <strong>1. Live Brand / Figure Unverified-Rumor &amp; TikTok Extractor</strong>
+        <strong>Verified "Caution: Unverified Content" Video Feed (<span id="countBadge">0</span>)</strong>
         <div class="row" style="margin-top:0.6rem;">
-          <input id="queryInput" type="text" placeholder="Enter brand, athlete, exec, or keyword (e.g. Anthony Joshua, maskedtruth, deepfake)" style="flex:1;margin:0;" />
-          <button class="btn" onclick="runScan()">Scan Live Feeds</button>
+          <input id="queryInput" type="text" placeholder="Filter Caution videos by business, personal name, @handle, hashtag, or transcript..." style="flex:1;margin:0;" />
+          <button class="btn" onclick="loadCautionFeed()">Filter Flagged Videos</button>
+          <button class="btn" style="background:#334155;" onclick="document.getElementById('queryInput').value='';loadCautionFeed();">Show All</button>
         </div>
-        <div class="row" style="margin-top:0.55rem;">
-          <span class="chip" onclick="quickScan('tiktok')">tiktok (global)</span>
-          <span class="chip" onclick="quickScan('Anthony Joshua')">Anthony Joshua</span>
-          <span class="chip" onclick="quickScan('deepfake')">deepfake</span>
-          <span class="chip" onclick="quickScan('crypto scam')">crypto scam</span>
-        </div>
-
-        <div class="stats" id="statsBar">
-          <div class="stat"><strong id="stWatch">-</strong><span>Caution Watch Queue</span></div>
-          <div class="stat"><strong id="stFc">-</strong><span>Fact-Check Debunks</span></div>
-          <div class="stat"><strong id="stNews">-</strong><span>Rumor Press Signals</span></div>
-          <div class="stat"><strong id="stTk">-</strong><span>TikTok oEmbeds</span></div>
-        </div>
-
-        <div id="feedOut" style="font-size:0.88rem;color:#94a3b8;">Loading live extraction feed...</div>
+        <div id="feedOut" style="margin-top:0.6rem;font-size:0.88rem;color:#94a3b8;">Loading verified Caution-tagged TikTok feed...</div>
       </div>
 
-      <div class="card" id="caution-inspector">
-        <strong>2. Extract &amp; Log a TikTok Video Carrying a Caution Banner</strong>
-        <p style="font-size:0.84rem;color:#cbd5e1;margin:0.35rem 0 0.7rem;">Spotted a video with <em>"Caution: Video flagged for unverified content"</em> in TikTok? Paste its link below (or drag the 1-click bookmarklet: <a href="${escapeHtml(bookmarkletHref)}" style="font-weight:700;color:#fbbf24;">+ Log Caution Clip</a> to your browser bookmarks bar). We resolve creator metadata via official TikTok oEmbed, cross-check Fact Checks, and save it to the Caution Watch Feed.</p>
+      <div class="card" id="log-caution">
+        <strong>Submit Verified "Caution: Video flagged for unverified content" Clip</strong>
+        <p style="font-size:0.83rem;color:#cbd5e1;margin:0.35rem 0 0.7rem;">Spotted a video carrying the grey Caution banner in TikTok? Paste its link below (or drag the 1-click bookmarklet <a href="${escapeHtml(bookmarkletHref)}" style="color:#fbbf24;font-weight:700;">+ Add Caution Video</a> to your browser bookmarks bar). We verify via official TikTok oEmbed and archive it strictly under the Caution label.</p>
         <label for="tkUrl">TikTok Video URL</label>
         <input id="tkUrl" type="url" placeholder="https://www.tiktok.com/@maskedtruthmt/video/..." />
-        <div class="row">
-          <div style="flex:1;min-width:180px;">
-            <label for="tkTag">Brand / Subject Mentioned</label>
-            <input id="tkTag" type="text" placeholder="e.g. Anthony Joshua or Acme Corp" />
-          </div>
-          <div style="flex:1;min-width:180px;">
-            <label for="tkCat">Observed TikTok Flag</label>
-            <select id="tkCat">
-              <option value="Caution: Video flagged for unverified content">Caution: Unverified Content</option>
-              <option value="Warning: Risky activity / harm disclaimer">Warning: Risky Activity / Harm</option>
-              <option value="AI-generated / synthetic impersonation">AI-Generated / Impersonation</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <button class="btn" onclick="inspectClip()">Resolve oEmbed Preview</button>
-          <button class="btn btn-amber" onclick="submitCautionClip()">Log to Caution Watch Queue</button>
-        </div>
-        <div id="inspectOut" style="margin-top:0.8rem;"></div>
+        <label for="tkBrand">Subject / Brand / Name Mentioned (optional)</label>
+        <input id="tkBrand" type="text" placeholder="e.g. Anthony Joshua or Acme Brand" />
+        <label for="tkVoice">Observed Caption / Audio Summary (preserved if creator deletes clip)</label>
+        <input id="tkVoice" type="text" placeholder="Optional transcript or context note" />
+        <button class="btn btn-amber" onclick="submitCautionVideo()">Verify oEmbed &amp; Add Caution Video</button>
+        <div id="logStatus" style="margin-top:0.7rem;font-size:0.85rem;"></div>
       </div>
     </div>
 
     <div>
-      <div class="card" id="b2b-contact">
-        <strong>3. For Brands, Agencies &amp; Talent — B2B Contact</strong>
-        <p style="font-size:0.84rem;color:#cbd5e1;margin:0.35rem 0 0.8rem;">Need continuous monitoring for unverified TikTok rumors, deepfakes, or executive impersonation, or bulk extraction/takedown evidence? Send your details directly below.</p>
-        <form id="b2bForm" onsubmit="submitB2B(event)">
-          <label for="bCompany">Company / Brand / Talent Name *</label>
-          <input id="bCompany" required placeholder="e.g. Apex PR / Management" />
-          <label for="bName">Your Name &amp; Role</label>
-          <input id="bName" placeholder="e.g. Sarah Lee, Head of Comms" />
-          <label for="bEmail">Work Email *</label>
-          <input id="bEmail" type="email" required placeholder="sarah@company.com" />
-          <label for="bKeywords">Brands / People / Handles to Monitor *</label>
-          <input id="bKeywords" required placeholder="e.g. Anthony Joshua, @brandname" />
-          <label for="bRefUrl">Flagged TikTok / Rumor URL (optional)</label>
-          <input id="bRefUrl" placeholder="https://www.tiktok.com/@..." />
-          <label for="bPlan">Inquiry Type</label>
-          <select id="bPlan">
-            <option value="Custom B2B Rumor & Caution Watch Inquiry">Custom B2B Rumor &amp; Caution Watch Inquiry</option>
-            <option value="Emergency Takedown & Evidence Dossier ($49)">Emergency Takedown &amp; Evidence Dossier ($49)</option>
-            <option value="Weekly BrandWatch Retainer ($199)">Weekly BrandWatch Retainer ($199)</option>
+      <div class="card" id="alert-contact">
+        <strong>Contact for Live Alerts (Businesses &amp; Individuals)</strong>
+        <p style="font-size:0.84rem;color:#cbd5e1;margin:0.35rem 0 0.8rem;">Want instant email or webhook alerts the moment a <code>Caution: Video flagged for unverified content</code> video mentions your company, brand, @handle, or personal name? Submit your watchlist below.</p>
+        <form id="contactForm" onsubmit="submitContact(event)">
+          <label for="cAccountType">I am a *</label>
+          <select id="cAccountType">
+            <option value="Business / Brand / Agency">Business / Brand / PR / Legal Team</option>
+            <option value="Individual / Creator / Public Figure">Individual / Creator / Public Figure</option>
           </select>
-          <label for="bNotes">Context / SLA Requirements</label>
-          <textarea id="bNotes" rows="3" placeholder="Tell us what unverified videos or rumors are circulating..."></textarea>
-          <button class="btn btn-green" type="submit" style="width:100%;">Send B2B Inquiry Directly</button>
+          <label for="cName">Business or Personal Name *</label>
+          <input id="cName" required placeholder="e.g. Matchroom PR or John Smith" />
+          <label for="cEmail">Email for Live Alerts *</label>
+          <input id="cEmail" type="email" required placeholder="alerts@company.com or you@gmail.com" />
+          <label for="cKeywords">Exact Names, Brand Terms &amp; @Handles to Poll *</label>
+          <input id="cKeywords" required placeholder="e.g. Anthony Joshua, @yourbrand, Product Name" />
+          <label for="cRefUrl">Existing Flagged TikTok URL (optional)</label>
+          <input id="cRefUrl" placeholder="https://www.tiktok.com/@.../video/..." />
+          <label for="cPlan">Alert Preference</label>
+          <select id="cPlan">
+            <option value="Live Caution Alert Subscription Inquiry">Live Caution Alert Subscription (Email / Webhook)</option>
+            <option value="Archived Caution Evidence Dossier ($49)">Archived Caution Evidence Dossier Pack ($49)</option>
+            <option value="Managed Custom Polling & Live Alert Setup ($199)">Priority Managed Poller + Live Alerts ($199)</option>
+          </select>
+          <label for="cNotes">Webhook URL (Make.com / Slack) or Notes</label>
+          <textarea id="cNotes" rows="3" placeholder="Optional webhook URL, escalation contact, or extra keywords..."></textarea>
+          <button class="btn btn-green" type="submit" style="width:100%;">Request Live Caution Alerts / Contact Me</button>
         </form>
-        <div id="b2bStatus" style="margin-top:0.8rem;font-size:0.86rem;"></div>
+        <div id="contactStatus" style="margin-top:0.8rem;font-size:0.86rem;"></div>
         <div style="margin-top:0.75rem;font-size:0.82rem;color:#94a3b8;">
-          Direct Email Fallback: <a href="mailto:${escapeHtml(contactEmail)}?subject=B2B%20BrandWatch%20Inquiry">${escapeHtml(contactEmail)}</a>
+          Direct Contact: <a href="mailto:${escapeHtml(contactEmail)}?subject=CautionWatch%20Live%20Alert%20Inquiry">${escapeHtml(contactEmail)}</a>
         </div>
       </div>
 
       <div class="card">
-        <strong>Instant Self-Serve B2B Evidence Packs (Stripe)</strong>
+        <strong>Instant Paid Dossiers &amp; Alert Setup (Stripe)</strong>
         <div class="feed-item">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Brand Caution &amp; Rumor Dossier (.zip)</strong>
-            <span style="color:#34d399;font-weight:800;font-size:1.15rem;">$49</span>
+            <strong>Caution-Flagged Evidence Dossier (.zip)</strong>
+            <span style="color:#34d399;font-weight:800;">$49</span>
           </div>
-          <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Instant compiled CSV + JSON + takedown brief for your scanned brand/figure.</p>
-          <button class="btn btn-green" style="width:100%;" onclick="buyPlan('audit')">Checkout Dossier ($49 via Stripe)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Archived CSV + JSON fallback records (saved caption, @handle, thumbnail &amp; transcript) for your watched keywords.</p>
+          <button class="btn btn-green" style="width:100%;" onclick="buyPlan('audit')">Download Dossier Pack ($49)</button>
         </div>
         <div class="feed-item">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Priority B2B Watch Onboarding</strong>
-            <span style="color:#fbbf24;font-weight:800;font-size:1.15rem;">$199</span>
+            <strong>Priority Live Polling &amp; Webhook Setup</strong>
+            <span style="color:#fbbf24;font-weight:800;">$199</span>
           </div>
-          <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Custom keyword watch setup, priority triage, plus downloadable dossier bundle.</p>
-          <button class="btn btn-amber" style="width:100%;" onclick="buyPlan('retainer')">Order Priority Setup ($199 via Stripe)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Custom keyword polling + live email/Make.com webhook alert wiring + dossier ZIP.</p>
+          <button class="btn btn-amber" style="width:100%;" onclick="buyPlan('retainer')">Order Live Alert Setup ($199)</button>
         </div>
       </div>
     </div>
@@ -251,103 +220,85 @@ function renderLanding(origin, contactEmail) {
       return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
     document.addEventListener("click", function(ev) {
-      const btn = ev.target && ev.target.closest ? ev.target.closest("[data-esc-url]") : null;
+      const btn = ev.target && ev.target.closest ? ev.target.closest("[data-alert-url]") : null;
       if (!btn) return;
       ev.preventDefault();
-      escalateToB2B(btn.getAttribute("data-esc-url") || "", btn.getAttribute("data-esc-label") || "");
+      document.getElementById("cRefUrl").value = btn.getAttribute("data-alert-url") || "";
+      const kw = btn.getAttribute("data-alert-kw") || "";
+      if (kw && !document.getElementById("cKeywords").value.trim()) document.getElementById("cKeywords").value = kw;
+      document.getElementById("alert-contact").scrollIntoView({ behavior: "smooth" });
     });
-    function escalateToB2B(url, label) {
-      if (url) document.getElementById("bRefUrl").value = url;
-      if (label && !document.getElementById("bKeywords").value.trim()) document.getElementById("bKeywords").value = label;
-      document.getElementById("b2b-contact").scrollIntoView({ behavior: "smooth" });
-    }
-    function quickScan(q) {
-      document.getElementById("queryInput").value = q;
-      runScan();
-    }
-    async function runScan() {
-      const q = document.getElementById("queryInput").value.trim() || "tiktok";
+    async function loadCautionFeed() {
+      const q = document.getElementById("queryInput").value.trim();
       const out = document.getElementById("feedOut");
-      out.textContent = "Scanning Google Fact Check, News Rumors, urlscan + TikTok oEmbed & Caution Watch Queue...";
+      out.textContent = "Loading strict Caution-flagged TikTok videos...";
       try {
-        const res = await fetch("/api/scan?q=" + encodeURIComponent(q));
+        const res = await fetch("/api/scan" + (q ? "?q=" + encodeURIComponent(q) : ""));
         const d = await res.json();
-        document.getElementById("stWatch").textContent = d.counts?.caution_watchlist ?? 0;
-        document.getElementById("stFc").textContent = d.counts?.fact_checks ?? 0;
-        document.getElementById("stNews").textContent = d.counts?.news_rumors ?? 0;
-        document.getElementById("stTk").textContent = d.counts?.tiktok_oembeds ?? 0;
-
-        let html = "";
-        for (const w of d.caution_watchlist || []) {
-          html += '<div class="feed-item"><span class="pill pill-red">' + esc(w.cautionLabel) + '</span><span class="pill pill-blue">' + esc(w.brandTag || "Caution Queue") + '</span><div style="margin-top:0.35rem;"><strong>' + esc(w.handle || w.authorName || "Creator") + '</strong>: ' + esc(w.title) + '</div><div style="margin-top:0.4rem;"><a href="' + esc(w.url) + '" target="_blank" rel="noopener">Open TikTok</a> | <a href="#b2b-contact" data-esc-url="' + esc(w.url) + '" data-esc-label="' + esc(w.brandTag || w.handle) + '">Escalate to B2B</a></div></div>';
+        document.getElementById("countBadge").textContent = String(d.matched_count ?? 0);
+        const list = d.caution_videos || [];
+        if (!list.length) {
+          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived). Poll via <code>scripts/poll_tiktok_caution.py</code> (Apify/EnsembleData) or submit an observed Caution clip below, or subscribe on the right to receive live alerts automatically.</div>';
+          return;
         }
-        for (const t of d.tiktok_clips || []) {
-          const cues = (t.captionRisk?.matchedCues || []).join(", ") || "indexed public clip";
-          html += '<div class="feed-item"><span class="pill pill-warn">TikTok oEmbed (' + esc(t.captionRisk?.riskTier || "low") + ' risk)</span><span class="pill pill-blue">' + esc(t.handle || t.authorName) + '</span><div style="margin-top:0.35rem;">' + esc(t.title || "(No caption)") + '</div><div style="font-size:0.78rem;color:#94a3b8;margin-top:0.25rem;">Signals: ' + esc(cues) + '</div><div style="margin-top:0.4rem;"><a href="' + esc(t.url) + '" target="_blank" rel="noopener">Open Clip</a> | <a href="#b2b-contact" data-esc-url="' + esc(t.url) + '" data-esc-label="' + esc(t.handle || q) + '">Escalate to B2B</a></div></div>';
-        }
-        for (const fc of d.fact_checks || []) {
-          html += '<div class="feed-item"><span class="pill pill-red">' + esc(fc.verdict) + '</span><span class="pill pill-blue">' + esc(fc.publisher) + '</span><div style="margin-top:0.35rem;"><strong>' + esc(fc.claimText) + '</strong></div><div style="font-size:0.82rem;color:#cbd5e1;margin-top:0.2rem;">' + esc(fc.reviewTitle) + '</div><div style="margin-top:0.4rem;"><a href="' + esc(fc.reviewUrl) + '" target="_blank" rel="noopener">Read Fact-Check</a> | <a href="#b2b-contact" data-esc-url="' + esc(fc.linkedTikTokUrl || fc.reviewUrl) + '" data-esc-label="' + esc(q) + '">Escalate to B2B</a></div></div>';
-        }
-        for (const n of d.news_rumors || []) {
-          html += '<div class="feed-item"><span class="pill pill-warn">Rumor Press</span><span class="pill pill-blue">' + esc(n.source) + '</span><div style="margin-top:0.35rem;">' + esc(n.title) + '</div><div style="margin-top:0.4rem;"><a href="' + esc(n.url) + '" target="_blank" rel="noopener">Source Link</a> | <a href="#b2b-contact" data-esc-url="' + esc(n.url) + '" data-esc-label="' + esc(q) + '">Escalate to B2B</a></div></div>';
-        }
-        out.innerHTML = html || '<div class="feed-item">No matching signals found yet. Paste a flagged TikTok URL below or submit a B2B watch request.</div>';
+        out.innerHTML = list.map((v) => {
+          const iframeHtml = v.playerUrl
+            ? '<div class="embed-box"><iframe src="' + esc(v.playerUrl) + '" style="width:100%;height:390px;border:0;" allow="fullscreen" loading="lazy" title="TikTok Embed"></iframe></div>'
+            : "";
+          const tagsHtml = (v.hashtags || []).slice(0, 6).map((h) => '<span class="pill">#' + esc(h) + '</span>').join("");
+          return '<div class="feed-item">' +
+            '<div class="caution-bar">&#9888; ' + esc(v.cautionText || "Caution: Video flagged for unverified content") + '</div>' +
+            '<div><span class="pill">' + esc(v.authorUsername || v.authorName) + '</span><span class="pill">Matched: ' + esc(v.matchedField || "warnInfo") + '</span>' + tagsHtml + '</div>' +
+            '<div style="margin-top:0.45rem;font-size:0.88rem;">' + esc(v.description || "(No caption saved)") + '</div>' +
+            iframeHtml +
+            '<div class="fallback-box"><strong>Saved Fallback Record</strong> (preserved if creator deletes clip): Video ID <code>' + esc(v.videoId) + '</code> | Creator <code>' + esc(v.authorUsername) + '</code>' +
+            (v.voiceToText ? ' | Transcript: ' + esc(v.voiceToText.slice(0, 220)) : '') +
+            '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.brandTag || v.authorUsername) + '">Get Live Alerts / Escalate</a></div></div></div>';
+        }).join("");
       } catch (e) {
-        out.textContent = "Scan error: " + e.message;
+        out.textContent = "Failed to load feed: " + e.message;
       }
     }
-    async function inspectClip() {
+    async function submitCautionVideo() {
       const url = document.getElementById("tkUrl").value.trim();
-      const box = document.getElementById("inspectOut");
-      if (!url) { box.textContent = "Enter a TikTok URL first."; return; }
-      box.textContent = "Resolving official TikTok oEmbed & cross-checking claims...";
-      try {
-        const res = await fetch("/api/inspect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url })
-        });
-        const d = await res.json();
-        if (!res.ok || !d.ok) { box.textContent = "Error: " + (d.error || res.status); return; }
-        const c = d.clip;
-        box.innerHTML = '<div class="feed-item"><strong>' + esc(c.handle || c.authorName) + '</strong>: ' + esc(c.title) + '<div style="font-size:0.8rem;color:#fbbf24;margin-top:0.25rem;">Caption Risk: ' + esc(c.captionRisk?.riskTier) + ' (' + esc(c.captionRisk?.riskScore) + '/100)</div>' + (c.playerUrl ? '<div style="margin-top:0.5rem;"><a href="' + esc(c.playerUrl) + '" target="_blank" rel="noopener">Open Official TikTok Embed Player</a></div>' : '') + '</div>';
-      } catch (e) {
-        box.textContent = "Inspect failed: " + e.message;
-      }
-    }
-    async function submitCautionClip() {
-      const url = document.getElementById("tkUrl").value.trim();
-      const brandTag = document.getElementById("tkTag").value.trim();
-      const cautionLabel = document.getElementById("tkCat").value;
-      const box = document.getElementById("inspectOut");
-      if (!url) { box.textContent = "Enter a TikTok URL first."; return; }
-      box.textContent = "Verifying via TikTok oEmbed and saving to Caution Watch Queue...";
+      const brandTag = document.getElementById("tkBrand").value.trim();
+      const voiceToText = document.getElementById("tkVoice").value.trim();
+      const st = document.getElementById("logStatus");
+      if (!url) { st.textContent = "Paste a TikTok video URL first."; return; }
+      st.textContent = "Verifying via official TikTok oEmbed and archiving Caution record...";
       try {
         const res = await fetch("/api/report", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, brandTag, cautionLabel })
+          body: JSON.stringify({
+            url,
+            brandTag,
+            voiceToText,
+            cautionLabel: "Caution: Video flagged for unverified content"
+          })
         });
         const d = await res.json();
-        if (!res.ok || !d.ok) { box.textContent = "Submit failed: " + (d.error || res.status); return; }
-        box.innerHTML = '<div class="feed-item" style="border-color:#059669;">Saved verified Caution entry <code>' + esc(d.entry?.id) + '</code> for <strong>' + esc(d.entry?.handle || d.entry?.authorName) + '</strong>.</div>';
-        runScan();
+        if (!res.ok || !d.ok) { st.style.color = "#fca5a5"; st.textContent = "Error: " + (d.error || res.status); return; }
+        st.style.color = "#34d399";
+        st.innerHTML = 'Verified &amp; archived Caution clip <code>' + esc(d.entry?.videoId) + '</code> by <strong>' + esc(d.entry?.authorUsername) + '</strong>.';
+        loadCautionFeed();
       } catch (e) {
-        box.textContent = "Submit error: " + e.message;
+        st.style.color = "#fca5a5";
+        st.textContent = "Submit failed: " + e.message;
       }
     }
-    async function submitB2B(ev) {
+    async function submitContact(ev) {
       ev.preventDefault();
-      const st = document.getElementById("b2bStatus");
-      st.textContent = "Submitting B2B inquiry...";
+      const st = document.getElementById("contactStatus");
+      st.textContent = "Saving your live alert request...";
       const payload = {
-        company: document.getElementById("bCompany").value.trim(),
-        contact_name: document.getElementById("bName").value.trim(),
-        email: document.getElementById("bEmail").value.trim(),
-        keywords: document.getElementById("bKeywords").value.trim(),
-        reference_url: document.getElementById("bRefUrl").value.trim(),
-        plan: document.getElementById("bPlan").value,
-        notes: document.getElementById("bNotes").value.trim(),
+        account_type: document.getElementById("cAccountType").value,
+        company: document.getElementById("cName").value.trim(),
+        email: document.getElementById("cEmail").value.trim(),
+        keywords: document.getElementById("cKeywords").value.trim(),
+        reference_url: document.getElementById("cRefUrl").value.trim(),
+        plan: document.getElementById("cPlan").value,
+        notes: document.getElementById("cNotes").value.trim(),
       };
       try {
         const res = await fetch("/api/contact", {
@@ -357,27 +308,24 @@ function renderLanding(origin, contactEmail) {
         });
         const d = await res.json();
         if (!res.ok || !d.ok) { st.style.color = "#fca5a5"; st.textContent = "Error: " + (d.error || res.status); return; }
-        const mailSubj = encodeURIComponent("[BrandWatch B2B " + d.lead_id + "] " + payload.company);
-        const mailBody = encodeURIComponent("Lead ID: " + d.lead_id + "\\nCompany: " + payload.company + "\\nKeywords: " + payload.keywords + "\\nRef URL: " + payload.reference_url + "\\nNotes: " + payload.notes);
+        const subj = encodeURIComponent("[CautionWatch Live Alert " + d.lead_id + "] " + payload.company);
+        const body = encodeURIComponent("Ref: " + d.lead_id + "\\nType: " + payload.account_type + "\\nName: " + payload.company + "\\nKeywords: " + payload.keywords + "\\nRef URL: " + payload.reference_url + "\\nNotes: " + payload.notes);
         st.style.color = "#34d399";
-        st.innerHTML = 'Inquiry recorded (Ref: <code>' + esc(d.lead_id) + '</code>). Want an instant email thread too? <a href="mailto:${escapeHtml(contactEmail)}?subject=' + mailSubj + '&body=' + mailBody + '">Click here to send directly to ${escapeHtml(contactEmail)}</a>.';
+        st.innerHTML = 'Live alert contact saved (Ref: <code>' + esc(d.lead_id) + '</code>). Active keywords are now eligible for Caution-tag polling. <a href="mailto:${escapeHtml(contactEmail)}?subject=' + subj + '&body=' + body + '">Also open direct email to ${escapeHtml(contactEmail)}</a>.';
       } catch (e) {
         st.style.color = "#fca5a5";
         st.textContent = "Network error: " + e.message;
       }
     }
     function buyPlan(tier) {
-      const q = document.getElementById("bKeywords").value.trim() || document.getElementById("queryInput").value.trim() || "BrandWatch";
+      const q = document.getElementById("cKeywords").value.trim() || document.getElementById("queryInput").value.trim() || "CautionWatch";
       window.location.href = "/api/checkout?tier=" + encodeURIComponent(tier) + "&domain=" + encodeURIComponent(q);
     }
     (function init() {
       const qs = new URLSearchParams(window.location.search);
-      const insp = qs.get("inspect");
-      if (insp) {
-        document.getElementById("tkUrl").value = insp;
-        inspectClip();
-      }
-      runScan();
+      const logUrl = qs.get("log") || qs.get("inspect");
+      if (logUrl) document.getElementById("tkUrl").value = logUrl;
+      loadCautionFeed();
     })();
   </script>
 </body>
@@ -385,8 +333,8 @@ function renderLanding(origin, contactEmail) {
 }
 
 async function buildPackForTarget(targetBrand, tier, bodyParams = {}, env = null) {
-  const scan = await runBrandRumorScan(targetBrand, fetch, env?.FUNNEL_KV || null);
-  return buildBrandWatchDossier(targetBrand, tier, scan, bodyParams.notes || "");
+  const scan = await runCautionOnlyScan(targetBrand, env?.FUNNEL_KV || null);
+  return buildCautionDossier(targetBrand, tier, scan, bodyParams.notes || "");
 }
 
 export default {
@@ -406,6 +354,7 @@ export default {
         {
           status: "ok",
           service: "brand-watch",
+          strict_filter: "Caution: Video flagged for unverified content ONLY",
           merchant_base: MERCHANT_BASE,
           merchant_solana_ata: MERCHANT_SOLANA_ATA,
           b2b_contact_email: contactEmail,
@@ -418,7 +367,7 @@ export default {
       );
     }
 
-    if (path === "/api/scan") {
+    if (path === "/api/scan" || path === "/api/feed") {
       if (req.method !== "GET" && req.method !== "POST") return jsonResp({ error: "Method not allowed" }, 405, cors);
       let q = url.searchParams.get("q") || url.searchParams.get("brand") || "";
       if (req.method === "POST") {
@@ -429,33 +378,35 @@ export default {
           return jsonResp({ error: "Invalid JSON body" }, 400, cors);
         }
       }
-      const res = await runBrandRumorScan(q, fetch, env?.FUNNEL_KV || null);
-      if (q && !q.toLowerCase().startsWith("test.")) {
-        await incrementFunnelCounter(env, "brand_watch", "scans");
-      }
+      const res = await runCautionOnlyScan(q, env?.FUNNEL_KV || null);
       return jsonResp(res, 200, cors);
     }
 
-    if (path === "/api/feed") {
-      const queue = await loadQueueEntries(env?.FUNNEL_KV || null, 25);
-      return jsonResp({ ok: true, count: queue.length, caution_watchlist: queue }, 200, cors);
-    }
-
-    if (path === "/api/inspect") {
+    if (path === "/api/ingest-caution") {
       if (req.method !== "POST") return jsonResp({ error: "POST required" }, 405, cors);
+      if (!isAuthorizedAdmin(req, env)) return jsonResp({ error: "Unauthorized" }, 401, cors);
       let body;
       try {
         body = await req.json();
       } catch {
         return jsonResp({ error: "Invalid JSON body" }, 400, cors);
       }
-      try {
-        const clip = await resolveTikTokOembed(body?.url, fetch);
-        const related = await runBrandRumorScan(clip.handle || clip.authorName || "", fetch, null);
-        return jsonResp({ ok: true, clip, fact_checks: related.fact_checks.slice(0, 4), news_rumors: related.news_rumors.slice(0, 4) }, 200, cors);
-      } catch (err) {
-        return jsonResp({ ok: false, error: err.message }, err.httpStatus || 502, cors);
+      const rawItems = Array.isArray(body?.items) ? body.items : body ? [body] : [];
+      let accepted = 0;
+      let rejected = 0;
+      const saved = [];
+      for (const raw of rawItems) {
+        const rec = extractUnverifiedCautionRecord(raw, String(raw?.sourceType || body?.source || "scraper_api"));
+        if (!rec) {
+          rejected += 1;
+          continue;
+        }
+        await appendKvIndexItem(env?.FUNNEL_KV, "bw:caution:index", "bw:caution:item:", rec.id, rec);
+        accepted += 1;
+        saved.push(rec);
       }
+      if (accepted > 0) await incrementFunnelCounter(env, "brand_watch", "caution_ingested", accepted);
+      return jsonResp({ ok: true, accepted, rejected, items: saved }, accepted > 0 ? 201 : 200, cors);
     }
 
     if (path === "/api/report") {
@@ -466,28 +417,29 @@ export default {
       } catch {
         return jsonResp({ error: "Invalid JSON body" }, 400, cors);
       }
+      const cautionLabel = String(body?.cautionLabel || "").trim();
+      if (!/(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content/i.test(cautionLabel)) {
+        return jsonResp({ ok: false, error: "Only 'Caution: Video flagged for unverified content' videos are accepted." }, 422, cors);
+      }
       try {
         const clip = await resolveTikTokOembed(body?.url, fetch);
-        const id = (await sha256Hex(clip.url)).slice(0, 16);
-        const entry = {
-          id,
-          sourceType: "app_caution_submission",
-          url: clip.url,
-          videoId: clip.videoId,
-          playerUrl: clip.playerUrl,
-          authorName: clip.authorName,
-          handle: clip.handle,
-          authorUrl: clip.authorUrl,
-          title: clip.title,
-          thumbnailUrl: clip.thumbnailUrl,
-          brandTag: String(body?.brandTag || "").trim().slice(0, 120) || clip.handle || "TikTok Watch",
-          cautionLabel: String(body?.cautionLabel || "Caution: Video flagged for unverified content").trim().slice(0, 120),
-          captionRisk: clip.captionRisk,
-          submittedAt: new Date().toISOString(),
-        };
-        const stored = await appendKvIndexItem(env?.FUNNEL_KV, "bw:queue:index", "bw:queue:item:", id, entry);
+        const rec = extractUnverifiedCautionRecord(
+          {
+            id: clip.videoId || (await sha256Hex(clip.url)).slice(0, 16),
+            webVideoUrl: clip.url,
+            authorMeta: { name: clip.authorUsername.replace(/^@+/, ""), nickName: clip.authorName },
+            text: clip.description,
+            voice_to_text: String(body?.voiceToText || "").trim(),
+            thumbnailUrl: clip.thumbnailUrl,
+            brandTag: String(body?.brandTag || "").trim(),
+            cautionLabel,
+          },
+          "app_caution_submission",
+        );
+        if (!rec) return jsonResp({ ok: false, error: "Missing required Caution unverified metadata" }, 422, cors);
+        const persisted = await appendKvIndexItem(env?.FUNNEL_KV, "bw:caution:index", "bw:caution:item:", rec.id, rec);
         await incrementFunnelCounter(env, "brand_watch", "caution_reports");
-        return jsonResp({ ok: true, persisted: stored, entry }, 201, cors);
+        return jsonResp({ ok: true, persisted, entry: rec }, 201, cors);
       } catch (err) {
         return jsonResp({ ok: false, error: err.message }, err.httpStatus || 422, cors);
       }
@@ -501,21 +453,23 @@ export default {
       } catch {
         return jsonResp({ error: "Invalid JSON body" }, 400, cors);
       }
+      const accountType = String(body?.account_type || "Business / Individual").trim().slice(0, 80);
       const company = String(body?.company || "").trim().slice(0, 140);
       const email = String(body?.email || "").trim().toLowerCase().slice(0, 140);
       const keywords = String(body?.keywords || "").trim().slice(0, 280);
       if (!company || !keywords || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-        return jsonResp({ ok: false, error: "Valid company, work email, and monitoring keywords are required." }, 400, cors);
+        return jsonResp({ ok: false, error: "Valid name, email, and alert keywords are required." }, 400, cors);
       }
       const leadId = `BW-${(await sha256Hex(`${company}:${email}:${Date.now()}`)).slice(0, 8).toUpperCase()}`;
       const record = {
         lead_id: leadId,
+        account_type: accountType,
         company,
-        contact_name: String(body?.contact_name || "").trim().slice(0, 120),
+        contact_name: String(body?.contact_name || company).trim().slice(0, 120),
         email,
         keywords,
         reference_url: String(body?.reference_url || "").trim().slice(0, 300),
-        plan: String(body?.plan || "Custom B2B Inquiry").trim().slice(0, 140),
+        plan: String(body?.plan || "Live Caution Alert Inquiry").trim().slice(0, 140),
         notes: String(body?.notes || "").trim().slice(0, 1200),
         created_at: new Date().toISOString(),
       };
@@ -527,7 +481,7 @@ export default {
         await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ event: "brand_watch_b2b_lead", ...record }),
+          body: JSON.stringify({ event: "caution_watch_subscriber_lead", ...record }),
           signal: AbortSignal.timeout(4000),
         }).catch(() => {});
       }
@@ -538,7 +492,7 @@ export default {
           lead_id: leadId,
           persisted,
           contact_email: contactEmail,
-          message: "B2B inquiry recorded. Our team will respond via email.",
+          message: "Live alert inquiry saved.",
         },
         201,
         cors,
@@ -555,7 +509,7 @@ export default {
         const ids = rawIdx ? JSON.parse(rawIdx) : [];
         const leads = (
           await Promise.all(
-            (Array.isArray(ids) ? ids : []).slice(0, 50).map(async (id) => {
+            (Array.isArray(ids) ? ids : []).slice(0, 100).map(async (id) => {
               const raw = await kv.get(`bw:lead:item:${id}`);
               return raw ? JSON.parse(raw) : null;
             }),
@@ -601,8 +555,8 @@ export default {
         plansMap: BRAND_WATCH_PLANS,
         defaultTier: "audit",
         tokenPrefix: "bw_v1",
-        zipFilename: "brand-watch-dossier.zip",
-        serviceTitle: "BrandWatch B2B Evidence Dossier",
+        zipFilename: "caution-watch-dossier.zip",
+        serviceTitle: "CautionWatch Evidence Dossier",
         buildPackFn: (target, tier, bp) => buildPackForTarget(target, tier, bp, env),
       });
     }

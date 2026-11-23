@@ -25,6 +25,7 @@ jobs:
           node --test test_worker.mjs
           python scripts/test_sniper.py
           python scripts/test_all_snipers.py
+          python -m unittest discover -s scripts -p "test_brand_watch*.py" -v
 
       - name: Provision Shared FUNNEL_KV Binding
         env:
