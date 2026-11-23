@@ -44,35 +44,59 @@ AGENCY_KW_RE = re.compile(
 )
 
 
-def fetch_agency_candidates(cursor: int = 0, limit_queries: int = 14) -> tuple[list[dict], int]:
+def fetch_agency_candidates(
+    cursor: int = 0,
+    limit_queries: int = 14,
+    cc_page: int = 2,
+    exclude_domains: set[str] | None = None,
+) -> tuple[list[dict], int, int]:
     candidates = []
     seen_domains = set()
+    excl = {d.lower().strip().replace("www.", "") for d in (exclude_domains or set()) if d}
     n = len(AGENCY_ROTATION)
     q_count = max(4, min(18, limit_queries))
     batch_queries = [f"{AGENCY_ROTATION[(cursor + off) % n][0]} {AGENCY_ROTATION[(cursor + off) % n][1]}" for off in range(q_count)]
 
-    for item in common.fetch_photon_osm_websites(batch_queries, limit_per_query=50):
-        if item["domain"] in seen_domains:
-            continue
-        seen_domains.add(item["domain"])
-        parts = item.get("query", "").rsplit(" ", 1)
+    def _add(item: dict, default_niche: str = "digital agency", default_city: str = "Metro"):
+        dom = item["domain"]
+        if dom in seen_domains or dom in excl:
+            return
+        seen_domains.add(dom)
+        parts = item.get("query", "").rsplit(" ", 1) if item.get("query") else []
         candidates.append({
             **item,
-            "niche": parts[0] if parts else "digital agency",
-            "city": parts[1] if len(parts) > 1 else "Metro",
+            "niche": parts[0] if parts else default_niche,
+            "city": parts[1] if len(parts) > 1 else default_city,
         })
 
-    if len(candidates) < 40:
-        m_count = len(common.METRO_BBOXES)
-        city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
-        ql = f'[out:json][timeout:18];node["office"~"it|advertising|marketing|company"]["website"]({s},{w},{n_lat},{e});out tags 150;'
-        for item in common.fetch_overpass_websites(ql, timeout=18):
-            if item["domain"] in seen_domains:
-                continue
-            seen_domains.add(item["domain"])
-            candidates.append({**item, "niche": "digital agency", "city": city})
+    # 1. Primary: Rapid urlscan.io .agency & SEO/Shopify/Marketing agency domains (<1s)
+    agency_queries = [
+        "page.domain:agency",
+        'page.title:"SEO Agency" OR page.title:"Digital Agency"',
+        'page.title:"Shopify Agency" OR page.title:"Web Design Agency"',
+    ]
+    urlscan_hosts = common.fetch_urlscan_domains(
+        [agency_queries[(cc_page + i) % len(agency_queries)] for i in range(len(agency_queries))],
+        size=80,
+        limit_domains=90,
+        exclude_domains=excl,
+    )
+    for host in urlscan_hosts:
+        bare = host.replace("www.", "")
+        _add({"name": bare, "website": f"https://{bare}/", "domain": bare}, "digital agency", "Web")
 
-    return candidates, (cursor + q_count) % n
+    # 2. Secondary: OSM Nominatim office / IT / consulting / advertising businesses (<0.5s/query)
+    nom_items, next_nom = common.fetch_nominatim_websites(
+        ["[office]", "[it]", "[consulting]", "[advertising]"],
+        cursor=cursor,
+        batch_queries=min(10, max(4, limit_queries)),
+        limit_total=100,
+        exclude_domains=excl | seen_domains,
+    )
+    for item in nom_items:
+        _add(item, "digital agency", item.get("city", "Metro"))
+
+    return candidates, next_nom, max(2, int(cc_page or 2) + 1)
 
 
 def inspect_agency_site(cand: dict) -> dict | None:
@@ -144,7 +168,7 @@ def craft_agency_overflow_email(target: dict) -> tuple[str, str]:
 
 def craft_followup_email(entry: dict) -> tuple[str, str]:
     dom = entry.get("domain") or "your agency"
-    raw_audit = f"{DEFAULT_SITE_RESCUE_URL}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'agency_followup'})}"
+    raw_audit = f"{DEFAULT_SITERESCUE_URL}/?{urllib.parse.urlencode({'domain': dom, 'ref': 'agency_followup'})}"
     site_link = common.build_tracked_url("play_c_agency", dom, raw_audit)
     subj = f"Re: White-label Shopify/SEO technical overflow for {dom}"[:96]
     body = (
@@ -161,6 +185,7 @@ def main():
     parser.add_argument("--queries", type=int, default=14, help="Agency city queries per run")
     parser.add_argument("--limit", type=int, default=180, help="Max agency sites to inspect per run")
     parser.add_argument("--max-emails", type=int, default=20, help="Daily send cap (default: 20/day)")
+    parser.add_argument("--max-followups", type=int, default=4, help="Max Day+2 follow-ups per run (capped by daily cap)")
     parser.add_argument("--hard-stop", type=int, default=200, help="Stop-loss delivered cap (default: 200)")
     parser.add_argument("--send", action="store_true", help="Send B2B white-label pitches via SMTP")
     parser.add_argument("--override", action="store_true", help="Override pause/stop-loss gates intentionally")
@@ -202,8 +227,14 @@ def main():
         print(f"[!] Play C Stop-Loss / Safety Gate: {gate_reason} (clean_delivered={stats['clean_delivered']}/{args.hard_stop}, bounce={stats['bounce_rate_pct']}%)")
         return
 
-    cands, next_cursor = fetch_agency_candidates(int(state.get("cursor") or 0), args.queries)
+    cands, next_cursor, next_cc_page = fetch_agency_candidates(
+        int(state.get("cursor") or 0),
+        args.queries,
+        cc_page=int(state.get("cc_page") or 2),
+        exclude_domains=known_domains,
+    )
     state["cursor"] = next_cursor
+    state["cc_page"] = next_cc_page
     common.save_json_state(STATE_FILE, state)
 
     to_probe = [c for c in cands if c["domain"] not in known_domains][: args.limit]
@@ -247,7 +278,7 @@ def main():
             lambda e: craft_followup_email(e),
             sender_name="Arman (Kurox Technical Partner)",
             daily_cap=args.max_emails,
-            max_per_run=4,
+            max_per_run=args.max_followups,
             save_path=STATE_FILE,
         )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)

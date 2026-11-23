@@ -108,51 +108,31 @@ def fetch_store_candidates(cc_page: int = 2, limit_hosts: int = 75, exclude_doma
         hosts.append(h)
         return True
 
-    # 1. Common Crawl Shopify storefronts across multiple mirrors (dense pages 2..19)
-    page = 2 + ((max(2, int(cc_page or 2)) - 2) % 18)
-    try:
-        colls = common.http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=10)
-        for coll in colls[:6]:
-            if len(hosts) >= limit_hosts:
-                break
-            cdx_api = coll["cdx-api"]
-            u = f"{cdx_api}?url=*.myshopify.com&output=json&filter=status:200&limit=60&page={page}&fl=url"
-            try:
-                st, _, _, raw = common.http_fetch(u, timeout=16, verify_ssl=False)
-                if st == 200:
-                    for line in raw.decode("utf-8", "replace").splitlines():
-                        if not line.strip():
-                            continue
-                        try:
-                            item_url = json.loads(line).get("url") or ""
-                            _accept(urllib.parse.urlparse(item_url).hostname or "")
-                        except Exception:
-                            continue
-            except Exception:
-                continue
-            page = 2 if page >= 19 else page + 1
-    except Exception as exc:
-        print(f"   [!] Common Crawl discovery warning: {exc}", flush=True)
+    # 1. Rapid urlscan.io Shopify + WooCommerce live storefront discovery (<1s/query)
+    urlscan_queries = [
+        "page.domain:myshopify.com AND NOT page.domain:email.myshopify.com",
+        "filename:wc-ajax",
+        "filename:cdn.shopify.com AND NOT page.domain:myshopify.com",
+        "page.url:products AND filename:shopify.theme",
+    ]
+    rot_q = [urlscan_queries[(cc_page + off) % len(urlscan_queries)] for off in range(len(urlscan_queries))]
+    for host in common.fetch_urlscan_domains(rot_q, size=75, limit_domains=limit_hosts, exclude_domains=excl):
+        _accept(host)
 
-    # 2. Fast Photon + OSM batch retail shop websites (custom Shopify + WooCommerce storefronts)
-    rot_idx = page % len(RETAIL_ROTATION)
-    retail_queries = [f"{RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][0]} {RETAIL_ROTATION[(rot_idx + off) % len(RETAIL_ROTATION)][1]}" for off in range(20)]
-    for item in common.fetch_photon_osm_websites(retail_queries, limit_per_query=60):
+    # 2. OSM Nominatim retail shop websites (custom Shopify + WooCommerce storefronts)
+    nom_items, next_nom = common.fetch_nominatim_websites(
+        ["[shop]", "[boutique]", "[florist]", "[bicycle]", "[bakery]", "[jewelry]", "[shoes]"],
+        cursor=int(cc_page or 0),
+        batch_queries=6,
+        limit_total=max(40, limit_hosts),
+        exclude_domains=excl | seen,
+    )
+    for item in nom_items:
         if len(hosts) >= limit_hosts:
             break
         _accept(item["domain"])
 
-    # 3. Overpass fallback if total hosts < 120
-    m_count = len(common.METRO_BBOXES)
-    if len(hosts) < 120:
-        _, s, w, n_lat, e = common.METRO_BBOXES[page % m_count]
-        ql = f'[out:json][timeout:18];node["shop"]["website"]({s},{w},{n_lat},{e});out tags 150;'
-        for item in common.fetch_overpass_websites(ql, timeout=18):
-            if len(hosts) >= limit_hosts:
-                break
-            _accept(item["domain"])
-
-    return hosts[:limit_hosts], page + 1
+    return hosts[:limit_hosts], max(2, next_nom + 2)
 
 
 def diagnose_ecom_store(candidate_host: str) -> dict | None:
@@ -373,6 +353,7 @@ def main():
     parser = argparse.ArgumentParser(description="Play B: Shopify & WooCommerce Revenue-Leak Sniper")
     parser.add_argument("--limit", type=int, default=100, help="Max store candidates per run")
     parser.add_argument("--max-emails", type=int, default=20, help="Daily send cap (default: 20/day)")
+    parser.add_argument("--max-followups", type=int, default=4, help="Max Day+2 follow-ups per run (capped by daily cap)")
     parser.add_argument("--hard-stop", type=int, default=200, help="Stop-loss delivered cap (default: 200)")
     parser.add_argument("--send", action="store_true", help="Send verified store alerts via SMTP")
     parser.add_argument("--override", action="store_true", help="Override pause/stop-loss gates intentionally")
@@ -465,7 +446,7 @@ def main():
             lambda e: craft_followup_email(e),
             sender_name="Arman (StoreFix Audit)",
             daily_cap=args.max_emails,
-            max_per_run=4,
+            max_per_run=args.max_followups,
             save_path=STATE_FILE,
         )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)

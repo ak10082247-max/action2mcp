@@ -23,6 +23,7 @@ if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
 import ecom_fix_sniper as play_b
+import launch_rescue_sniper as play_d
 import outreach_common as common
 import site_rescue_sniper as play_a
 
@@ -37,6 +38,7 @@ EXISTING_STATE_FILES = [
     os.path.join(REPO_ROOT, "data", "ecom_fix_state.json"),
     os.path.join(REPO_ROOT, "data", "agency_overflow_state.json"),
     os.path.join(REPO_ROOT, "data", "launch_rescue_state.json"),
+    os.path.join(REPO_ROOT, "data", "saas_agent_leak_state.json"),
 ]
 
 CHAIN_DOMAIN_BLOCKLIST = {
@@ -51,21 +53,7 @@ CHAIN_DOMAIN_BLOCKLIST = {
 
 def load_all_known_exclusions(state: dict) -> tuple[set[str], set[str]]:
     """Collect contacted domains and emails across all snipers to avoid duplicate outreach."""
-    domains = {str(d).lower().strip().replace("www.", "") for d in (state.get("contacted_domains") or []) if d}
-    emails = {str(e).lower().strip() for e in (state.get("contacted_emails") or []) if e}
-    emails.update(str(e).lower().strip() for e in (state.get("bounced_emails") or []) if e)
-    for path in EXISTING_STATE_FILES:
-        if not os.path.exists(path):
-            continue
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                other = json.load(f)
-            domains.update(str(d).lower().strip().replace("www.", "") for d in (other.get("contacted_domains") or []) if d)
-            emails.update(str(e).lower().strip() for e in (other.get("contacted_emails") or []) if e)
-            emails.update(str(e).lower().strip() for e in (other.get("bounced_emails") or []) if e)
-        except Exception:
-            continue
-    return domains, emails
+    return common.load_known_exclusions(EXISTING_STATE_FILES, state)
 
 
 NOMINATIM_TAGS = [
@@ -92,19 +80,56 @@ def gather_fresh_targets(
     known_domains: set[str],
     desired_total: int = 50,
 ) -> tuple[list[dict], int, int]:
-    """Gather fresh non-overlapping SMB clinics and retail stores via Nominatim bracket-tag + metro bbox search."""
-    targets: list[dict] = []
+    """Gather high-yield non-overlapping targets: Common Crawl stores + ShowHN/SaaS + Nominatim SMB clinics."""
+    ecom_targets: list[dict] = []
+    launch_targets: list[dict] = []
+    local_targets: list[dict] = []
     seen_doms = set(known_domains) | CHAIN_DOMAIN_BLOCKLIST
 
     local_cursor = int(state.get("local_cursor") or 0)
-    cc_page = int(state.get("cc_page") or 0)
+    cc_page = max(2, int(state.get("cc_page") or 2))
 
+    def _push_unique(bucket: list[dict], dom: str, url: str, name: str, source: str, city: str = "", hint_email: str = "") -> bool:
+        bare = str(dom or "").lower().strip().replace("www.", "")
+        if not bare or "." not in bare or bare in seen_doms:
+            return False
+        if bare.endswith((".ac.uk", ".edu", ".gov", ".gov.uk")) or ".edu." in bare or ".gov." in bare:
+            return False
+        if any(b in bare for b in common.DIRECTORY_BLOCKLIST) or any(ch in bare for ch in CHAIN_DOMAIN_BLOCKLIST):
+            return False
+        seen_doms.add(bare)
+        bucket.append({
+            "name": (name or bare).strip()[:80],
+            "url": url,
+            "domain": bare,
+            "hint_email": hint_email.strip().lower(),
+            "source": source,
+            "city": city,
+        })
+        return True
+
+    # 1. Real Shopify / commercial stores from Common Crawl & retail rotation (highest JS/ad-pixel conversion hit rate)
+    if ecom_limit > 0:
+        try:
+            hosts, next_cc = play_b.fetch_store_candidates(cc_page, limit_hosts=max(25, ecom_limit), exclude_domains=seen_doms)
+            cc_page = next_cc
+            for h in hosts:
+                _push_unique(ecom_targets, h, f"https://{h}/", h, "ecom_store", "Web")
+        except Exception:
+            pass
+        # 2. Fresh Show HN & SaaS web apps (great for hydration crashes, dead Pricing/Signup CTAs, mobile blocks)
+        try:
+            for item in play_d.fetch_launch_candidates(limit_total=max(24, ecom_limit)):
+                _push_unique(launch_targets, item.get("domain", ""), item.get("url", ""), item.get("name", ""), "saas_launch", "Web")
+        except Exception:
+            pass
+
+    # 3. Local high-margin clinics/agencies via Nominatim bracket-tag search
     metros = common.METRO_BBOXES
     n_pairs = len(NOMINATIM_TAGS) * len(metros)
-    batch_count = max(4, min(20, int(local_queries) + int(ecom_limit)))
-
+    batch_count = max(0, min(14, int(local_queries)))
     for step in range(batch_count):
-        if len(targets) >= desired_total * 2:
+        if len(local_targets) >= desired_total:
             break
         pair_idx = (local_cursor + step) % n_pairs
         tag, src = NOMINATIM_TAGS[pair_idx % len(NOMINATIM_TAGS)]
@@ -124,25 +149,10 @@ def gather_fresh_targets(
                         continue
                     if not web.startswith(("http://", "https://")):
                         web = "https://" + web
-                    dom = (urllib.parse.urlparse(web).hostname or "").lower().strip().replace("www.", "")
-                    if not dom or "." not in dom or dom in seen_doms:
-                        continue
-                    if dom.endswith((".ac.uk", ".edu", ".gov", ".gov.uk")) or ".edu." in dom or ".gov." in dom:
-                        continue
-                    if any(b in dom for b in common.DIRECTORY_BLOCKLIST) or any(ch in dom for ch in CHAIN_DOMAIN_BLOCKLIST):
-                        continue
-                    seen_doms.add(dom)
-                    hint_em = str(et.get("email") or et.get("contact:email") or "").strip().lower()
-                    name = str(row.get("name") or dom).strip()[:80]
-                    targets.append({
-                        "name": name,
-                        "url": web,
-                        "domain": dom,
-                        "hint_email": hint_em,
-                        "source": src,
-                        "city": city,
-                    })
-                    if len(targets) >= desired_total * 2:
+                    dom = (urllib.parse.urlparse(web).hostname or "").lower().strip()
+                    hint_em = str(et.get("email") or et.get("contact:email") or "")
+                    _push_unique(local_targets, dom, web, str(row.get("name") or dom), src, city, hint_em)
+                    if len(local_targets) >= desired_total:
                         break
         except Exception:
             pass
@@ -150,8 +160,18 @@ def gather_fresh_targets(
 
     local_cursor = (local_cursor + batch_count) % n_pairs
 
+    # Interleave buckets so each Playwright batch tests stores, local services, and SaaS launches together
+    targets: list[dict] = []
+    buckets = [ecom_targets, local_targets, launch_targets]
+    idx = 0
+    while len(targets) < desired_total * 2 and any(idx < len(b) for b in buckets):
+        for b in buckets:
+            if idx < len(b):
+                targets.append(b[idx])
+        idx += 1
+
     print(
-        f"[*] Target pool built: total={len(targets)} (ecom={sum(1 for t in targets if t['source']=='ecom_store')}, local={sum(1 for t in targets if t['source']!='ecom_store')})",
+        f"[*] Target pool built: total={len(targets)} (ecom={len(ecom_targets)}, local={len(local_targets)}, saas={len(launch_targets)})",
         flush=True,
     )
     return targets, local_cursor, cc_page

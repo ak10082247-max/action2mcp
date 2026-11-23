@@ -14,6 +14,7 @@ const configs = [
   "site_rescue/wrangler.toml",
   "ecom_fix/wrangler.toml",
   "revenue_dashboard/wrangler.toml",
+  "brand_watch/wrangler.toml",
 ];
 
 if (!accId || !token) {

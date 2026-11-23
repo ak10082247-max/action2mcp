@@ -22,7 +22,18 @@
     "stumptowncoffee.com",
     "nossacoffee.com",
     "foamshop.com",
-    "reach17.co.nz"
+    "reach17.co.nz",
+    "petshopluna.com.co",
+    "forgetmeknotsmemorynook.ca",
+    "kennedys.dk",
+    "mebel-romania.ru",
+    "karolinatoys.ru",
+    "servicesuport.ro",
+    "lisab.se",
+    "colesrefrigeration.com.au",
+    "manicabikes.com",
+    "mickymart.com",
+    "sklepwojcik.pl"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -46,7 +57,18 @@
     "info@stumptowncoffee.com",
     "hello@nossacoffee.com",
     "sales@foamshop.com",
-    "reachnzltd@gmail.com"
+    "reachnzltd@gmail.com",
+    "info@petshopluna.com.co",
+    "jabrazeau@icloud.com",
+    "salonen@kennedys.dk",
+    "mebel.romania@gmail.com",
+    "mail@karolinatoys.ru",
+    "office@servicesuport.ro",
+    "info@lisab.se",
+    "coles@colesrefrigeration.com.au",
+    "sales@manicabikes.com",
+    "mk.intercool@gmail.com",
+    "info@firmawojcik.pl"
   ],
   "history": [
     {
@@ -160,12 +182,16 @@
     {
       "domain": "casestudycoffee.com",
       "email": "info@casestudycoffee.com",
-      "sent_date": "2026-11-21T13:35:15.018282+00:00"
+      "sent_date": "2026-11-21T13:35:15.018282+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:38:47.620650+00:00"
     },
     {
       "domain": "futuracoffeeroasters.com",
       "email": "sales@futuracoffeeroasters.com",
-      "sent_date": "2026-11-21T13:35:20.880955+00:00"
+      "sent_date": "2026-11-21T13:35:20.880955+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:38:47.620650+00:00"
     },
     {
       "domain": "stumptowncoffee.com",
@@ -175,7 +201,9 @@
     {
       "domain": "nossacoffee.com",
       "email": "hello@nossacoffee.com",
-      "sent_date": "2026-11-21T14:04:00.295505+00:00"
+      "sent_date": "2026-11-21T14:04:00.295505+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:38:47.620650+00:00"
     },
     {
       "domain": "foamshop.com",
@@ -186,6 +214,61 @@
       "domain": "reach17.co.nz",
       "email": "reachnzltd@gmail.com",
       "sent_date": "2026-11-21T21:08:22.835509+00:00"
+    },
+    {
+      "domain": "petshopluna.com.co",
+      "email": "info@petshopluna.com.co",
+      "sent_date": "2026-11-23T15:51:33.736100+00:00"
+    },
+    {
+      "domain": "forgetmeknotsmemorynook.ca",
+      "email": "jabrazeau@icloud.com",
+      "sent_date": "2026-11-23T15:51:40.943080+00:00"
+    },
+    {
+      "domain": "kennedys.dk",
+      "email": "salonen@kennedys.dk",
+      "sent_date": "2026-11-23T15:51:49.415100+00:00"
+    },
+    {
+      "domain": "mebel-romania.ru",
+      "email": "mebel.romania@gmail.com",
+      "sent_date": "2026-11-23T15:51:56.770895+00:00"
+    },
+    {
+      "domain": "karolinatoys.ru",
+      "email": "mail@karolinatoys.ru",
+      "sent_date": "2026-11-23T15:52:04.680566+00:00"
+    },
+    {
+      "domain": "servicesuport.ro",
+      "email": "office@servicesuport.ro",
+      "sent_date": "2026-11-23T15:52:12.347331+00:00"
+    },
+    {
+      "domain": "lisab.se",
+      "email": "info@lisab.se",
+      "sent_date": "2026-11-23T15:52:19.519389+00:00"
+    },
+    {
+      "domain": "colesrefrigeration.com.au",
+      "email": "coles@colesrefrigeration.com.au",
+      "sent_date": "2026-11-23T15:52:27.877684+00:00"
+    },
+    {
+      "domain": "manicabikes.com",
+      "email": "sales@manicabikes.com",
+      "sent_date": "2026-11-23T15:52:35.345519+00:00"
+    },
+    {
+      "domain": "mickymart.com",
+      "email": "mk.intercool@gmail.com",
+      "sent_date": "2026-11-23T15:52:42.644384+00:00"
+    },
+    {
+      "domain": "sklepwojcik.pl",
+      "email": "info@firmawojcik.pl",
+      "sent_date": "2026-11-23T15:52:49.865867+00:00"
     }
   ],
   "updated_at": "2026-11-23T11:18:59.281401+00:00",

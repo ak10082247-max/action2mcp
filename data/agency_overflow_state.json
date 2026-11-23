@@ -135,82 +135,114 @@
     {
       "domain": "qodesocial.com",
       "email": "hello@qodesocial.com",
-      "sent_date": "2026-11-21T12:43:53.694337+00:00"
+      "sent_date": "2026-11-21T12:43:53.694337+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:06:38.736114+00:00"
     },
     {
       "domain": "comradeweb.com",
       "email": "info@comradeweb.com",
-      "sent_date": "2026-11-21T12:43:59.372082+00:00"
+      "sent_date": "2026-11-21T12:43:59.372082+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:06:38.736114+00:00"
     },
     {
       "domain": "smithinvestigationagency.com",
       "email": "info@smithinvestigationagency.com",
-      "sent_date": "2026-11-21T12:44:05.016610+00:00"
+      "sent_date": "2026-11-21T12:44:05.016610+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:06:38.736114+00:00"
     },
     {
       "domain": "explore.agency",
       "email": "us@explore.agency",
-      "sent_date": "2026-11-21T12:44:10.650755+00:00"
+      "sent_date": "2026-11-21T12:44:10.650755+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:06:38.736114+00:00"
     },
     {
       "domain": "webforest.agency",
       "email": "admin@webforest.agency",
-      "sent_date": "2026-11-21T12:44:16.625930+00:00"
+      "sent_date": "2026-11-21T12:44:16.625930+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "practics.ai",
       "email": "hi@practics.ai",
-      "sent_date": "2026-11-21T12:44:22.353421+00:00"
+      "sent_date": "2026-11-21T12:44:22.353421+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "consultant-seo-local.com",
       "email": "contact@areta.fr",
-      "sent_date": "2026-11-21T12:44:28.399850+00:00"
+      "sent_date": "2026-11-21T12:44:28.399850+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "gregbeddor.com",
       "email": "seo@gregbeddor.com",
-      "sent_date": "2026-11-21T12:44:34.648547+00:00"
+      "sent_date": "2026-11-21T12:44:34.648547+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "pdsiconsult.com",
       "email": "info@pdsiconsult.com",
-      "sent_date": "2026-11-21T12:44:40.598789+00:00"
+      "sent_date": "2026-11-21T12:44:40.598789+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "devseora.com",
       "email": "irfanbangash1993@gmail.com",
-      "sent_date": "2026-11-21T12:44:46.538877+00:00"
+      "sent_date": "2026-11-21T12:44:46.538877+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "goldfizh.nl",
       "email": "info@goldfizh.nl",
-      "sent_date": "2026-11-21T12:44:52.476759+00:00"
+      "sent_date": "2026-11-21T12:44:52.476759+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "feo.cz",
       "email": "info@feo.cz",
-      "sent_date": "2026-11-21T12:44:58.139986+00:00"
+      "sent_date": "2026-11-21T12:44:58.139986+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "pixbitz.com",
       "email": "sendus@pixbitz.com",
-      "sent_date": "2026-11-21T12:45:04.241969+00:00"
+      "sent_date": "2026-11-21T12:45:04.241969+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "junction.nl",
       "email": "info@junction.nl",
-      "sent_date": "2026-11-21T12:45:09.874114+00:00"
+      "sent_date": "2026-11-21T12:45:09.874114+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "theviralmafia.com",
       "email": "sunesh@theviralmafia.com",
-      "sent_date": "2026-11-21T12:45:15.822353+00:00"
+      "sent_date": "2026-11-21T12:45:15.822353+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "1seo.com",
       "email": "support@1seo.com",
-      "sent_date": "2026-11-21T12:45:21.817131+00:00"
+      "sent_date": "2026-11-21T12:45:21.817131+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "5kassi.com",
@@ -220,7 +252,9 @@
     {
       "domain": "krasnoyarsk.seotemple.ru",
       "email": "info-kry@seotemple.ru",
-      "sent_date": "2026-11-21T12:45:33.196002+00:00"
+      "sent_date": "2026-11-21T12:45:33.196002+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:44:00.910445+00:00"
     },
     {
       "domain": "ufa.seotemple.ru",

@@ -96,42 +96,25 @@ def extract_candidate_booking_links(html: str, base_url: str) -> list[tuple[str,
     return out
 
 
+LOCAL_NOMINATIM_TAGS = [
+    "[dentist]", "[clinic]", "[veterinary]", "[doctors]", "[lawyer]",
+    "[solicitor]", "[optician]", "[accountant]", "[plumber]", "[chiropractor]",
+]
+
+
 def fetch_local_business_candidates(cursor: int = 0, limit_queries: int = 8) -> tuple[list[dict], int]:
-    candidates = []
-    seen_domains = set()
-    n = len(SEARCH_ROTATION)
-    q_count = max(4, min(28, limit_queries))
-    batch_queries = [f"{SEARCH_ROTATION[(cursor + off) % n][0]} {SEARCH_ROTATION[(cursor + off) % n][1]}" for off in range(q_count)]
-
-    # 1. Primary: High-speed Photon + OSM batch nodes/ways API (150-350 websites in seconds, zero Overpass 502 bottlenecks)
-    for item in common.fetch_photon_osm_websites(batch_queries, limit_per_query=60):
-        if item["domain"] in seen_domains:
-            continue
-        seen_domains.add(item["domain"])
-        parts = item.get("query", "").rsplit(" ", 1)
-        candidates.append({
-            **item,
-            "category": parts[0] if parts else "local_service",
-            "city": parts[1] if len(parts) > 1 else "Metro",
-        })
-
-    # 2. Secondary Overpass supplement if Photon yielded < 220 targets
-    m_count = len(common.METRO_BBOXES)
-    if len(candidates) < 220:
-        city, s, w, n_lat, e = common.METRO_BBOXES[cursor % m_count]
-        ql = (
-            f'[out:json][timeout:18];('
-            f'node["amenity"~"dentist|clinic|veterinary|doctors"]["website"]({s},{w},{n_lat},{e});'
-            f'node["office"~"lawyer|solicitor|accountant|estate_agent"]["website"]({s},{w},{n_lat},{e});'
-            f');out tags 150;'
-        )
-        for item in common.fetch_overpass_websites(ql, timeout=18):
-            if item["domain"] in seen_domains:
-                continue
-            seen_domains.add(item["domain"])
-            candidates.append({**item, "category": "local_service", "city": city})
-
-    return candidates, (cursor + q_count) % n
+    """Discover local SMB service websites rapidly via OSM Nominatim bracket search (<0.5s/query)."""
+    items, next_cursor = common.fetch_nominatim_websites(
+        LOCAL_NOMINATIM_TAGS,
+        cursor=cursor,
+        batch_queries=max(4, min(14, limit_queries)),
+        limit_total=160,
+    )
+    candidates = [
+        {**item, "category": str(item.get("query") or "local_service").strip("[]"), "city": item.get("city", "Metro")}
+        for item in items
+    ]
+    return candidates, next_cursor
 
 
 def diagnose_local_site(cand: dict) -> dict | None:
@@ -298,6 +281,7 @@ def main():
     parser.add_argument("--queries", type=int, default=8, help="Photon/Nominatim queries per run")
     parser.add_argument("--limit", type=int, default=100, help="Max sites to probe per run")
     parser.add_argument("--max-emails", type=int, default=20, help="Daily send cap (default: 20/day)")
+    parser.add_argument("--max-followups", type=int, default=4, help="Max Day+2 follow-ups per run (capped by daily cap)")
     parser.add_argument("--hard-stop", type=int, default=200, help="Stop-loss delivered cap (default: 200)")
     parser.add_argument("--send", action="store_true", help="Send verified alerts via SMTP")
     parser.add_argument("--override", action="store_true", help="Override pause/stop-loss gates intentionally")
@@ -394,7 +378,7 @@ def main():
             lambda e: craft_followup_email(e),
             sender_name="Arman (SiteRescue Audit)",
             daily_cap=args.max_emails,
-            max_per_run=4,
+            max_per_run=args.max_followups,
             save_path=STATE_FILE,
         )
         _, _, post_stats = common.evaluate_play_gate(state, daily_cap=args.max_emails, hard_stop_total=args.hard_stop, override=True)

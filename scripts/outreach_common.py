@@ -112,16 +112,20 @@ def fetch_overpass_websites(ql_query: str, timeout: int = 18) -> list[dict]:
     return out
 
 
-def fetch_photon_osm_websites(queries: list[str], limit_per_query: int = 50, timeout: int = 10) -> list[dict]:
-    """Discover real business/shop websites via Komoot Photon + official OSM batch nodes/ways API."""
+def fetch_photon_osm_websites(queries: list[str], limit_per_query: int = 50, timeout: int = 4) -> list[dict]:
+    """Discover real business/shop websites via Komoot Photon (fast fail) + OSM batch nodes/ways API."""
     out: list[dict] = []
     seen: set[str] = set()
-    for q in queries:
+    consecutive_failures = 0
+    for q in queries[:4]:
+        if consecutive_failures >= 2:
+            break
         try:
             pdata = http_get_json(
                 f"https://photon.komoot.io/api/?q={urllib.parse.quote(q)}&limit={limit_per_query}",
                 timeout=timeout,
             )
+            consecutive_failures = 0
             node_ids: list[str] = []
             way_ids: list[str] = []
             for feat in pdata.get("features") or []:
@@ -166,8 +170,198 @@ def fetch_photon_osm_websites(queries: list[str], limit_per_query: int = 50, tim
                 hint_em = (tags.get("email") or tags.get("contact:email") or "").strip().lower()
                 out.append({"name": name, "website": web, "domain": host, "hint_email": hint_em, "query": q})
         except Exception:
+            consecutive_failures += 1
             continue
     return out
+
+
+URLSCAN_SKIP_HOST_RE = re.compile(
+    r"(^|\.)(email\.myshopify\.com|blogspot\.|wordpress\.com|wixsite\.com|squarespace\.com|github\.io|netlify\.app|vercel\.app|workers\.dev|pages\.dev|onrender\.com|herokuapp\.com)$",
+    re.IGNORECASE,
+)
+
+
+def fetch_urlscan_domains(
+    queries: list[str],
+    size: int = 80,
+    limit_domains: int = 80,
+    exclude_domains: set[str] | None = None,
+    allow_paas_hosts: bool = False,
+    timeout: int = 10,
+) -> list[str]:
+    """Discover live domains rapidly via urlscan.io search API (<1s response)."""
+    import time as _t
+    hosts: list[str] = []
+    seen: set[str] = set()
+    excl = {str(d).lower().strip().replace("www.", "") for d in (exclude_domains or set()) if d}
+    for idx, q in enumerate(queries):
+        if len(hosts) >= limit_domains:
+            break
+        if idx > 0:
+            _t.sleep(0.35)
+        u = f"https://urlscan.io/api/v1/search/?q={urllib.parse.quote(q)}&size={min(100, max(10, int(size)))}"
+        try:
+            data = http_get_json(u, timeout=timeout)
+            for row in data.get("results") or []:
+                page = row.get("page") or {}
+                task = row.get("task") or {}
+                p_url = str(page.get("url") or task.get("url") or "").lower()
+                if "/password" in p_url:
+                    continue
+                cand = str(page.get("apexDomain") or page.get("domain") or task.get("domain") or "").lower().strip()
+                if not cand or "." not in cand:
+                    continue
+                if cand.startswith(("dkim", "mail.", "email.", "smtp.", "auth.", "sso.", "cdn.", "static.")):
+                    continue
+                if not allow_paas_hosts and URLSCAN_SKIP_HOST_RE.search(cand):
+                    continue
+                bare = cand.replace("www.", "")
+                if bare in excl or bare in seen:
+                    continue
+                if any(b in bare for b in DIRECTORY_BLOCKLIST):
+                    continue
+                seen.add(bare)
+                hosts.append(bare)
+                if len(hosts) >= limit_domains:
+                    break
+        except Exception:
+            continue
+    return hosts[:limit_domains]
+
+
+def fetch_nominatim_websites(
+    tags: list[str],
+    cursor: int = 0,
+    batch_queries: int = 8,
+    limit_total: int = 120,
+    exclude_domains: set[str] | None = None,
+    timeout: int = 9,
+) -> tuple[list[dict], int]:
+    """Discover live businesses/agencies via OSM Nominatim bracket tags (<0.5s per query)."""
+    import time as _t
+    out: list[dict] = []
+    seen: set[str] = set()
+    excl = {str(d).lower().strip().replace("www.", "") for d in (exclude_domains or set()) if d}
+    n_pairs = len(tags) * len(METRO_BBOXES)
+    steps = max(1, min(14, int(batch_queries)))
+    for off in range(steps):
+        if len(out) >= limit_total:
+            break
+        pidx = (cursor + off) % n_pairs
+        tag = tags[pidx % len(tags)]
+        city, s, w, n_lat, e = METRO_BBOXES[(pidx // len(tags)) % len(METRO_BBOXES)]
+        u = (
+            f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(tag)}"
+            f"&viewbox={w},{n_lat},{e},{s}&bounded=1&format=jsonv2&extratags=1&limit=40"
+        )
+        try:
+            st, _, _, raw = http_fetch(u, timeout=timeout, verify_ssl=False)
+            if st == 200:
+                for row in json.loads(raw.decode("utf-8", "replace")):
+                    et = row.get("extratags") or {}
+                    web = str(et.get("website") or et.get("contact:website") or et.get("url") or "").strip()
+                    if not web:
+                        continue
+                    if not web.startswith(("http://", "https://")):
+                        web = "https://" + web
+                    host = (urllib.parse.urlparse(web).hostname or "").lower().replace("www.", "")
+                    if not host or "." not in host or host in seen or host in excl:
+                        continue
+                    if any(b in host for b in DIRECTORY_BLOCKLIST):
+                        continue
+                    seen.add(host)
+                    out.append({
+                        "name": str(row.get("name") or host).strip()[:80],
+                        "website": web,
+                        "domain": host,
+                        "hint_email": str(et.get("email") or et.get("contact:email") or "").strip().lower(),
+                        "city": city,
+                        "query": tag,
+                    })
+                    if len(out) >= limit_total:
+                        break
+        except Exception:
+            pass
+        _t.sleep(0.55)
+    return out, (cursor + steps) % n_pairs
+
+
+def fetch_commoncrawl_domains(
+    url_patterns: list[str],
+    cc_page: int = 2,
+    limit_domains: int = 80,
+    exclude_domains: set[str] | None = None,
+    blocked_prefixes: tuple[str, ...] = ("admin.", "apps.", "help.", "community.", "accounts.", "partners.", "docs.", "status."),
+) -> tuple[list[str], int]:
+    """Discover real live hosts from Common Crawl CDX mirrors across URL patterns."""
+    hosts: list[str] = []
+    seen: set[str] = set()
+    excl = {str(d).lower().strip().replace("www.", "") for d in (exclude_domains or set()) if d}
+    page = 2 + ((max(2, int(cc_page or 2)) - 2) % 18)
+
+    def _accept(host_raw: str) -> bool:
+        h = str(host_raw or "").lower().strip()
+        bare = h.replace("www.", "")
+        if not h or "." not in h or bare in excl or h in seen:
+            return False
+        if h.startswith(blocked_prefixes):
+            return False
+        if any(b in h for b in DIRECTORY_BLOCKLIST):
+            return False
+        seen.add(h)
+        hosts.append(h)
+        return True
+
+    try:
+        colls = http_get_json("https://index.commoncrawl.org/collinfo.json", timeout=6)
+        consecutive_cc_errs = 0
+        for coll in colls[:3]:
+            if len(hosts) >= limit_domains or consecutive_cc_errs >= 2:
+                break
+            cdx_api = coll["cdx-api"]
+            pat = url_patterns[(page + colls.index(coll)) % len(url_patterns)]
+            u = f"{cdx_api}?url={urllib.parse.quote(pat, safe='*/.')}&output=json&filter=status:200&limit=60&page={page}&fl=url"
+            try:
+                st, _, _, raw = http_fetch(u, timeout=7, verify_ssl=False)
+                if st == 200:
+                    consecutive_cc_errs = 0
+                    for line in raw.decode("utf-8", "replace").splitlines():
+                        if not line.strip():
+                            continue
+                        try:
+                            item_url = json.loads(line).get("url") or ""
+                            _accept(urllib.parse.urlparse(item_url).hostname or "")
+                            if len(hosts) >= limit_domains:
+                                break
+                        except Exception:
+                            continue
+                else:
+                    consecutive_cc_errs += 1
+            except Exception:
+                consecutive_cc_errs += 1
+                continue
+            page = 2 if page >= 19 else page + 1
+    except Exception:
+        pass
+    return hosts[:limit_domains], page + 1
+
+
+def load_known_exclusions(state_paths: list[str], current_state: dict | None = None) -> tuple[set[str], set[str]]:
+    """Collect contacted domains and contacted/bounced emails across sniper state JSONs."""
+    domains: set[str] = set()
+    emails: set[str] = set()
+    states = [current_state] if current_state else []
+    for p in state_paths:
+        if os.path.exists(p):
+            try:
+                states.append(load_json_state(p, {}))
+            except Exception:
+                continue
+    for st in states:
+        domains.update(str(d).lower().strip().replace("www.", "") for d in (st.get("contacted_domains") or []) if d)
+        emails.update(str(e).lower().strip() for e in (st.get("contacted_emails") or []) if e)
+        emails.update(str(e).lower().strip() for e in (st.get("bounced_emails") or []) if e)
+    return domains, emails
 
 
 def load_workspace_env(repo_root: str) -> None:

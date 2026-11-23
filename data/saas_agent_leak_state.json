@@ -1,0 +1,55 @@
+{
+  "cc_page": 4,
+  "contacted_domains": [
+    "moocreative.co.uk",
+    "dizcharge.com",
+    "bookkeepingfinancial.com",
+    "lumail.io",
+    "statspace.app",
+    "remipelloux.github.io"
+  ],
+  "contacted_emails": [
+    "andy@moocreative.co.uk",
+    "contact@dizcharge.com",
+    "info@clearpath-cfo.com",
+    "contact@lumail.io",
+    "support@statspace.app",
+    "pellouxremi@gmail.com"
+  ],
+  "bounced_emails": [],
+  "replied_emails": [],
+  "paid_sales": 0,
+  "history": [
+    {
+      "domain": "moocreative.co.uk",
+      "email": "andy@moocreative.co.uk",
+      "sent_date": "2026-11-23T16:08:54.904890+00:00"
+    },
+    {
+      "domain": "dizcharge.com",
+      "email": "contact@dizcharge.com",
+      "sent_date": "2026-11-23T16:09:02.584880+00:00"
+    },
+    {
+      "domain": "bookkeepingfinancial.com",
+      "email": "info@clearpath-cfo.com",
+      "sent_date": "2026-11-23T16:09:09.859023+00:00"
+    },
+    {
+      "domain": "lumail.io",
+      "email": "contact@lumail.io",
+      "sent_date": "2026-11-23T16:09:17.147914+00:00"
+    },
+    {
+      "domain": "statspace.app",
+      "email": "support@statspace.app",
+      "sent_date": "2026-11-23T16:09:24.372651+00:00"
+    },
+    {
+      "domain": "remipelloux.github.io",
+      "email": "pellouxremi@gmail.com",
+      "sent_date": "2026-11-23T16:09:31.817231+00:00"
+    }
+  ],
+  "updated_at": "2026-11-23T16:09:31.818226+00:00"
+}

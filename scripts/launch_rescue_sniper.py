@@ -36,6 +36,8 @@ SKIP_APP_HOSTS = {
     "github.com", "gitlab.com", "bitbucket.org", "youtube.com", "youtu.be",
     "x.com", "twitter.com", "medium.com", "substack.com", "npmjs.com",
     "pypi.org", "huggingface.co", "arxiv.org", "docs.google.com", "reddit.com",
+    "marketplace.visualstudio.com", "chromewebstore.google.com", "addons.mozilla.org",
+    "play.google.com", "apps.apple.com", "store.steampowered.com", "gumroad.com",
 }
 CTA_LINK_RE = re.compile(r'<a\b[^>]*href=["\']([^"\'#]+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
 CTA_KW = re.compile(r"(pric|signup|sign-up|register|waitlist|demo|docs|checkout|buy|start|get-started|contact|login|app)", re.IGNORECASE)

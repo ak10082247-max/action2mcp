@@ -10,6 +10,8 @@ import { signCdpJwt } from "./cdp_auth.js";
 import { computeStopLossVerdict } from "./edge_helpers.js";
 import siteRescueWorker from "./site_rescue/worker.js";
 import ecomFixWorker from "./ecom_fix/worker.js";
+import brandWatchWorker from "./brand_watch/worker.js";
+import { validateTikTokVideoUrl } from "./brand_watch/scanner.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 function createMemoryKv() {
@@ -1131,6 +1133,186 @@ test("Revenue Dashboard enforces auth, tracks FUNNEL_KV, verifies Stripe webhook
     const logoutRes = await revenueDashboardWorker.fetch(new Request("https://kurox-revenue-dashboard.ak10082247.workers.dev/logout", { method: "POST" }), DASH_ENV);
     assert.equal(logoutRes.status, 302);
     assert.match(logoutRes.headers.get("set-cookie") || "", /Max-Age=0/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("BrandWatch extracts FactCheck/News/oEmbed signals, queues caution URLs, captures B2B leads & serves dossier ZIP", async () => {
+  assert.throws(() => validateTikTokVideoUrl("http://127.0.0.1:8080/admin"), /valid tiktok\.com domain/);
+  assert.throws(() => validateTikTokVideoUrl("https://evil.example.com/@x/video/1"), /valid tiktok\.com domain/);
+  assert.equal(
+    validateTikTokVideoUrl("https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500").cleanUrl,
+    "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+  );
+
+  const origFetch = globalThis.fetch;
+  const kv = createMemoryKv();
+  const ADMIN_TOK = "bw-ingest-secret-token";
+  const BW_ENV = {
+    ...FULL_ENV,
+    FUNNEL_KV: kv,
+    DASHBOARD_INGEST_TOKEN: ADMIN_TOK,
+    B2B_CONTACT_EMAIL: "armkhan18@gmail.com",
+  };
+
+  globalThis.fetch = async (input, init) => {
+    const u = typeof input === "string" ? input : input.url;
+    if (u.startsWith("https://toolbox.google.com/factcheck/api/search")) {
+      const payload = [
+        [
+          "claims_response",
+          [
+            [
+              [
+                "Anthony Joshua staged video claim on TikTok",
+                ["@maskedtruthmt"],
+                1795000000,
+                [[["AFP Fact Check", "factcheck.afp.com", ["Analyst"], "gb"], "https://factcheck.afp.com/doc.test", 1795003600, "Altered video", null, null, "en", ["gb"], "Claimed boxing clip is AI-generated"]],
+              ],
+              null,
+              0.9,
+            ],
+          ],
+        ],
+      ];
+      return new Response(`)]}'\n${JSON.stringify(payload)}`, { status: 200 });
+    }
+    if (u.startsWith("https://news.google.com/rss/search")) {
+      const rss = `<rss><channel><item><title>Fact check: Anthony Joshua TikTok claim unverified - Reuters</title><link>https://www.reuters.com/fact-check/test</link><pubDate>Mon, 23 Nov 2026 12:00:00 GMT</pubDate><source>Reuters</source></item></channel></rss>`;
+      return new Response(rss, { status: 200, headers: { "Content-Type": "application/xml" } });
+    }
+    if (u.startsWith("https://urlscan.io/api/v1/search/")) {
+      return new Response(
+        JSON.stringify({ results: [{ page: { url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500" } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (u.startsWith("https://www.tiktok.com/oembed?")) {
+      return new Response(
+        JSON.stringify({
+          title: "Watch what happened after not following the script #maskedtruth",
+          author_name: "maskedtruthmt",
+          author_url: "https://www.tiktok.com/@maskedtruthmt",
+          thumbnail_url: "https://p16-sign.tiktokcdn.example/thumb.jpg",
+          embed_product_id: "7709208502949940500",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (u === "https://api.stripe.com/v1/checkout/sessions") {
+      return new Response(JSON.stringify({ id: "cs_test_bw_1", url: "https://checkout.stripe.com/pay/cs_test_bw_1", payment_status: "unpaid" }), { status: 200 });
+    }
+    if (u === "https://api.stripe.com/v1/checkout/sessions/cs_test_bw_1") {
+      return new Response(
+        JSON.stringify({ id: "cs_test_bw_1", payment_status: "paid", amount_total: 4900, metadata: { tier: "audit", target_domain: "Anthony Joshua" } }),
+        { status: 200 },
+      );
+    }
+    return new Response("Not Found", { status: 404 });
+  };
+
+  try {
+    // 1. Landing HTML + B2B section present
+    const homeRes = await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/"), BW_ENV);
+    assert.equal(homeRes.status, 200);
+    const homeHtml = await homeRes.text();
+    assert.match(homeHtml, /For Brands, Agencies &amp; Talent — B2B Contact/);
+
+    // 2. Log Caution Clip via official TikTok oEmbed verification -> KV Queue
+    const repRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+          brandTag: "Anthony Joshua",
+          cautionLabel: "Caution: Video flagged for unverified content",
+        }),
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(repRes.ok, true);
+    assert.equal(repRes.persisted, true);
+    assert.equal(repRes.entry.handle, "@maskedtruthmt");
+
+    // 3. Multi-source live extraction scan
+    const scanRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=Anthony%20Joshua"),
+      BW_ENV,
+    )).json();
+    assert.equal(scanRes.ok, true);
+    assert.equal(scanRes.counts.caution_watchlist, 1);
+    assert.equal(scanRes.counts.fact_checks, 1);
+    assert.equal(scanRes.counts.news_rumors, 1);
+    assert.equal(scanRes.counts.tiktok_oembeds, 1);
+    assert.equal(scanRes.fact_checks[0].verdict, "Altered video");
+    assert.ok(scanRes.tiktok_clips[0].captionRisk.riskScore >= 20);
+
+    // 4. B2B Lead capture + authenticated inbox read
+    const leadBad = await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: "", email: "notanemail", keywords: "" }),
+      }),
+      BW_ENV,
+    );
+    assert.equal(leadBad.status, 400);
+
+    const leadOk = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: "Matchroom PR",
+          contact_name: "Alex",
+          email: "alex@matchroom.example",
+          keywords: "Anthony Joshua, @maskedtruthmt",
+          reference_url: "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+        }),
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(leadOk.ok, true);
+    assert.match(leadOk.lead_id, /^BW-[0-9A-F]{8}$/);
+
+    const unauthLeads = await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/api/leads"), BW_ENV);
+    assert.equal(unauthLeads.status, 401);
+
+    const authLeads = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/leads", { headers: { Authorization: `Bearer ${ADMIN_TOK}` } }),
+      BW_ENV,
+    )).json();
+    assert.equal(authLeads.ok, true);
+    assert.equal(authLeads.count, 1);
+    assert.equal(authLeads.leads[0].company, "Matchroom PR");
+
+    // 5. Stripe Dossier Checkout + Verified ZIP Download
+    const ck = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/checkout?tier=audit&domain=Anthony%20Joshua&format=json"),
+      BW_ENV,
+    )).json();
+    assert.equal(ck.id, "cs_test_bw_1");
+    assert.equal(ck.amount_cents, 4900);
+
+    const dlConfirm = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/download?session_id=cs_test_bw_1"),
+      BW_ENV,
+    )).text();
+    assert.match(dlConfirm, /Payment Confirmed/);
+    const tokenMatch = dlConfirm.match(/token=([^&"]+)/);
+    assert.ok(tokenMatch);
+
+    const zipRes = await brandWatchWorker.fetch(
+      new Request(`https://brand-watch.ak10082247.workers.dev/api/download?token=${tokenMatch[1]}&format=zip`),
+      BW_ENV,
+    );
+    assert.equal(zipRes.status, 200);
+    assert.equal(zipRes.headers.get("Content-Type"), "application/zip");
+    const zipBuf = Buffer.from(await zipRes.arrayBuffer());
+    assert.equal(zipBuf[0], 0x50);
+    assert.equal(zipBuf[1], 0x4b);
   } finally {
     globalThis.fetch = origFetch;
   }

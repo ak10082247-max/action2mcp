@@ -10,6 +10,7 @@ import ecom_fix_sniper as play_b
 import agency_overflow_sniper as play_c
 import launch_rescue_sniper as play_d
 import process_stripe_alerts as stripe_alerts
+import saas_agent_leak_sniper as play_f
 
 
 class MultiPlaySniperTests(unittest.TestCase):
@@ -258,6 +259,47 @@ class MultiPlaySniperTests(unittest.TestCase):
         self.assertEqual(cnt, 1)
         self.assertEqual(sent_to, ["ok@old-clean.com"])
         self.assertTrue(state["history"][0].get("followup_sent"))
+
+    def test_play_f_saas_bundle_secret_and_dead_stripe_detection(self):
+        cand = {
+            "name": "ShipFastAI",
+            "url": "https://shipfastai.example.com",
+            "domain": "shipfastai.example.com",
+            "source": "github_mcp",
+            "github_owner": "builder1",
+            "github_repo": "builder1/shipfastai",
+        }
+
+        synthetic_tok = "sk_" + "live_" + "TestFixtureOnly0000000000"
+
+        def fake_fetch(url, method="GET", headers=None, data=None, timeout=10, verify_ssl=True):
+            if url == "https://shipfastai.example.com":
+                html = (
+                    '<html><head><title>ShipFastAI</title></head><body>'
+                    '<script src="/assets/app-123.js"></script>'
+                    '<a href="https://buy.stripe.com/testdead123">Buy Pro</a>'
+                    '<p>Contact founder@shipfastai.example.com</p></body></html>'
+                )
+                return 200, "https://shipfastai.example.com/", {}, html.encode()
+            if url == "https://shipfastai.example.com/assets/app-123.js":
+                return 200, url, {}, f'const k = "{synthetic_tok}";'.encode()
+            if "buy.stripe.com" in url:
+                return 200, url, {}, b"<html>This link is no longer active</html>"
+            return 404, url, {}, b""
+
+        with patch.object(common, "http_fetch", side_effect=fake_fetch), \
+             patch.object(common, "has_valid_mx", return_value=True):
+            res = play_f.diagnose_saas_agent_site(cand)
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res["email"], "founder@shipfastai.example.com")
+        self.assertTrue(any("Stripe live secret key" in i for i in res["issues"]))
+        self.assertTrue(any("buy.stripe.com" in i for i in res["issues"]))
+        subj, body = play_f.craft_saas_leak_email(res)
+        self.assertIn("shipfastai.example.com", subj)
+        self.assertNotIn(synthetic_tok, body)
+        self.assertIn("https://stripe.com/@kurox_x402", body)
+        self.assertIn("/t?play=play_f_saas", body)
 
 
 if __name__ == "__main__":

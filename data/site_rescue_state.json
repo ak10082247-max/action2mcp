@@ -14,7 +14,11 @@
     "drphilbe.com",
     "plasticsurgeon.co.nz",
     "benjamin-opticians.co.uk",
-    "kensington-dentist.com"
+    "kensington-dentist.com",
+    "riverdalehealthcare.com",
+    "central-orthodontics.co.uk",
+    "completedentalbearwood.co.uk",
+    "scottarmsdentalpractice.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -30,7 +34,11 @@
     "dr@drphilbe.com",
     "julianlofts@plasticsurgeon.co.nz",
     "info@benjamin-opticians.co.uk",
-    "kensingtondentists@gmail.com"
+    "kensingtondentists@gmail.com",
+    "ashgatereception@riverdalehealthcare.com",
+    "centralortho@hotmail.com",
+    "dental.v08166@nhs.net",
+    "info@scottarmsdentalpractice.com"
   ],
   "history": [
     {
@@ -71,22 +79,30 @@
     {
       "domain": "drrearden.com",
       "email": "office@drrearden.com",
-      "sent_date": "2026-11-21T13:40:51.708834+00:00"
+      "sent_date": "2026-11-21T13:40:51.708834+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T14:55:02.748873+00:00"
     },
     {
       "domain": "temkinopticians.com",
       "email": "info@temkinopticians.com",
-      "sent_date": "2026-11-21T13:40:57.539074+00:00"
+      "sent_date": "2026-11-21T13:40:57.539074+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T14:55:02.748873+00:00"
     },
     {
       "domain": "porterssolicitors.co.uk",
       "email": "info@porterssolicitors.co.uk",
-      "sent_date": "2026-11-21T13:44:53.649352+00:00"
+      "sent_date": "2026-11-21T13:44:53.649352+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:33:25.876015+00:00"
     },
     {
       "domain": "drartaheri.com",
       "email": "drtahery1@gmail.com",
-      "sent_date": "2026-11-21T13:44:59.603466+00:00"
+      "sent_date": "2026-11-21T13:44:59.603466+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T15:33:25.876015+00:00"
     },
     {
       "domain": "mjpsolicitors.co.uk",
@@ -112,6 +128,26 @@
       "domain": "kensington-dentist.com",
       "email": "kensingtondentists@gmail.com",
       "sent_date": "2026-11-21T21:07:41.260228+00:00"
+    },
+    {
+      "domain": "riverdalehealthcare.com",
+      "email": "ashgatereception@riverdalehealthcare.com",
+      "sent_date": "2026-11-23T15:48:52.197058+00:00"
+    },
+    {
+      "domain": "central-orthodontics.co.uk",
+      "email": "centralortho@hotmail.com",
+      "sent_date": "2026-11-23T16:02:59.223887+00:00"
+    },
+    {
+      "domain": "completedentalbearwood.co.uk",
+      "email": "dental.v08166@nhs.net",
+      "sent_date": "2026-11-23T16:03:06.567231+00:00"
+    },
+    {
+      "domain": "scottarmsdentalpractice.com",
+      "email": "info@scottarmsdentalpractice.com",
+      "sent_date": "2026-11-23T16:03:14.321694+00:00"
     }
   ],
   "updated_at": "2026-11-23T09:00:40.852210+00:00",
