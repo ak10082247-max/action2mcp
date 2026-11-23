@@ -802,6 +802,28 @@ def poll_apify(
             if clean_post_urls:
                 actor_input["startUrls"] = clean_post_urls[:6]
             dataset_limit = remaining
+        elif "tiktok-video-scraper" in single_actor:
+            actor_input = {
+                "postURLs": clean_post_urls or ["https://www.tiktok.com/@maskedtruthmt/video/7702510622650518817"],
+                "scrapeRelatedVideos": False,
+                "shouldDownloadVideos": False,
+                "shouldDownloadCovers": False,
+            }
+            dataset_limit = max(remaining, len(actor_input["postURLs"]))
+        elif "novi~" in single_actor:
+            actor_input = {
+                "keywords": search_terms[:2] or ["Anthony Joshua not following the script"],
+                "maxItems": remaining,
+            }
+            if clean_post_urls:
+                actor_input["startUrls"] = clean_post_urls[:5]
+            dataset_limit = remaining
+        elif "xmolodtsov~" in single_actor:
+            actor_input = {
+                "keywords": search_terms[:2] or ["Anthony Joshua not following the script"],
+                "maxVideosPerKeyword": max(5, min(20, remaining)),
+            }
+            dataset_limit = remaining
         else:
             target_groups = max(1, len(clean_profiles) + len(hashtags) + len(search_terms))
             per_target = max(5, min(70, remaining // target_groups))
@@ -1038,6 +1060,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-items", type=int, default=40, help="Hard cap on fetched raw items per run.")
     parser.add_argument("--query", action="append", default=[], help="Extra keyword or #hashtag query.")
     parser.add_argument("--profile", action="append", default=[], help="Extra TikTok @username profile to poll.")
+    parser.add_argument("--post-url", action="append", default=[], help="Extra direct TikTok video URL to verify.")
     parser.add_argument("--no-harvest-free", action="store_true", help="Skip free fact-checker URL harvesting.")
     parser.add_argument("--no-ssr-enrich", action="store_true", help="Skip passive TikTok video page SSR enrichment.")
     parser.add_argument("--profiles-only", action="store_true", help="Poll ONLY suspect/subscribed profiles without keyword/hashtag dilution.")
@@ -1054,9 +1077,10 @@ def main(argv: list[str] | None = None) -> int:
     leads = fetch_subscriber_leads(BRAND_WATCH_URL_RUNTIME)
     queries = [] if args.profiles_only else collect_discovery_queries(leads, args.query)
 
-    harvested_urls: list[str] = []
-    if args.live and not args.no_harvest_free and not args.profiles_only:
-        harvested_urls, _ = harvest_free_factcheck_targets()
+    harvested_urls: list[str] = list(args.post_url or [])
+    if args.live and not args.no_harvest_free and not args.profiles_only and not args.post_url:
+        extra_fc, _ = harvest_free_factcheck_targets()
+        harvested_urls.extend(extra_fc)
     profiles = [] if args.search_only else collect_discovery_profiles(leads, existing, args.profile)
 
     raw_items: list[tuple[str, dict]] = []

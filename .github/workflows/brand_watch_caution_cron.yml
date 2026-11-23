@@ -36,6 +36,10 @@ on:
         description: 'If true, scrape keyword/hashtag search queries only'
         required: false
         default: 'false'
+      extra_args:
+        description: 'Optional extra CLI flags for poll_tiktok_caution.py'
+        required: false
+        default: ''
 
 jobs:
   poll_caution_videos:
@@ -72,6 +76,7 @@ jobs:
           INPUT_EXTRA_PROFILE: ${{ inputs.extra_profile || '' }}
           INPUT_PROFILES_ONLY: ${{ inputs.profiles_only || 'false' }}
           INPUT_SEARCH_ONLY: ${{ inputs.search_only || 'false' }}
+          INPUT_EXTRA_ARGS: ${{ inputs.extra_args || '' }}
         run: |
           if [ "$INPUT_RUN_LIVE" = "true" ] && { [ -n "$ENSEMBLEDATA_TOKEN" ] || [ -n "$RAPIDAPI_KEY" ] || [ -n "$APIFY_TOKEN" ]; }; then
             EXTRA_ARG=""
@@ -84,7 +89,7 @@ jobs:
             if [ "$INPUT_SEARCH_ONLY" = "true" ]; then
               EXTRA_ARG="$EXTRA_ARG --search-only"
             fi
-            python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS" $EXTRA_ARG
+            python scripts/poll_tiktok_caution.py --live --provider "$INPUT_PROVIDER" --apify-actor "$INPUT_APIFY_ACTOR" --max-items "$INPUT_MAX_ITEMS" $EXTRA_ARG $INPUT_EXTRA_ARGS
           else
             echo "Dry run (no live scraper token enabled or run_live=false)."
             python scripts/poll_tiktok_caution.py
