@@ -430,8 +430,9 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
       const rawIdx = await kv.get("bw:caution:index");
       const ids = rawIdx ? JSON.parse(rawIdx) : [];
       if (Array.isArray(ids) && ids.length > 0) {
+        const kvCap = Math.min(limit, 18);
         const loaded = await Promise.all(
-          ids.slice(0, limit).map(async (id) => {
+          ids.slice(0, kvCap).map(async (id) => {
             try {
               const raw = await kv.get(`bw:caution:item:${id}`);
               return raw ? JSON.parse(raw) : null;
@@ -514,7 +515,7 @@ export async function loadMonitoredAccounts(kv = null, cautionEntries = null, li
     try {
       const idxRaw = await kv.get("bw:accounts:index");
       const ids = idxRaw ? JSON.parse(idxRaw) : [];
-      for (const h of ids.slice(0, limit)) {
+      for (const h of ids.slice(0, Math.min(limit, 18))) {
         const itemRaw = await kv.get(`bw:account:item:${String(h).toLowerCase()}`);
         if (itemRaw) {
           upsertAccount(JSON.parse(itemRaw));

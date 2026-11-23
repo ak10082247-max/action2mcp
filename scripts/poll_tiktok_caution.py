@@ -1458,34 +1458,40 @@ def sync_records_to_worker(records: list[dict], worker_base: str = BRAND_WATCH_U
     latest_merged_total = 0
     synced_items: list[dict] = []
     batches = 0
-    chunk_size = 15
+    errors: list[str] = []
+    chunk_size = 8
     for idx in range(0, len(records), chunk_size):
         chunk = records[idx:idx + chunk_size]
-        status, _, _, raw = http_fetch(
-            f"{worker_base}/api/ingest-caution",
-            method="POST",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {token}",
-            },
-            data=json.dumps({"source": "automated_caution_poller", "items": chunk}).encode("utf-8"),
-            timeout=25,
-        )
-        if status >= 400:
-            raise RuntimeError(f"Worker /api/ingest-caution HTTP {status}: {raw.decode('utf-8', 'replace')[:250]}")
-        resp = json.loads(raw.decode("utf-8", "replace"))
-        batches += 1
-        total_accepted += int(resp.get("accepted") or 0)
-        total_rejected += int(resp.get("rejected") or 0)
-        latest_merged_total = max(latest_merged_total, int(resp.get("merged_total") or 0))
-        if isinstance(resp.get("items"), list):
-            synced_items.extend(resp["items"])
+        try:
+            status, _, _, raw = http_fetch(
+                f"{worker_base}/api/ingest-caution",
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {token}",
+                },
+                data=json.dumps({"source": "automated_caution_poller", "items": chunk}).encode("utf-8"),
+                timeout=25,
+            )
+            if status >= 400:
+                errors.append(f"HTTP {status}: {raw.decode('utf-8', 'replace')[:120]}")
+                continue
+            resp = json.loads(raw.decode("utf-8", "replace"))
+            batches += 1
+            total_accepted += int(resp.get("accepted") or 0)
+            total_rejected += int(resp.get("rejected") or 0)
+            latest_merged_total = max(latest_merged_total, int(resp.get("merged_total") or 0))
+            if isinstance(resp.get("items"), list):
+                synced_items.extend(resp["items"])
+        except Exception as exc:
+            errors.append(str(exc)[:120])
     return {
-        "ok": True,
+        "ok": len(errors) == 0 or batches > 0,
         "batches": batches,
         "accepted": total_accepted,
         "rejected": total_rejected,
         "merged_total": latest_merged_total,
+        "errors": errors,
         "items": synced_items[:15],
     }
 

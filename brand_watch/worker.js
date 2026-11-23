@@ -74,8 +74,11 @@ export const BRAND_WATCH_PLANS = {
 const MAX_KV_LIST = 200;
 
 async function appendKvIndexItem(kv, indexKey, itemKeyPrefix, id, payload) {
-  if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function") return false;
-  await kv.put(`${itemKeyPrefix}${id}`, JSON.stringify(payload), { expirationTtl: 180 * 86400 });
+  return appendKvIndexBatch(kv, indexKey, itemKeyPrefix, [{ id, payload }]);
+}
+
+async function appendKvIndexBatch(kv, indexKey, itemKeyPrefix, entries) {
+  if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function" || !entries?.length) return false;
   let ids = [];
   try {
     const cur = await kv.get(indexKey);
@@ -84,7 +87,14 @@ async function appendKvIndexItem(kv, indexKey, itemKeyPrefix, id, payload) {
   } catch {
     ids = [];
   }
-  const next = [id, ...ids.filter((x) => x !== id)].slice(0, MAX_KV_LIST);
+  const newIds = [];
+  for (const e of entries.slice(0, 15)) {
+    if (!e?.id) continue;
+    await kv.put(`${itemKeyPrefix}${e.id}`, JSON.stringify(e.payload), { expirationTtl: 180 * 86400 });
+    newIds.push(e.id);
+  }
+  const newIdSet = new Set(newIds);
+  const next = [...newIds, ...ids.filter((x) => !newIdSet.has(x))].slice(0, MAX_KV_LIST);
   await kv.put(indexKey, JSON.stringify(next));
   return true;
 }
@@ -730,9 +740,16 @@ export default {
           rejected += 1;
           continue;
         }
-        await appendKvIndexItem(env?.FUNNEL_KV, "bw:caution:index", "bw:caution:item:", rec.id, rec);
         accepted += 1;
         saved.push(rec);
+      }
+      if (saved.length > 0) {
+        await appendKvIndexBatch(
+          env?.FUNNEL_KV,
+          "bw:caution:index",
+          "bw:caution:item:",
+          saved.map((rec) => ({ id: rec.id, payload: rec })),
+        );
       }
       if (accepted > 0) await incrementFunnelCounter(env, "brand_watch", "caution_ingested", accepted);
       return jsonResp({ ok: true, accepted, rejected, items: saved }, accepted > 0 ? 201 : 200, cors);
