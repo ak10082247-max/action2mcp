@@ -115,10 +115,11 @@ export async function fetchGoogleFactChecks(query, fetchFn = fetch, limit = 10) 
 }
 
 export async function fetchGoogleNewsRumors(query, fetchFn = fetch, limit = 8) {
-  const cleanQ = String(query || "").trim().slice(0, 100);
+  const rawQ = String(query || "").trim().slice(0, 100);
+  const cleanQ = rawQ.toLowerCase() === "tiktok" ? "" : rawQ;
   const fullQ = cleanQ
     ? `"${cleanQ}" (tiktok OR "unverified" OR hoax OR fake OR deepfake OR impersonation)`
-    : '("unverified content" OR "altered video" OR hoax) tiktok';
+    : '("unverified content" OR "altered video" OR hoax OR deepfake) tiktok';
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(fullQ)}&hl=en-US&gl=US&ceid=US:en`;
   try {
     const res = await fetchFn(url, {
