@@ -780,10 +780,10 @@ def enrich_items_with_tiktok_ssr(
     return out
 
 
-def _fetch_large_json(url: str, timeout: int = 35):
+def _fetch_large_json(url: str, timeout: int = 60):
     req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "CautionWatch/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read(15_000_000).decode("utf-8", "replace"))
+        return json.loads(resp.read(120_000_000).decode("utf-8", "replace"))
 
 
 def poll_apify(
@@ -895,7 +895,7 @@ def poll_apify(
         if not dataset_id:
             continue
         items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={dataset_limit}"
-        items = _fetch_large_json(items_url, timeout=35)
+        items = _fetch_large_json(items_url, timeout=60)
         if isinstance(items, list):
             all_results.extend((f"apify:{single_actor}", it) for it in items if isinstance(it, dict))
     return all_results
