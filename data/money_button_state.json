@@ -1,5 +1,5 @@
 {
-  "local_cursor": 100,
+  "local_cursor": 120,
   "cc_page": 12,
   "contacted_domains": [
     "therowdental.com",
@@ -16,7 +16,17 @@
     "ca.fluevog.com",
     "magnoliabakery.com",
     "caddislife.com",
-    "jaysonhome.com"
+    "jaysonhome.com",
+    "couchpotatoes.com",
+    "honorthegift.co",
+    "cookiegood.com",
+    "skandinaviatexas.com",
+    "kvetkaflower.com",
+    "tinypies.com",
+    "austinurbanvet.com",
+    "hayleycakesandcookies.com",
+    "victorymed.com",
+    "denttoronto.com"
   ],
   "contacted_emails": [
     "info@therowdental.com",
@@ -33,10 +43,24 @@
     "chicago@fluevog.com",
     "media@magnoliabakery.com",
     "helpivefallenandicantgetup@caddislife.com",
-    "info@jaysonhome.com"
+    "info@jaysonhome.com",
+    "tad@austincouches.com",
+    "help@honorthegift.co",
+    "info@cookiegood.com",
+    "info@skandinaviatexas.com",
+    "info@kvetkaflower.com",
+    "info@tinypies.com",
+    "info@austinurbanvet.com",
+    "orders@hayleycakesandcookies.com",
+    "info@victorymed.com",
+    "dentleslieville@outlook.com"
   ],
   "bounced_emails": [],
-  "replied_emails": [],
+  "replied_emails": [
+    "bonjour@mademoisellemacaron.co.uk",
+    "help@cutlerandgross.com",
+    "helpivefallenandicantgetup@caddislife.com"
+  ],
   "paid_sales": 0,
   "history": [
     {
@@ -174,7 +198,99 @@
         "Google Ads Tag (AW)"
       ],
       "sent_date": "2026-11-22T23:44:06.436746+00:00"
+    },
+    {
+      "domain": "couchpotatoes.com",
+      "email": "tad@austincouches.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)",
+        "TikTok Pixel"
+      ],
+      "sent_date": "2026-11-23T07:57:20.197930+00:00"
+    },
+    {
+      "domain": "honorthegift.co",
+      "email": "help@honorthegift.co",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-23T07:57:25.924499+00:00"
+    },
+    {
+      "domain": "cookiegood.com",
+      "email": "info@cookiegood.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)"
+      ],
+      "sent_date": "2026-11-23T07:57:31.617678+00:00"
+    },
+    {
+      "domain": "skandinaviatexas.com",
+      "email": "info@skandinaviatexas.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-23T07:57:37.297613+00:00"
+    },
+    {
+      "domain": "kvetkaflower.com",
+      "email": "info@kvetkaflower.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-23T07:57:42.988356+00:00"
+    },
+    {
+      "domain": "tinypies.com",
+      "email": "info@tinypies.com",
+      "kind": "BOOKING_IFRAME_DEAD",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)",
+        "LinkedIn Insight"
+      ],
+      "sent_date": "2026-11-23T07:57:48.710957+00:00"
+    },
+    {
+      "domain": "austinurbanvet.com",
+      "email": "info@austinurbanvet.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-23T07:57:54.388252+00:00"
+    },
+    {
+      "domain": "hayleycakesandcookies.com",
+      "email": "orders@hayleycakesandcookies.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [],
+      "sent_date": "2026-11-23T07:58:00.110790+00:00"
+    },
+    {
+      "domain": "victorymed.com",
+      "email": "info@victorymed.com",
+      "kind": "MOBILE_CTA_BLOCKED",
+      "ad_pixels": [],
+      "sent_date": "2026-11-23T07:58:05.846037+00:00"
+    },
+    {
+      "domain": "denttoronto.com",
+      "email": "dentleslieville@outlook.com",
+      "kind": "CLICK_HANDLER_JS_CRASH",
+      "ad_pixels": [],
+      "sent_date": "2026-11-23T07:58:11.557480+00:00"
     }
   ],
-  "updated_at": "2026-11-22T23:44:06.436842+00:00"
+  "updated_at": "2026-11-23T07:58:11.557535+00:00",
+  "post_fix_bounced_emails": []
 }
