@@ -56,20 +56,18 @@ UNVERIFIED_CAUTION_RE = re.compile(
 )
 
 DEFAULT_DISCOVERY_QUERIES = [
-    "flagged for unverified content",
-    "caution video flagged for unverified",
-    "they showed anthony joshua what happens",
     "anthony joshua not following the script",
+    "they showed anthony joshua what happens",
     "not following the script",
-    "before this gets deleted",
-    "fake breaking news footage",
-    "staged video exposed",
-    "celebrity death hoax tiktok",
-    "miracle cancer cure secret",
-    "ufo landing footage real",
-    "fake hurricane tornado footage",
     "cloned celebrity video proof",
+    "celebrity faked death proof",
+    "celebrity death hoax tiktok",
+    "staged video exposed",
+    "fake breaking news footage",
+    "before this gets deleted",
+    "they tried to delete this video",
     "leaked insider audio exposed",
+    "deepfake voice scandal leaked",
     "rigged election ballot video",
     "martial law declared tonight",
     "emergency broadcast tonight alert",
@@ -77,21 +75,23 @@ DEFAULT_DISCOVERY_QUERIES = [
     "yellowstone eruption live footage",
     "hidden under ice antarctica",
     "nasa leaked alien footage",
+    "ufo landing footage real",
+    "airplane UFO spotted from window",
     "giant skeleton discovered proof",
+    "ancient giant bones unearthed",
+    "miracle cancer cure secret",
     "doctors wont tell you secret cure",
     "poison in tap water warning",
-    "they tried to delete this video",
-    "deepfake voice scandal leaked",
-    "airplane UFO spotted from window",
     "chemtrails toxic spraying proof",
     "simulated moon landing proof",
-    "celebrity faked death proof",
-    "tiktok flagged this unverified",
     "shadow government leaked footage",
     "vaccine microchip truth exposed",
-    "ancient giant bones unearthed",
     "earthquake warning tonight live",
     "tsunami alert breaking live",
+    "fake hurricane tornado footage",
+    "tiktok flagged this unverified",
+    "flagged for unverified content",
+    "caution video flagged for unverified",
     "#maskedtruth",
     "#maskedtruthmt",
     "#notfollowingthescript",
@@ -617,17 +617,23 @@ FACTCHECK_TIKTOK_URL_RE = re.compile(
 FACTCHECK_HANDLE_RE = re.compile(r"tiktok\.com/(@[A-Za-z0-9_.]{2,35})")
 
 
-def harvest_free_factcheck_targets(max_articles: int = 20) -> tuple[list[str], list[str]]:
+def harvest_free_factcheck_targets(max_articles: int = 45) -> tuple[list[str], list[str]]:
     """Harvest public TikTok video URLs and creator handles from IFCN fact-checker feeds ($0)."""
     video_urls: set[str] = set()
     handles: set[str] = set()
     article_urls: list[str] = []
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; CautionWatchFactHarvest/1.0)", "Accept": "text/html,application/xml,*/*"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xml,*/*",
+    }
 
     for source_url in (
-        "https://leadstories.com/atom.xml",
+        "https://www.politifact.com/personalities/tiktok-posts/",
+        "https://www.politifact.com/personalities/tiktok-posts/?page=2",
+        "https://www.politifact.com/search/?q=tiktok.com",
+        "https://www.politifact.com/search/?q=tiktok.com&page=2",
         "https://www.politifact.com/rss/factchecks/",
-        "https://www.politifact.com/search/?q=tiktok",
+        "https://leadstories.com/atom.xml",
         "https://checkyourfact.com/?s=tiktok",
     ):
         try:
@@ -639,8 +645,8 @@ def harvest_free_factcheck_targets(max_articles: int = 20) -> tuple[list[str], l
                 video_urls.add(u)
             for h in FACTCHECK_HANDLE_RE.findall(txt):
                 handles.add(h.lstrip("@"))
-            if "politifact.com/search" in source_url:
-                for rel in re.findall(r'href="(/factchecks/\d{4}/[^"#? ]+)"', txt):
+            if "politifact.com/personalities" in source_url or "politifact.com/search" in source_url:
+                for rel in re.findall(r'href="(?:https?://(?:www\.)?politifact\.com)?(/factchecks/\d{4}/[^"#? ]+)"', txt):
                     full = f"https://www.politifact.com{rel}"
                     if full not in article_urls:
                         article_urls.append(full)
@@ -651,18 +657,21 @@ def harvest_free_factcheck_targets(max_articles: int = 20) -> tuple[list[str], l
         except Exception:
             continue
 
-    for art_url in article_urls[:max_articles]:
+    def _fetch_article(art_url: str) -> tuple[list[str], list[str]]:
         try:
-            st, _, _, raw = http_fetch(art_url, headers=headers, timeout=6, verify_ssl=False)
+            st, _, _, raw = http_fetch(art_url, headers=headers, timeout=7, verify_ssl=False)
             if st >= 400:
-                continue
+                return [], []
             txt = raw.decode("utf-8", "replace")
-            for u in FACTCHECK_TIKTOK_URL_RE.findall(txt):
-                video_urls.add(u)
-            for h in FACTCHECK_HANDLE_RE.findall(txt):
-                handles.add(h.lstrip("@"))
+            return FACTCHECK_TIKTOK_URL_RE.findall(txt), [h.lstrip("@") for h in FACTCHECK_HANDLE_RE.findall(txt)]
         except Exception:
-            continue
+            return [], []
+
+    if article_urls:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            for vids, hs in pool.map(_fetch_article, article_urls[:max_articles]):
+                video_urls.update(vids)
+                handles.update(hs)
 
     for u in video_urls:
         m = FACTCHECK_HANDLE_RE.search(u)
@@ -945,19 +954,19 @@ def poll_apify(
         if clean_t and clean_t.lower() not in seen_novi:
             seen_novi.add(clean_t.lower())
             all_novi_terms.append(clean_t)
-    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:5]
-    clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
+    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:8]
+    clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:45]
     actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["novi~tiktok-scraper-ultimate"]
     all_results: list[tuple[str, dict]] = []
 
     def _run_apify_job(single_actor_id: str, actor_input: dict, dataset_limit: int, tag_prefix: str = "") -> list[tuple[str, dict]]:
-        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=120"
+        run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=180"
         status, _, _, raw = http_fetch(
             run_url,
             method="POST",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             data=json.dumps(actor_input).encode("utf-8"),
-            timeout=125,
+            timeout=185,
         )
         if status >= 400:
             raise RuntimeError(f"Apify run start HTTP {status} ({single_actor_id}): {raw.decode('utf-8', 'replace')[:300]}")
@@ -978,28 +987,62 @@ def poll_apify(
         if len(all_results) >= max_items:
             break
         if "novi~" in single_actor:
-            novi_pool = all_novi_terms or ["flagged for unverified content"]
-            if remaining <= 120 and len(novi_pool) <= 12:
-                chunks = [novi_pool]
-            else:
-                batch_count = min(5, max(2, min(len(novi_pool) // 6 or 1, (remaining + 119) // 120)))
-                chunk_size = max(1, (len(novi_pool) + batch_count - 1) // batch_count)
-                chunks = [novi_pool[i:i + chunk_size] for i in range(0, len(novi_pool), chunk_size)][:5]
-            per_chunk = max(25, remaining // max(1, len(chunks)))
             novi_jobs: list[tuple[dict, int, str]] = []
-            for idx, chunk in enumerate(chunks):
-                inp: dict = {"keywords": chunk, "maxItems": per_chunk}
-                if idx == 0 and clean_post_urls and remaining <= 25:
-                    inp["startUrls"] = clean_post_urls[:5]
-                elif idx == 0 and not queries and clean_profiles:
-                    inp["startUrls"] = [f"https://www.tiktok.com/@{p}" for p in clean_profiles]
-                novi_jobs.append((inp, per_chunk, f"#b{idx + 1}"))
-            with concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(novi_jobs))) as pool:
+            # Dedicated startUrls jobs WITHOUT keywords (novi ignores startUrls whenever keywords are supplied)
+            profile_tag_urls: list[str] = []
+            seen_u: set[str] = set()
+            for u in (
+                [f"https://www.tiktok.com/@{p}" for p in clean_profiles]
+                + [f"https://www.tiktok.com/tag/{q.lstrip('#')}" for q in queries if q.startswith("#")][:5]
+            ):
+                if u and u not in seen_u:
+                    seen_u.add(u)
+                    profile_tag_urls.append(u)
+
+            kw_only = [q for q in queries if not q.startswith("#")]
+            if not kw_only:
+                all_urls = (clean_post_urls + profile_tag_urls)[:45]
+                if all_urls:
+                    novi_jobs.append(({"startUrls": all_urls, "maxItems": remaining}, remaining, "#urls"))
+            else:
+                direct_budget = min(len(clean_post_urls) + 5, max(20, remaining // 6)) if clean_post_urls else 0
+                if clean_post_urls and direct_budget > 0:
+                    novi_jobs.append((
+                        {"startUrls": clean_post_urls[:45], "maxItems": direct_budget},
+                        direct_budget,
+                        "#direct",
+                    ))
+                prof_budget = min(220, max(80, (remaining - direct_budget) // 3)) if profile_tag_urls else 0
+                if profile_tag_urls and prof_budget > 0:
+                    novi_jobs.append((
+                        {"startUrls": profile_tag_urls[:10], "maxItems": prof_budget},
+                        prof_budget,
+                        "#profiles",
+                    ))
+                kw_budget = max(40, remaining - direct_budget - prof_budget)
+                kw_pool = kw_only or ["anthony joshua not following the script"]
+                if kw_budget <= 120 and len(kw_pool) <= 10:
+                    kw_chunks = [kw_pool]
+                else:
+                    n_kw = min(3, max(1, (kw_budget + 119) // 120))
+                    c_sz = max(1, (len(kw_pool) + n_kw - 1) // n_kw)
+                    kw_chunks = [kw_pool[i:i + c_sz] for i in range(0, len(kw_pool), c_sz)][:3]
+                per_kw = max(30, kw_budget // max(1, len(kw_chunks)))
+                for idx, chunk in enumerate(kw_chunks):
+                    loc = "GB" if idx % 2 == 1 else "US"
+                    novi_jobs.append((
+                        {"keywords": chunk, "maxItems": per_kw, "location": loc, "sortType": "MOST_LIKED"},
+                        per_kw,
+                        f"#b{idx + 1}",
+                    ))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(2, len(novi_jobs))) as pool:
                 futs = [pool.submit(_run_apify_job, single_actor, inp, dlim, tpf) for inp, dlim, tpf in novi_jobs]
                 for fut in concurrent.futures.as_completed(futs):
                     try:
                         all_results.extend(fut.result())
-                    except Exception:
+                    except Exception as exc:
+                        print(f"[novi batch error] {exc}", file=sys.stderr)
                         if len(novi_jobs) == 1:
                             raise
             continue
