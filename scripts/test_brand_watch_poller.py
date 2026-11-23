@@ -38,9 +38,10 @@ class CautionPollerTests(unittest.TestCase):
             "anchors": [{"extraInfo": {"warning": "Caution: Video flagged for unverified content."}}],
         })
         self.assertIsNotNone(nested)
-        profiles = poller.collect_discovery_profiles([], [], ["uuunews02", "maskedtruthmt"], [])
+        profiles = poller.collect_discovery_profiles([{"keywords": "Brand, @watcher"}], [{"authorUsername": "@repeatflag"}], [])
         self.assertEqual(profiles[0], "maskedtruthmt")
-        self.assertIn("uuunews02", profiles)
+        self.assertIn("watcher", profiles)
+        self.assertIn("repeatflag", profiles)
 
     def test_extracts_caution_unverified_across_raw_schemas(self):
         apify_raw = {

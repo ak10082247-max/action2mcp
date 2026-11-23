@@ -526,7 +526,6 @@ def harvest_free_factcheck_targets(max_articles: int = 20) -> tuple[list[str], l
 def collect_discovery_profiles(
     leads: list[dict],
     existing_flagged: list[dict] | None = None,
-    harvested_handles: list[str] | None = None,
     extra_profiles: list[str] | None = None,
     cap: int = 8,
 ) -> list[str]:
@@ -549,42 +548,68 @@ def collect_discovery_profiles(
                 add_p(chunk.strip())
     for item in (existing_flagged or []):
         add_p(str(item.get("authorUsername") or ""))
-    for h in (harvested_handles or []):
-        if h.lower() not in {"tiktok", "maga"}:
-            add_p(h)
     return profiles[:cap]
 
 
 def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: int = 8) -> dict:
-    """Summarize raw scraper keys & non-empty warning/penalty strings without exposing secrets."""
+    """Summarize all raw scraper keys, authors, & warning signals without exposing secrets."""
     key_counts: dict[str, int] = {}
+    author_counts: dict[str, int] = {}
     warning_signals: list[dict] = []
     sample_previews: list[dict] = []
+    target_hits: list[dict] = []
 
     for src, raw in raw_items:
         if not isinstance(raw, dict):
             continue
         root = _extract_root(raw)
-        for k in list(raw.keys())[:40]:
+        for k in list(raw.keys()):
             key_counts[k] = key_counts.get(k, 0) + 1
+        author_obj = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
+        author_name = str(
+            (author_obj.get("name") or author_obj.get("username") or author_obj.get("uniqueId") or "")
+            if isinstance(author_obj, dict)
+            else ""
+        )[:40]
+        if author_name:
+            author_counts[author_name] = author_counts.get(author_name, 0) + 1
         cands = _collect_warning_strings(raw)
         if cands and len(warning_signals) < sample_limit:
             warning_signals.append({
+                "source": src,
                 "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
-                "warnings": [{ "field": f, "text": t[:160] } for f, t in cands[:4]],
+                "warnings": [{"field": f, "text": t[:160]} for f, t in cands[:4]],
+            })
+        text_val = str(root.get("text") or root.get("desc") or root.get("title") or "")
+        if len(target_hits) < 6 and (
+            author_name.lower() == "maskedtruthmt"
+            or any(tok in text_val.lower() for tok in ("anthony", "script", "maskedtruth", "unverified", "caution"))
+        ):
+            extra_flags = {
+                k: root.get(k)
+                for k in root.keys()
+                if WARNING_KEY_RE.search(str(k)) and k not in {"authorMeta", "text", "desc", "title"}
+            }
+            target_hits.append({
+                "source": src,
+                "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                "author": author_name,
+                "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
+                "text": text_val[:100],
+                "flag_fields": extra_flags,
             })
         if len(sample_previews) < 4:
-            author = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
             sample_previews.append({
                 "source": src,
                 "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
-                "author": str((author.get("name") or author.get("username") or author.get("uniqueId") or "") if isinstance(author, dict) else "")[:40],
-                "has_warnInfo": bool(root.get("warnInfo") or raw.get("warnInfo")),
-                "text": str(root.get("text") or root.get("desc") or root.get("title") or "")[:80],
+                "author": author_name,
+                "text": text_val[:80],
             })
     return {
-        "top_keys": sorted(key_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:20],
+        "all_keys": [f"{k}:{v}" for k, v in sorted(key_counts.items())],
+        "authors_seen": sorted(author_counts.items(), key=lambda kv: -kv[1])[:15],
         "warning_signals_seen": warning_signals,
+        "target_hits": target_hits,
         "sample_previews": sample_previews,
     }
 
@@ -885,10 +910,9 @@ def main(argv: list[str] | None = None) -> int:
     queries = collect_discovery_queries(leads, args.query)
 
     harvested_urls: list[str] = []
-    harvested_handles: list[str] = []
     if args.live and not args.no_harvest_free:
-        harvested_urls, harvested_handles = harvest_free_factcheck_targets()
-    profiles = collect_discovery_profiles(leads, existing, harvested_handles, args.profile)
+        harvested_urls, _ = harvest_free_factcheck_targets()
+    profiles = collect_discovery_profiles(leads, existing, args.profile)
 
     raw_items: list[tuple[str, dict]] = []
     if args.input_json:
