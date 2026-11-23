@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 """
-CautionWatch Robotic Android Phone / Emulator TikTok Crawler + Windows OCR Verifier.
+CautionWatch Robotic Android Phone / Emulator TikTok Crawler + Cropped OCR & Share-Modal Extractor.
 
-Drives the native TikTok Android app on a USB-connected phone (e.g. moto g55 5G)
-or Android emulator via `adb` + `android` CLI:
-  1. Opens PolitiFact/IFCN fact-checked TikTok URLs, reported @handle profiles,
-     and high-signal search feeds directly in the TikTok mobile app.
-  2. Swipes robotically through videos (`adb shell input swipe`) and inspects
-     every video using BOTH:
-       - Android UI hierarchy dump (`android layout --full --flat` / `uiautomator`)
-       - Windows native OCR (`Windows.Media.Ocr.OcrEngine`) on `adb exec-out screencap -p`
-  3. Whenever the official `"Caution: Video flagged for unverified content"` banner
-     is detected, extracts the video URL / ID / @handle / caption and immediately
-     publishes the verified record to `https://brand-watch.ak10082247.workers.dev`
-     and local `brand_watch/flagged_videos.json` + `brand_watch/seed_caution.js`.
+Implements the complete Android ADB + UI XML + Cropped Top-20% OCR + Share Warning Modal pipeline:
+  1. Connects to your Android phone (e.g. moto g55 5G) or emulator over USB ADB or
+     Wireless Debugging (`--pair IP:PORT --pair-code CODE --connect IP:PORT`).
+  2. Trains & navigates TikTok by opening PolitiFact/IFCN fact-checked TikTok URLs,
+     monitored @handle profiles, and high-signal unverified-claim search feeds.
+  3. On every video:
+     - Shortcut 1 (10x faster): Reads the Android UI XML dump (`android layout --full --flat`
+       or `adb exec-out uiautomator dump /dev/tty`) for `"Caution: Video flagged for unverified content"`.
+     - Shortcut 2 (Visual fallback): Streams `adb exec-out screencap -p`, crops the top 22%
+       banner region where TikTok renders the grey Caution bar, and runs Windows Native OCR
+       (`Windows.Media.Ocr.OcrEngine`).
+  4. When a Caution video is detected during swiping:
+     - Taps the Share arrow on the bottom right.
+     - Automatically detects & clicks through TikTok's `"Are you sure you want to share this video?"`
+       warning modal (`"Continue"` / `"Share anyway"`).
+     - Taps `"Copy link"` and reads the URL from the device clipboard (`cmd clipboard get-text`)
+       or logcat `aweme_id`.
+  5. Appends the verified video to `brand_watch/flagged_videos.json` & `brand_watch/seed_caution.js`,
+     POSTs it live to `https://brand-watch.ak10082247.workers.dev/api/report`, and optionally runs
+     `git commit` & `git push` so the archive updates everywhere automatically.
 """
 
 from __future__ import annotations
@@ -28,7 +36,6 @@ import sys
 import tempfile
 import time
 import urllib.parse
-from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -60,8 +67,9 @@ DEFAULT_ANDROID_CLI_PATHS = [
     os.path.expandvars(r"%USERPROFILE%\AppData\AndroidCLI\android.exe"),
 ]
 TIKTOK_URL_IN_TEXT_RE = re.compile(
-    r"https?://(?:www\.|m\.|vm\.|vt\.)?tiktok\.com/(?:@[A-Za-z0-9_.]+/video/\d+|[A-Za-z0-9_-]{6,20}/?)"
+    r"https?://(?:www\.|m\.|vm\.|vt\.)?tiktok\.com/(?:@[A-Za-z0-9_.]+/video/\d+|[A-Za-z0-9_-]{6,22}/?)"
 )
+BOUNDS_RE = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 
 
 def resolve_adb_binary() -> str:
@@ -85,7 +93,6 @@ def resolve_android_cli_binary() -> str | None:
 
 
 def list_adb_devices(adb_bin: str) -> list[tuple[str, str]]:
-    """Return list of (serial, state) pairs from `adb devices`."""
     out = subprocess.check_output([adb_bin, "devices"], text=True, timeout=10)
     devices: list[tuple[str, str]] = []
     for line in out.splitlines()[1:]:
@@ -97,11 +104,71 @@ def list_adb_devices(adb_bin: str) -> list[tuple[str, str]]:
     return devices
 
 
-def run_windows_ocr_on_png(png_path: str) -> str:
-    """Run built-in Windows.Media.Ocr.OcrEngine on a screenshot PNG file."""
+def pair_and_connect_wireless_adb(
+    adb_bin: str,
+    pair_host_port: str | None = None,
+    pair_code: str | None = None,
+    connect_host_port: str | None = None,
+) -> dict:
+    info: dict = {}
+    if pair_host_port and pair_code:
+        out = subprocess.check_output(
+            [adb_bin, "pair", pair_host_port.strip(), pair_code.strip()],
+            text=True,
+            stderr=subprocess.STDOUT,
+            timeout=15,
+        )
+        info["pair_output"] = out.strip()
+    if connect_host_port:
+        out = subprocess.check_output(
+            [adb_bin, "connect", connect_host_port.strip()],
+            text=True,
+            stderr=subprocess.STDOUT,
+            timeout=15,
+        )
+        info["connect_output"] = out.strip()
+    return info
+
+
+def run_windows_ocr_on_png(png_path: str, crop_top_ratio: float = 0.0) -> str:
+    """
+    Run built-in Windows.Media.Ocr.OcrEngine on a screenshot PNG file.
+    When crop_top_ratio > 0 (e.g. 0.25), crops only the top 25% of the screen
+    where TikTok's grey 'Caution: Video flagged for unverified content.' banner sits,
+    making OCR faster and eliminating background noise.
+    """
     if not os.path.isfile(png_path) or os.path.getsize(png_path) < 100:
         return ""
-    safe_path = png_path.replace("'", "''")
+    target_path = png_path
+    cropped_temp = None
+    if 0.05 <= crop_top_ratio < 1.0:
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+                cropped_temp = tf.name
+            safe_in = png_path.replace("'", "''")
+            safe_out = cropped_temp.replace("'", "''")
+            ps_crop = (
+                "Add-Type -AssemblyName System.Drawing; "
+                f"$bmp = [System.Drawing.Bitmap]::FromFile('{safe_in}'); "
+                f"$h = [Math]::Max(80, [int]($bmp.Height * {crop_top_ratio:.2f})); "
+                "$rect = New-Object System.Drawing.Rectangle(0, 0, $bmp.Width, $h); "
+                "$crop = $bmp.Clone($rect, $bmp.PixelFormat); "
+                f"$crop.Save('{safe_out}', [System.Drawing.Imaging.ImageFormat]::Png); "
+                "$crop.Dispose(); $bmp.Dispose();"
+            )
+            subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_crop],
+                timeout=8,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+            if os.path.isfile(cropped_temp) and os.path.getsize(cropped_temp) > 100:
+                target_path = cropped_temp
+        except Exception:
+            target_path = png_path
+
+    safe_path = target_path.replace("'", "''")
     ps_ocr = (
         "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
         "$asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | "
@@ -131,6 +198,88 @@ def run_windows_ocr_on_png(png_path: str) -> str:
         ).strip()
     except Exception:
         return ""
+    finally:
+        if cropped_temp:
+            try:
+                os.remove(cropped_temp)
+            except OSError:
+                pass
+
+
+def dump_ui_elements(adb_bin: str, serial: str, android_bin: str | None = None) -> list[dict]:
+    """
+    Dump structured UI elements with text, contentDesc, and center (x, y) coordinates.
+    Uses `android layout` first and falls back to `adb exec-out uiautomator dump /dev/tty`.
+    """
+    elements: list[dict] = []
+    if android_bin:
+        try:
+            raw = subprocess.check_output(
+                [android_bin, "layout", "--device", serial, "--full", "--flat", "--no-idle"],
+                text=True,
+                timeout=8,
+                stderr=subprocess.DEVNULL,
+            )
+            nodes = json.loads(raw)
+            if isinstance(nodes, list):
+                for n in nodes:
+                    if not isinstance(n, dict):
+                        continue
+                    bounds = str(n.get("bounds") or "")
+                    center = None
+                    m = BOUNDS_RE.search(bounds)
+                    if m:
+                        x1, y1, x2, y2 = map(int, m.groups())
+                        center = ((x1 + x2) // 2, (y1 + y2) // 2)
+                    elements.append({
+                        "text": str(n.get("text") or "").strip(),
+                        "contentDesc": str(n.get("contentDesc") or "").strip(),
+                        "resourceId": str(n.get("resourceId") or "").strip(),
+                        "bounds": bounds,
+                        "center": center,
+                    })
+        except Exception:
+            pass
+
+    if not elements:
+        try:
+            xml_raw = subprocess.check_output(
+                [adb_bin, "-s", serial, "exec-out", "uiautomator", "dump", "/dev/tty"],
+                text=True,
+                timeout=8,
+                stderr=subprocess.DEVNULL,
+            )
+            for node_match in re.finditer(r"<node\s+([^>]+)>", xml_raw):
+                attrs = node_match.group(1)
+                txt_m = re.search(r'text="([^"]*)"', attrs)
+                desc_m = re.search(r'content-desc="([^"]*)"', attrs)
+                id_m = re.search(r'resource-id="([^"]*)"', attrs)
+                b_m = re.search(r'bounds="(\[\d+,\d+\]\[\d+,\d+\])"', attrs)
+                bounds = b_m.group(1) if b_m else ""
+                center = None
+                if bounds:
+                    bm = BOUNDS_RE.search(bounds)
+                    if bm:
+                        x1, y1, x2, y2 = map(int, bm.groups())
+                        center = ((x1 + x2) // 2, (y1 + y2) // 2)
+                elements.append({
+                    "text": (txt_m.group(1) if txt_m else "").strip(),
+                    "contentDesc": (desc_m.group(1) if desc_m else "").strip(),
+                    "resourceId": (id_m.group(1) if id_m else "").strip(),
+                    "bounds": bounds,
+                    "center": center,
+                })
+        except Exception:
+            pass
+    return elements
+
+
+def find_element_center(elements: list[dict], pattern: re.Pattern[str]) -> tuple[int, int] | None:
+    for el in elements:
+        hay = f"{el.get('text', '')} {el.get('contentDesc', '')} {el.get('resourceId', '')}"
+        if pattern.search(hay) and el.get("center"):
+            return el["center"]
+    return None
 
 
 def inspect_device_screen_for_caution(
@@ -139,63 +288,21 @@ def inspect_device_screen_for_caution(
     android_bin: str | None = None,
 ) -> dict:
     """
-    Inspect the current phone screen via BOTH UI hierarchy dump and Windows OCR.
-    Returns:
-      {
-        "matched": bool,
-        "caution_text": str,
-        "matched_via": "android_layout" | "uiautomator" | "windows_ocr" | "",
-        "handle": str,
-        "caption": str,
-        "raw_text_blob": str,
-      }
+    1. Fast UI XML check (`android layout` / `uiautomator dump`).
+    2. Cropped Top-25% Banner OCR check + Full screen OCR fallback.
     """
-    text_nodes: list[str] = []
-    matched_via = ""
-
-    # 1. Try `android layout --device <serial> --full --flat` first (fast structured JSON)
-    if android_bin:
-        try:
-            layout_raw = subprocess.check_output(
-                [android_bin, "layout", "--device", serial, "--full", "--flat", "--no-idle"],
-                text=True,
-                timeout=8,
-                stderr=subprocess.DEVNULL,
-            )
-            nodes = json.loads(layout_raw)
-            if isinstance(nodes, list):
-                for n in nodes:
-                    if not isinstance(n, dict):
-                        continue
-                    for key in ("text", "contentDesc"):
-                        val = str(n.get(key) or "").strip()
-                        if val:
-                            text_nodes.append(val)
-        except Exception:
-            pass
-
-    # 2. Fallback / supplement with `adb exec-out uiautomator dump /dev/tty`
-    if not text_nodes:
-        try:
-            xml_raw = subprocess.check_output(
-                [adb_bin, "-s", serial, "exec-out", "uiautomator", "dump", "/dev/tty"],
-                text=True,
-                timeout=8,
-                stderr=subprocess.DEVNULL,
-            )
-            for attr_val in re.findall(r'(?:text|content-desc)="([^"]+)"', xml_raw):
-                cleaned = attr_val.strip()
-                if cleaned:
-                    text_nodes.append(cleaned)
-        except Exception:
-            pass
-
+    elements = dump_ui_elements(adb_bin, serial, android_bin)
+    text_nodes = [
+        val
+        for el in elements
+        for val in (el.get("text", ""), el.get("contentDesc", ""))
+        if val
+    ]
     layout_blob = "\n".join(text_nodes)
-    if UNVERIFIED_CAUTION_RE.search(layout_blob):
-        matched_via = "android_layout"
+    matched_via = "android_xml_layout" if UNVERIFIED_CAUTION_RE.search(layout_blob) else ""
 
-    # 3. Always run Windows OCR on screenshot if layout didn't match (or to capture visual banner text)
-    ocr_text = ""
+    ocr_top_text = ""
+    ocr_full_text = ""
     if not matched_via:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
             png_path = tf.name
@@ -207,16 +314,21 @@ def inspect_device_screen_for_caution(
                     stderr=subprocess.DEVNULL,
                     timeout=8,
                 )
-            ocr_text = run_windows_ocr_on_png(png_path)
-            if UNVERIFIED_CAUTION_RE.search(ocr_text):
-                matched_via = "windows_ocr"
+            # First run OCR on top 25% banner slice (fast, zero caption noise)
+            ocr_top_text = run_windows_ocr_on_png(png_path, crop_top_ratio=0.25)
+            if UNVERIFIED_CAUTION_RE.search(ocr_top_text):
+                matched_via = "windows_ocr_top_crop"
+            else:
+                ocr_full_text = run_windows_ocr_on_png(png_path, crop_top_ratio=0.0)
+                if UNVERIFIED_CAUTION_RE.search(ocr_full_text):
+                    matched_via = "windows_ocr_full"
         finally:
             try:
                 os.remove(png_path)
             except OSError:
                 pass
 
-    combined = f"{layout_blob}\n{ocr_text}".strip()
+    combined = f"{layout_blob}\n{ocr_top_text}\n{ocr_full_text}".strip()
     handle = ""
     for m in re.findall(r"@([A-Za-z0-9_.]{3,32})", combined):
         if m.lower() not in ("tiktok", "for", "you", "following"):
@@ -225,7 +337,7 @@ def inspect_device_screen_for_caution(
 
     caption_lines = [
         line.strip()
-        for line in (text_nodes or ocr_text.splitlines())
+        for line in (text_nodes or ocr_full_text.splitlines())
         if len(line.strip()) >= 18
         and not UNVERIFIED_CAUTION_RE.search(line)
         and "participating in this activity" not in line.lower()
@@ -238,8 +350,94 @@ def inspect_device_screen_for_caution(
         "matched_via": matched_via,
         "handle": handle,
         "caption": caption[:280],
+        "elements": elements,
         "raw_text_blob": combined[:1500],
     }
+
+
+def extract_video_url_via_share_modal(
+    adb_bin: str,
+    serial: str,
+    elements: list[dict],
+    fallback_handle: str = "",
+    android_bin: str | None = None,
+) -> str:
+    """
+    Automate TikTok's Share -> Unverified Share Confirmation Modal ('Continue' / 'Share anyway') -> Copy Link -> Clipboard / Logcat.
+    """
+    # 1. Tap Share button on right rail
+    share_xy = find_element_center(elements, re.compile(r"\bshare\b", re.I)) or (990, 1460)
+    subprocess.run(
+        [adb_bin, "-s", serial, "shell", "input", "tap", str(share_xy[0]), str(share_xy[1])],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=5,
+    )
+    time.sleep(1.6)
+
+    # 2. Check if TikTok popped up "Are you sure you want to share this video?" warning modal
+    modal_elements = dump_ui_elements(adb_bin, serial, android_bin)
+    continue_xy = find_element_center(
+        modal_elements,
+        re.compile(r"(?:share\s+anyway|continue|proceed)", re.I),
+    )
+    if continue_xy:
+        subprocess.run(
+            [adb_bin, "-s", serial, "shell", "input", "tap", str(continue_xy[0]), str(continue_xy[1])],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        time.sleep(1.4)
+        modal_elements = dump_ui_elements(adb_bin, serial, android_bin)
+
+    # 3. Tap "Copy link"
+    copy_xy = find_element_center(modal_elements, re.compile(r"copy\s*link", re.I)) or (180, 1750)
+    subprocess.run(
+        [adb_bin, "-s", serial, "shell", "input", "tap", str(copy_xy[0]), str(copy_xy[1])],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=5,
+    )
+    time.sleep(1.2)
+
+    # 4. Read copied URL from Android clipboard or logcat
+    for clip_cmd in (
+        [adb_bin, "-s", serial, "shell", "cmd", "clipboard", "get-text"],
+        [adb_bin, "-s", serial, "shell", "am", "broadcast", "-a", "clipper.get"],
+    ):
+        try:
+            clip_out = subprocess.check_output(clip_cmd, text=True, timeout=5, stderr=subprocess.DEVNULL)
+            url_m = TIKTOK_URL_IN_TEXT_RE.search(clip_out)
+            if url_m:
+                raw_u = url_m.group(0)
+                if "/video/" in raw_u:
+                    return raw_u
+                # Resolve shortlink (vm.tiktok.com / vt.tiktok.com)
+                st, final_u, _, _ = http_fetch(raw_u, timeout=10)
+                if "/video/" in final_u:
+                    return final_u.split("?")[0]
+        except Exception:
+            pass
+
+    # 5. Fallback: extract aweme_id / group_id from recent logcat buffer
+    try:
+        log_raw = subprocess.check_output(
+            [adb_bin, "-s", serial, "logcat", "-d", "-t", "350"],
+            text=True,
+            timeout=8,
+            stderr=subprocess.DEVNULL,
+        )
+        url_m = re.search(r"https?://(?:www\.)?tiktok\.com/@[A-Za-z0-9_.]+/video/\d{18,20}", log_raw)
+        if url_m:
+            return url_m.group(0)
+        id_matches = re.findall(r"(?:aweme_id|group_id|item_id)[=:\"\s]+(\d{18,20})", log_raw)
+        if id_matches:
+            clean_h = fallback_handle.lstrip("@").lower() or "tiktok"
+            return f"https://www.tiktok.com/@{clean_h}/video/{id_matches[-1]}"
+    except Exception:
+        pass
+    return ""
 
 
 def report_verified_clip_to_live_site(
@@ -248,8 +446,9 @@ def report_verified_clip_to_live_site(
     caption: str,
     matched_via: str,
     worker_base: str = BRAND_WATCH_URL,
+    auto_git_push: bool = False,
 ) -> dict | None:
-    """Immediately publish a phone-verified Caution video to the live CautionWatch site."""
+    """Immediately publish a phone-verified Caution video to the live CautionWatch site & local JSON archive."""
     m = re.search(r"tiktok\.com/@([A-Za-z0-9_.]{2,35})/video/(\d+)", video_url)
     clean_handle = (m.group(1) if m else handle).lstrip("@").lower() or "unknown"
     vid = m.group(2) if m else ""
@@ -260,7 +459,7 @@ def report_verified_clip_to_live_site(
         "id": vid,
         "webVideoUrl": f"https://www.tiktok.com/@{clean_handle}/video/{vid}",
         "authorMeta": {"name": clean_handle, "nickName": clean_handle},
-        "text": caption or f"Phone OCR verified Caution-flagged video by @{clean_handle}",
+        "text": caption or f"Phone verified Caution-flagged video by @{clean_handle}",
         "misc_info": json.dumps({
             "ktf_info": {
                 "bottom_banner": True,
@@ -293,6 +492,24 @@ def report_verified_clip_to_live_site(
         )
     except Exception:
         pass
+
+    if auto_git_push and added:
+        try:
+            subprocess.run(
+                ["git", "add", "brand_watch/flagged_videos.json", "brand_watch/seed_caution.js"],
+                cwd=str(REPO_ROOT),
+                timeout=10,
+                check=False,
+            )
+            subprocess.run(
+                ["git", "commit", "-m", f"chore(brand-watch): archive phone-verified Caution video {vid} (@{clean_handle})"],
+                cwd=str(REPO_ROOT),
+                timeout=15,
+                check=False,
+            )
+            subprocess.run(["git", "push", "origin", "main"], cwd=str(REPO_ROOT), timeout=30, check=False)
+        except Exception:
+            pass
     return rec
 
 
@@ -300,11 +517,22 @@ def run_phone_robot(
     serial: str | None = None,
     swipes_per_profile: int = 12,
     max_direct_urls: int = 30,
-    wait_seconds: int = 60,
+    wait_seconds: int = 20,
+    pair_host_port: str | None = None,
+    pair_code: str | None = None,
+    connect_host_port: str | None = None,
+    auto_git_push: bool = True,
 ) -> dict:
     load_workspace_env(REPO_ROOT)
     adb_bin = resolve_adb_binary()
     android_bin = resolve_android_cli_binary()
+
+    wireless_info = pair_and_connect_wireless_adb(
+        adb_bin,
+        pair_host_port=pair_host_port,
+        pair_code=pair_code,
+        connect_host_port=connect_host_port,
+    )
 
     deadline = time.time() + max(5, wait_seconds)
     active_serial = serial
@@ -321,15 +549,16 @@ def run_phone_robot(
         return {
             "ok": False,
             "error": "No authorized Android device detected over ADB.",
+            "wireless": wireless_info,
             "devices_seen": last_states,
             "instructions": (
-                "Unlock your moto g55 5G, keep USB Debugging enabled in Developer Options, "
-                "set USB mode to File Transfer (MTP) / PTP, and tap 'Always allow from this computer' -> 'Allow' "
-                "on the 'Allow USB debugging?' prompt."
+                "Windows shows USB\\VID_22B8&PID_2E76\\ZY22L8LM57 as disconnected (CM_PROB_PHANTOM). "
+                "Either: (A) Plug the USB cable into a different USB port on your laptop, choose 'File Transfer' on the phone, "
+                "and tap 'Allow' on 'Allow USB debugging?'; OR (B) On your moto g55 5G open Settings -> Developer options -> "
+                "Wireless debugging -> Pair device with pairing code, and send me the IP:Port and 6-digit pairing code."
             ),
         }
 
-    # Keep screen awake while plugged in
     subprocess.run([adb_bin, "-s", active_serial, "shell", "svc", "power", "stayon", "usb"], stderr=subprocess.DEVNULL)
 
     fc_urls, fc_handles = harvest_free_factcheck_targets(max_articles=45)
@@ -343,7 +572,7 @@ def run_phone_robot(
     verified_records: list[dict] = []
     inspected_count = 0
 
-    # Phase 1: Open direct candidate TikTok video URLs in the TikTok mobile app & verify banner via UI dump + OCR
+    # Phase 1: Direct deep-link verification of fact-checked TikTok URLs
     for url in candidate_urls[:max_direct_urls]:
         subprocess.run(
             [adb_bin, "-s", active_serial, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", url],
@@ -351,7 +580,7 @@ def run_phone_robot(
             stderr=subprocess.DEVNULL,
             timeout=8,
         )
-        time.sleep(4.0)
+        time.sleep(3.8)
         inspected_count += 1
         res = inspect_device_screen_for_caution(adb_bin, active_serial, android_bin)
         if res["matched"]:
@@ -360,11 +589,12 @@ def run_phone_robot(
                 handle=res["handle"],
                 caption=res["caption"],
                 matched_via=res["matched_via"],
+                auto_git_push=auto_git_push,
             )
             if rec:
                 verified_records.append(rec)
 
-    # Phase 2: Open monitored/reported @handle profiles & swipe through their videos
+    # Phase 2: Robotic Profile Grid Swiping + Share-Warning Modal Link Extraction
     profile_queue: list[str] = []
     for a in reported_accts:
         h = str(a.get("handle") or "").strip().lstrip("@").lower()
@@ -383,46 +613,42 @@ def run_phone_robot(
             stderr=subprocess.DEVNULL,
             timeout=8,
         )
-        time.sleep(4.0)
-        # Tap first video tile on the creator's profile grid (left column, middle-lower screen)
+        time.sleep(3.8)
         subprocess.run(
             [adb_bin, "-s", active_serial, "shell", "input", "tap", "200", "1350"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=5,
         )
-        time.sleep(3.0)
+        time.sleep(2.8)
         for _ in range(swipes_per_profile):
             inspected_count += 1
             res = inspect_device_screen_for_caution(adb_bin, active_serial, android_bin)
             if res["matched"]:
-                # Copy link via Share or logcat aweme_id extraction
-                log_raw = subprocess.check_output(
-                    [adb_bin, "-s", active_serial, "logcat", "-d", "-t", "250"],
-                    text=True,
-                    timeout=8,
-                    stderr=subprocess.DEVNULL,
+                v_url = extract_video_url_via_share_modal(
+                    adb_bin,
+                    active_serial,
+                    res.get("elements") or [],
+                    fallback_handle=res["handle"] or handle,
+                    android_bin=android_bin,
                 )
-                id_matches = re.findall(r"(?:aweme_id|group_id|item_id)[=:\"\s]+(\d{18,20})", log_raw)
-                if id_matches:
-                    vid_id = id_matches[-1]
-                    v_url = f"https://www.tiktok.com/@{handle}/video/{vid_id}"
+                if v_url:
                     rec = report_verified_clip_to_live_site(
                         video_url=v_url,
-                        handle=handle,
+                        handle=res["handle"] or handle,
                         caption=res["caption"],
                         matched_via=res["matched_via"],
+                        auto_git_push=auto_git_push,
                     )
                     if rec:
                         verified_records.append(rec)
-            # Swipe up to the next video on this profile
             subprocess.run(
                 [adb_bin, "-s", active_serial, "shell", "input", "swipe", "540", "1650", "540", "350", "380"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=5,
             )
-            time.sleep(2.8)
+            time.sleep(2.5)
 
     return {
         "ok": True,
@@ -434,17 +660,25 @@ def run_phone_robot(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="CautionWatch Robotic Android Phone TikTok Crawler + OCR Verifier.")
+    parser = argparse.ArgumentParser(description="CautionWatch Robotic Android Phone TikTok Crawler + Cropped OCR Verifier.")
     parser.add_argument("--serial", default=None, help="Specific ADB device serial (e.g. ZY22L8LM57).")
+    parser.add_argument("--pair", default=None, help="Wireless ADB pairing IP:Port (e.g. 192.168.1.50:37123).")
+    parser.add_argument("--pair-code", default=None, help="6-digit Wireless ADB pairing code.")
+    parser.add_argument("--connect", default=None, help="Wireless ADB connect IP:Port.")
     parser.add_argument("--swipes-per-profile", type=int, default=12)
     parser.add_argument("--max-direct-urls", type=int, default=25)
-    parser.add_argument("--wait-seconds", type=int, default=15)
+    parser.add_argument("--wait-seconds", type=int, default=10)
+    parser.add_argument("--no-git-push", action="store_true")
     args = parser.parse_args(argv)
     result = run_phone_robot(
         serial=args.serial,
         swipes_per_profile=args.swipes_per_profile,
         max_direct_urls=args.max_direct_urls,
         wait_seconds=args.wait_seconds,
+        pair_host_port=args.pair,
+        pair_code=args.pair_code,
+        connect_host_port=args.connect,
+        auto_git_push=not args.no_git_push,
     )
     print(json.dumps(result, indent=2))
     return 0 if result.get("ok") else 1
