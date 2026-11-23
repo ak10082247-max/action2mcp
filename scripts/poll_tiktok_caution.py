@@ -25,6 +25,7 @@ import re
 import socket
 import sys
 import urllib.parse
+import urllib.request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -586,6 +587,7 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
                 penalty_anomalies.append({
                     "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
                     "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
+                    "text": str(root.get("text") or root.get("desc") or root.get("title") or "")[:90],
                     "warnInfo": root.get("warnInfo") or raw.get("warnInfo"),
                     "maskType": root.get("maskType"),
                     "penaltyContext": pc,
@@ -740,6 +742,12 @@ def enrich_items_with_tiktok_ssr(
     return out
 
 
+def _fetch_large_json(url: str, timeout: int = 35):
+    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "CautionWatch/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read(15_000_000).decode("utf-8", "replace"))
+
+
 def poll_apify(
     queries: list[str],
     actor_id: str = "clockworks~free-tiktok-scraper",
@@ -827,7 +835,7 @@ def poll_apify(
         if not dataset_id:
             continue
         items_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(dataset_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={dataset_limit}"
-        items = http_get_json(items_url, timeout=30)
+        items = _fetch_large_json(items_url, timeout=35)
         if isinstance(items, list):
             all_results.extend((f"apify:{single_actor}", it) for it in items if isinstance(it, dict))
     return all_results
