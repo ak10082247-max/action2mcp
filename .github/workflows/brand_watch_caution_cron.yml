@@ -17,13 +17,13 @@ on:
         required: false
         default: 'auto'
       apify_actor:
-        description: 'Apify actor ID if provider uses Apify'
+        description: 'Apify actor ID(s) if provider uses Apify'
         required: false
-        default: 'clockworks~free-tiktok-scraper'
+        default: 'apidojo~tiktok-profile-scraper,apidojo~tiktok-scraper'
       max_items:
         description: 'Hard cap on raw items scanned per run'
         required: false
-        default: '45'
+        default: '120'
       extra_profile:
         description: 'Optional extra TikTok @username profile to poll'
         required: false
@@ -59,8 +59,8 @@ jobs:
           BRAND_WATCH_URL: https://brand-watch.ak10082247.workers.dev
           INPUT_RUN_LIVE: ${{ inputs.run_live || 'true' }}
           INPUT_PROVIDER: ${{ inputs.provider || 'auto' }}
-          INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'clockworks~free-tiktok-scraper' }}
-          INPUT_MAX_ITEMS: ${{ inputs.max_items || '45' }}
+          INPUT_APIFY_ACTOR: ${{ inputs.apify_actor || 'apidojo~tiktok-profile-scraper,apidojo~tiktok-scraper' }}
+          INPUT_MAX_ITEMS: ${{ inputs.max_items || '120' }}
           INPUT_EXTRA_PROFILE: ${{ inputs.extra_profile || '' }}
         run: |
           if [ "$INPUT_RUN_LIVE" = "true" ] && { [ -n "$ENSEMBLEDATA_TOKEN" ] || [ -n "$RAPIDAPI_KEY" ] || [ -n "$APIFY_TOKEN" ]; }; then

@@ -16,6 +16,7 @@ Safety guarantees:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 from datetime import datetime, timezone
 import ipaddress
 import json
@@ -556,13 +557,34 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
     key_counts: dict[str, int] = {}
     author_counts: dict[str, int] = {}
     warning_signals: list[dict] = []
+    penalty_anomalies: list[dict] = []
     sample_previews: list[dict] = []
     target_hits: list[dict] = []
+    ssr_checked = 0
 
     for src, raw in raw_items:
         if not isinstance(raw, dict):
             continue
         root = _extract_root(raw)
+        if "_ssr_itemStruct" in raw or "penaltyContext" in raw or "penaltyContext" in root:
+            ssr_checked += 1
+        pc = root.get("penaltyContext") or raw.get("penaltyContext") or {}
+        if isinstance(pc, dict) and (
+            str(pc.get("display_penalty_type") or "0") != "0"
+            or str(pc.get("display_ui_type") or "0") != "0"
+            or int(pc.get("display_policy") or 0) != 0
+            or root.get("warnInfo")
+            or raw.get("warnInfo")
+            or root.get("maskType")
+        ):
+            if len(penalty_anomalies) < sample_limit:
+                penalty_anomalies.append({
+                    "id": str(root.get("id") or root.get("aweme_id") or "")[:32],
+                    "url": str(root.get("webVideoUrl") or root.get("postPage") or root.get("url") or "")[:100],
+                    "warnInfo": root.get("warnInfo") or raw.get("warnInfo"),
+                    "maskType": root.get("maskType"),
+                    "penaltyContext": pc,
+                })
         for k in list(raw.keys()):
             key_counts[k] = key_counts.get(k, 0) + 1
         author_obj = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
@@ -606,12 +628,107 @@ def summarize_raw_diagnostics(raw_items: list[tuple[str, dict]], sample_limit: i
                 "text": text_val[:80],
             })
     return {
+        "ssr_enriched_count": ssr_checked,
         "all_keys": [f"{k}:{v}" for k, v in sorted(key_counts.items())],
         "authors_seen": sorted(author_counts.items(), key=lambda kv: -kv[1])[:15],
         "warning_signals_seen": warning_signals,
+        "penalty_anomalies": penalty_anomalies,
         "target_hits": target_hits,
         "sample_previews": sample_previews,
     }
+
+
+REHYDRATION_RE = re.compile(
+    r'<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>',
+    re.DOTALL,
+)
+SSR_BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+
+def fetch_tiktok_ssr_item_struct(video_url: str) -> dict | None:
+    """Passively inspect public TikTok video SSR JSON for warnInfo/penalty metadata (never solves CAPTCHAs)."""
+    if not video_url or "tiktok.com/" not in video_url or "/video/" not in video_url:
+        return None
+    try:
+        st, _, _, raw = http_fetch(
+            video_url,
+            headers={"User-Agent": SSR_BROWSER_UA, "Accept": "text/html,application/xhtml+xml"},
+            timeout=9,
+            verify_ssl=True,
+        )
+        if st >= 400:
+            return None
+        html = raw.decode("utf-8", "replace")
+        m = REHYDRATION_RE.search(html)
+        if not m:
+            return None
+        payload = json.loads(m.group(1))
+        vd = (payload.get("__DEFAULT_SCOPE__") or {}).get("webapp.video-detail") or {}
+        if vd.get("statusCode") not in (0, "0", None):
+            return None
+        st_obj = (vd.get("itemInfo") or {}).get("itemStruct")
+        return st_obj if isinstance(st_obj, dict) else None
+    except Exception:
+        return None
+
+
+def enrich_items_with_tiktok_ssr(
+    raw_items: list[tuple[str, dict]],
+    extra_urls: list[str] | None = None,
+    max_fetches: int = 80,
+) -> list[tuple[str, dict]]:
+    """Attach live TikTok SSR itemStruct fields (warnInfo, penaltyContext, contentDesc) to candidate items."""
+    out: list[tuple[str, dict]] = []
+    seen_urls: set[str] = set()
+    to_fetch: list[tuple[int, str]] = []
+
+    for src, raw in raw_items:
+        if not isinstance(raw, dict) or raw.get("error"):
+            continue
+        item_copy = dict(raw)
+        out.append((src, item_copy))
+        idx = len(out) - 1
+        root = _extract_root(item_copy)
+        candidate_url = str(
+            root.get("webVideoUrl") or root.get("postPage") or root.get("url") or ""
+        ).strip()
+        if not candidate_url:
+            vid = str(root.get("id") or root.get("aweme_id") or "").strip()
+            author = root.get("authorMeta") or root.get("author") or root.get("channel") or {}
+            uname = str((author.get("name") or author.get("username") or author.get("uniqueId") or "") if isinstance(author, dict) else "").strip().lstrip("@")
+            if vid and uname:
+                candidate_url = f"https://www.tiktok.com/@{uname}/video/{vid}"
+                item_copy.setdefault("webVideoUrl", candidate_url)
+        if candidate_url and "/video/" in candidate_url and not _collect_warning_strings(item_copy):
+            if candidate_url not in seen_urls and len(to_fetch) < max_fetches:
+                seen_urls.add(candidate_url)
+                to_fetch.append((idx, candidate_url))
+
+    for u in (extra_urls or []):
+        if "/video/" in u and u not in seen_urls and len(to_fetch) < max_fetches:
+            seen_urls.add(u)
+            out.append(("factcheck_ssr", {"webVideoUrl": u}))
+            to_fetch.append((len(out) - 1, u))
+
+    if not to_fetch:
+        return out
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        future_map = {ex.submit(fetch_tiktok_ssr_item_struct, url): idx for idx, url in to_fetch}
+        for fut in concurrent.futures.as_completed(future_map):
+            idx = future_map[fut]
+            try:
+                struct = fut.result()
+            except Exception:
+                struct = None
+            if not struct:
+                continue
+            target = out[idx][1]
+            target["_ssr_itemStruct"] = True
+            for k in ("warnInfo", "warningInfo", "riskInfos", "labelTop", "contentDesc", "maskType", "penaltyContext", "desc", "id", "video", "author"):
+                if struct.get(k) not in (None, "") and not target.get(k):
+                    target[k] = struct.get(k)
+    return out
 
 
 def poll_apify(
@@ -638,9 +755,9 @@ def poll_apify(
     except Exception:
         pass
 
-    hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:3]
-    search_terms = [q for q in queries if not q.startswith("#")][:3]
-    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:3]
+    hashtags = [q.lstrip("#") for q in queries if q.startswith("#")][:4]
+    search_terms = [q for q in queries if not q.startswith("#")][:4]
+    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:5]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:10]
     actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["clockworks~free-tiktok-scraper"]
     all_results: list[tuple[str, dict]] = []
@@ -650,15 +767,23 @@ def poll_apify(
         remaining = max(1, min(per_actor_budget, max_items - len(all_results)))
         if len(all_results) >= max_items:
             break
-        if "apidojo" in single_actor:
-            start_urls = [f"https://www.tiktok.com/@{p}" for p in clean_profiles] + clean_post_urls
+        if "apidojo" in single_actor and "profile" in single_actor:
+            if not clean_profiles:
+                continue
+            actor_input = {
+                "usernames": clean_profiles,
+                "startUrls": [f"https://www.tiktok.com/@{p}" for p in clean_profiles],
+                "maxItems": max(remaining, 65),
+            }
+            dataset_limit = max(remaining, 65)
+        elif "apidojo" in single_actor:
             actor_input = {
                 "keywords": search_terms or ["flagged for unverified content"],
                 "maxItems": remaining,
                 "customMapFunction": "(object) => ({ ...object })",
             }
-            if start_urls:
-                actor_input["startUrls"] = start_urls[:8]
+            if clean_post_urls:
+                actor_input["startUrls"] = clean_post_urls[:6]
             dataset_limit = remaining
         else:
             target_groups = max(1, len(clean_profiles) + len(hashtags) + len(search_terms))
@@ -897,6 +1022,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--query", action="append", default=[], help="Extra keyword or #hashtag query.")
     parser.add_argument("--profile", action="append", default=[], help="Extra TikTok @username profile to poll.")
     parser.add_argument("--no-harvest-free", action="store_true", help="Skip free fact-checker URL harvesting.")
+    parser.add_argument("--no-ssr-enrich", action="store_true", help="Skip passive TikTok video page SSR enrichment.")
     parser.add_argument("--input-json", default="", help="Process local raw scraper JSON list without spending API credits.")
     parser.add_argument("--sync-worker", action="store_true", help="Push stored records to Worker /api/ingest-caution.")
     parser.add_argument("--send-alerts", action="store_true", help="Allow dispatching email/webhook alerts to matched leads.")
@@ -935,6 +1061,12 @@ def main(argv: list[str] | None = None) -> int:
                     profiles=profiles,
                     post_urls=harvested_urls,
                 )
+            )
+        if not args.no_ssr_enrich:
+            raw_items = enrich_items_with_tiktok_ssr(
+                raw_items,
+                extra_urls=harvested_urls,
+                max_fetches=max(60, args.max_items),
             )
 
     provider_label = args.provider if args.input_json == "" else "local_json"

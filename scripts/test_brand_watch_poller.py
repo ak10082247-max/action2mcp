@@ -151,6 +151,40 @@ class CautionPollerTests(unittest.TestCase):
             self.assertEqual(res2["dispatched"], 0)
             self.assertEqual(res2["skipped_dedupe"], 1)
 
+    def test_ssr_enrichment_parses_rehydration_warninfo(self):
+        fake_rehyd = json.dumps({
+            "__DEFAULT_SCOPE__": {
+                "webapp.video-detail": {
+                    "statusCode": 0,
+                    "itemInfo": {
+                        "itemStruct": {
+                            "id": "7709208502949940500",
+                            "desc": "Watch what happened to Anthony Joshua #maskedtruth",
+                            "warnInfo": [{"text": "Caution: Video flagged for unverified content."}],
+                            "penaltyContext": {"display_penalty_type": "2", "display_policy": 1},
+                        }
+                    },
+                }
+            }
+        })
+        fake_html = f'<html><script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">{fake_rehyd}</script></html>'
+
+        def fake_fetch(url, headers=None, timeout=9, verify_ssl=True):
+            return 200, url, {}, fake_html.encode("utf-8")
+
+        raw = [("apify:apidojo~tiktok-scraper", {
+            "id": "7709208502949940500",
+            "postPage": "https://www.tiktok.com/@maskedtruthmt/video/7709208502949940500",
+            "channel": {"username": "maskedtruthmt", "name": "maskedtruthmt"},
+            "title": "Watch what happened to Anthony Joshua #maskedtruth",
+        })]
+        with patch.object(poller, "http_fetch", side_effect=fake_fetch):
+            enriched = poller.enrich_items_with_tiktok_ssr(raw)
+        rec = poller.extract_caution_record(enriched[0][1])
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["matchedField"], "warnInfo")
+        self.assertIn("unverified content", rec["cautionText"].lower())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
