@@ -27,31 +27,44 @@ import {
 } from "./scanner.js";
 
 export const BRAND_WATCH_PLANS = {
+  single: {
+    id: "single",
+    sku: "cautionwatch-single-v1",
+    name: "Single Flagged Clip Forensic Proof (.zip) — $2 Impulse Deal",
+    description:
+      "Instant forensic proof ZIP for a flagged Caution TikTok clip (saved caption, @handle, thumbnail & voice-to-text fallback if deleted).",
+    amountCents: 200,
+    amountMicro: 2000000,
+    originalCents: 1900,
+    originalDisplay: "$19",
+    priceDisplay: "$2 USD / USDC",
+    tier: "single_2",
+  },
   audit: {
     id: "audit",
     sku: "cautionwatch-dossier-v1",
-    name: "Caution-Flagged Video Evidence Dossier (.zip) — $49",
+    name: "Caution-Flagged Video Evidence Dossier (.zip) — $5 Impulse Deal",
     description:
-      "Instant Evidence ZIP of archived Caution-flagged TikTok videos matching your business or name (saved caption, @handle, thumbnail & voice-to-text fallback if deleted).",
-    amountCents: 4900,
-    amountMicro: 49000000,
-    originalCents: 14900,
-    originalDisplay: "$149",
-    priceDisplay: "$49 USD / USDC",
-    tier: "audit_49",
+      "Instant Evidence ZIP of all archived Caution-flagged TikTok videos matching your business, creator handle, or keyword (CSV + JSON + takedown brief).",
+    amountCents: 500,
+    amountMicro: 5000000,
+    originalCents: 4900,
+    originalDisplay: "$49",
+    priceDisplay: "$5 USD / USDC",
+    tier: "audit_5",
   },
   retainer: {
     id: "retainer",
     sku: "cautionwatch-alerts-v1",
-    name: "Priority Live Caution-Video Alert Feed Setup — $199",
+    name: "30-Day Live Caution-Video Alert Watchlist & Webhook Pass — $15",
     description:
-      "Dedicated automated polling for your business, brand, or personal name across high-risk TikTok keywords + instant live email/webhook alerts on Caution matches.",
-    amountCents: 19900,
-    amountMicro: 199000000,
-    originalCents: 39900,
-    originalDisplay: "$399",
-    priceDisplay: "$199 USD / USDC",
-    tier: "retainer_199",
+      "Automated polling for your business, brand, or personal name across high-risk TikTok keywords + instant live email/webhook alerts on Caution matches.",
+    amountCents: 1500,
+    amountMicro: 15000000,
+    originalCents: 9900,
+    originalDisplay: "$99",
+    priceDisplay: "$15 USD / USDC",
+    tier: "retainer_15",
   },
 };
 
@@ -114,6 +127,18 @@ function renderLanding(origin, contactEmail) {
     .feed-item { background:#0b1120; border:1px solid #1e293b; border-radius:10px; padding:0.95rem; margin-top:0.75rem; }
     .caution-bar { background:#1f2937; border:1px solid #4b5563; border-radius:8px; padding:0.45rem 0.7rem; font-size:0.8rem; font-weight:700; color:#f8fafc; margin-bottom:0.55rem; display:flex; align-items:center; gap:0.45rem; }
     .pill { display:inline-block; font-size:0.72rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; margin-right:0.35rem; background:#0c4a6e; color:#7dd3fc; border:1px solid #075985; }
+    .pill.clickable { cursor:pointer; transition:background 0.15s,border-color 0.15s; }
+    .pill.clickable:hover { background:#0284c7; color:#fff; border-color:#38bdf8; }
+    .tag-bar { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.65rem; padding-top:0.55rem; border-top:1px solid #1e293b; }
+    .tag-btn { background:#0f172a; border:1px solid #334155; color:#cbd5e1; font-size:0.74rem; font-weight:600; padding:0.22rem 0.58rem; border-radius:999px; cursor:pointer; transition:all 0.15s; }
+    .tag-btn:hover, .tag-btn.active { background:#0284c7; border-color:#38bdf8; color:#fff; }
+    .tag-count { opacity:0.75; font-size:0.68rem; margin-left:0.22rem; }
+    .ac-wrap { position:relative; flex:1; }
+    .ac-menu { position:absolute; top:100%; left:0; right:0; z-index:40; background:#0f172a; border:1px solid #38bdf8; border-radius:8px; margin-top:0.25rem; max-height:230px; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.65); }
+    .ac-item { padding:0.5rem 0.75rem; font-size:0.84rem; color:#f8fafc; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; }
+    .ac-item:last-child { border-bottom:0; }
+    .ac-item:hover { background:#1e293b; }
+    .ac-badge { font-size:0.7rem; color:#7dd3fc; background:#0c4a6e; padding:0.1rem 0.45rem; border-radius:999px; }
     .embed-box { margin-top:0.6rem; border-radius:8px; overflow:hidden; border:1px solid #1e293b; background:#05070c; }
     .fallback-box { margin-top:0.55rem; background:#05070c; border:1px dashed #334155; border-radius:8px; padding:0.65rem; font-size:0.8rem; color:#cbd5e1; }
   </style>
@@ -130,7 +155,7 @@ function renderLanding(origin, contactEmail) {
   </header>
 
   <div class="notice">
-    <strong>Zero-Noise Strict Policy:</strong> This site indexes and displays <strong>only</strong> TikTok videos verified to carry the official <code>"Caution: Video flagged for unverified content"</code> label (extracted via raw scraper <code>warnInfo</code> / <code>labelTop</code> / <code>contentDesc</code> fields or direct verified operator submissions). All unflagged videos, general news, and unrelated posts are excluded. Official TikTok embeds load directly from TikTok, with saved caption/thumbnail/transcript fallback records kept in case the creator deletes the post.
+    <strong>Zero-Noise Strict Policy:</strong> This site indexes and displays <strong>only</strong> TikTok videos verified to carry the official <code>"Caution: Video flagged for unverified content"</code> label (extracted via raw scraper <code>misc_info.ktf_info</code> / <code>warnInfo</code> / <code>labelTop</code> fields or direct verified operator submissions). All unflagged videos, general news, and unrelated posts are excluded. Official TikTok embeds load directly from TikTok, with saved caption/thumbnail/transcript fallback records kept in case the creator deletes the post.
   </div>
 
   <div class="grid">
@@ -138,10 +163,15 @@ function renderLanding(origin, contactEmail) {
       <div class="card">
         <strong>Verified "Caution: Unverified Content" Video Feed (<span id="countBadge">0</span>)</strong>
         <div class="row" style="margin-top:0.6rem;">
-          <input id="queryInput" type="text" placeholder="Filter Caution videos by business, personal name, @handle, hashtag, or transcript..." style="flex:1;margin:0;" />
-          <button class="btn" onclick="loadCautionFeed()">Filter Flagged Videos</button>
-          <button class="btn" style="background:#334155;" onclick="document.getElementById('queryInput').value='';loadCautionFeed();">Show All</button>
+          <div class="ac-wrap">
+            <input id="queryInput" type="text" list="cautionSuggestions" autocomplete="off" placeholder="Search or autofill by #hashtag, @handle, business, person, or claim..." style="margin:0;" oninput="onSearchInput(this.value)" onfocus="onSearchInput(this.value)" onkeydown="if(event.key==='Enter'){hideAutofill();loadCautionFeed();}" />
+            <div id="autofillMenu" class="ac-menu" style="display:none;"></div>
+          </div>
+          <datalist id="cautionSuggestions"></datalist>
+          <button class="btn" onclick="hideAutofill();loadCautionFeed();">Filter Flagged Videos</button>
+          <button class="btn" style="background:#334155;" onclick="filterByTag('')">Show All</button>
         </div>
+        <div id="tagCloud" class="tag-bar"></div>
         <div id="feedOut" style="margin-top:0.6rem;font-size:0.88rem;color:#94a3b8;">Loading verified Caution-tagged TikTok feed...</div>
       </div>
 
@@ -151,7 +181,7 @@ function renderLanding(origin, contactEmail) {
         <label for="tkUrl">TikTok Video URL</label>
         <input id="tkUrl" type="url" placeholder="https://www.tiktok.com/@maskedtruthmt/video/..." />
         <label for="tkBrand">Subject / Brand / Name Mentioned (optional)</label>
-        <input id="tkBrand" type="text" placeholder="e.g. Anthony Joshua or Acme Brand" />
+        <input id="tkBrand" type="text" list="cautionSuggestions" placeholder="e.g. Anthony Joshua or Acme Brand" />
         <label for="tkVoice">Observed Caption / Audio Summary (preserved if creator deletes clip)</label>
         <input id="tkVoice" type="text" placeholder="Optional transcript or context note" />
         <button class="btn btn-amber" onclick="submitCautionVideo()">Verify oEmbed &amp; Add Caution Video</button>
@@ -174,14 +204,15 @@ function renderLanding(origin, contactEmail) {
           <label for="cEmail">Email for Live Alerts *</label>
           <input id="cEmail" type="email" required placeholder="alerts@company.com or you@gmail.com" />
           <label for="cKeywords">Exact Names, Brand Terms &amp; @Handles to Poll *</label>
-          <input id="cKeywords" required placeholder="e.g. Anthony Joshua, @yourbrand, Product Name" />
+          <input id="cKeywords" required list="cautionSuggestions" placeholder="e.g. Anthony Joshua, @yourbrand, Product Name" />
           <label for="cRefUrl">Existing Flagged TikTok URL (optional)</label>
           <input id="cRefUrl" placeholder="https://www.tiktok.com/@.../video/..." />
-          <label for="cPlan">Alert Preference</label>
+          <label for="cPlan">Alert / Dossier Option (Impulse-Buy Pricing)</label>
           <select id="cPlan">
-            <option value="Live Caution Alert Subscription Inquiry">Live Caution Alert Subscription (Email / Webhook)</option>
-            <option value="Archived Caution Evidence Dossier ($49)">Archived Caution Evidence Dossier Pack ($49)</option>
-            <option value="Managed Custom Polling & Live Alert Setup ($199)">Priority Managed Poller + Live Alerts ($199)</option>
+            <option value="Live Caution Alert Subscription Inquiry">Free Watchlist Intake / Live Alert Inquiry</option>
+            <option value="Single Clip Forensic Proof ($2)">Single Flagged Clip Forensic Proof ZIP ($2)</option>
+            <option value="Archived Caution Evidence Dossier ($5)">Full Caution Evidence Dossier Pack ($5)</option>
+            <option value="30-Day Live Caution Alert Watchlist Pass ($15)">30-Day Live Caution Alert Watchlist &amp; Webhook Pass ($15)</option>
           </select>
           <label for="cNotes">Webhook URL (Make.com / Slack) or Notes</label>
           <textarea id="cNotes" rows="3" placeholder="Optional webhook URL, escalation contact, or extra keywords..."></textarea>
@@ -194,32 +225,104 @@ function renderLanding(origin, contactEmail) {
       </div>
 
       <div class="card">
-        <strong>Instant Paid Dossiers &amp; Alert Setup (Stripe)</strong>
+        <strong>Instant Impulse-Buy Dossiers &amp; Live Alert Passes (Stripe)</strong>
+        <p style="font-size:0.79rem;color:#94a3b8;margin:0.25rem 0 0.65rem;">Instant self-serve checkout priced for creators, journalists, researchers &amp; businesses:</p>
         <div class="feed-item">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Caution-Flagged Evidence Dossier (.zip)</strong>
-            <span style="color:#34d399;font-weight:800;">$49</span>
+            <strong>Single Clip Forensic Proof (.zip)</strong>
+            <span><s style="color:#64748b;font-size:0.78rem;margin-right:0.3rem;">$19</s><span style="color:#38bdf8;font-weight:800;">$2</span></span>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Archived CSV + JSON fallback records (saved caption, @handle, thumbnail &amp; transcript) for your watched keywords.</p>
-          <button class="btn btn-green" style="width:100%;" onclick="buyPlan('audit')">Download Dossier Pack ($49)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Timestamped forensic fallback snapshot (caption, @handle, thumbnail &amp; transcript) before the creator deletes the clip.</p>
+          <button class="btn" style="width:100%;" onclick="buyPlan('single')">Instant Clip Proof Pack ($2)</button>
         </div>
         <div class="feed-item">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Priority Live Polling &amp; Webhook Setup</strong>
-            <span style="color:#fbbf24;font-weight:800;">$199</span>
+            <strong>Full Caution Evidence Dossier (.zip)</strong>
+            <span><s style="color:#64748b;font-size:0.78rem;margin-right:0.3rem;">$49</s><span style="color:#34d399;font-weight:800;">$5</span></span>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Custom keyword polling + live email/Make.com webhook alert wiring + dossier ZIP.</p>
-          <button class="btn btn-amber" style="width:100%;" onclick="buyPlan('retainer')">Order Live Alert Setup ($199)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Complete archived CSV + JSON fallback records + escalation brief for your watched keyword, brand, or creator.</p>
+          <button class="btn btn-green" style="width:100%;" onclick="buyPlan('audit')">Download Full Dossier Pack ($5)</button>
+        </div>
+        <div class="feed-item">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong>30-Day Live Alert Watchlist Pass</strong>
+            <span><s style="color:#64748b;font-size:0.78rem;margin-right:0.3rem;">$99</s><span style="color:#fbbf24;font-weight:800;">$15</span></span>
+          </div>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Automated keyword/@handle polling + instant email &amp; Make.com/Slack webhook alerts on new Caution matches + dossier ZIP.</p>
+          <button class="btn btn-amber" style="width:100%;" onclick="buyPlan('retainer')">Activate Live Alert Pass ($15)</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    let CATALOG_TAGS = [];
     function esc(s) {
       return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
+    function hideAutofill() {
+      const m = document.getElementById("autofillMenu");
+      if (m) m.style.display = "none";
+    }
+    function filterByTag(tag) {
+      document.getElementById("queryInput").value = tag || "";
+      hideAutofill();
+      loadCautionFeed();
+    }
+    function onSearchInput(val) {
+      const menu = document.getElementById("autofillMenu");
+      if (!menu || !CATALOG_TAGS.length) return;
+      const q = String(val || "").trim().toLowerCase();
+      const qBare = q.replace(/^[#@]+/, "");
+      const matches = CATALOG_TAGS.filter((t) => {
+        if (!q) return true;
+        const low = String(t.tag || "").toLowerCase();
+        return low.includes(q) || (qBare && low.includes(qBare));
+      }).slice(0, 10);
+      if (!matches.length) {
+        menu.style.display = "none";
+        return;
+      }
+      menu.innerHTML = matches.map((t) =>
+        '<div class="ac-item" data-ac-tag="' + esc(t.tag) + '">' +
+          '<span><strong>' + esc(t.tag) + '</strong></span>' +
+          '<span class="ac-badge">' + esc(t.type || "tag") + ' &middot; ' + Number(t.count || 1) + '</span>' +
+        '</div>'
+      ).join("");
+      menu.style.display = "block";
+    }
+    function renderTagCatalog(tags, totalCount, activeQuery) {
+      CATALOG_TAGS = Array.isArray(tags) ? tags : [];
+      const dl = document.getElementById("cautionSuggestions");
+      if (dl) {
+        dl.innerHTML = CATALOG_TAGS.map((t) => '<option value="' + esc(t.tag) + '"></option>').join("");
+      }
+      const cloud = document.getElementById("tagCloud");
+      if (!cloud) return;
+      const qLow = String(activeQuery || "").trim().toLowerCase();
+      const allBtn = '<button type="button" class="tag-btn' + (!qLow ? ' active' : '') + '" data-filter-tag="">All Flagged <span class="tag-count">(' + Number(totalCount || 0) + ')</span></button>';
+      const pills = CATALOG_TAGS.slice(0, 22).map((t) => {
+        const isAct = qLow && qLow === String(t.tag || "").toLowerCase();
+        return '<button type="button" class="tag-btn' + (isAct ? ' active' : '') + '" data-filter-tag="' + esc(t.tag) + '">' + esc(t.tag) + '<span class="tag-count">(' + Number(t.count || 1) + ')</span></button>';
+      }).join("");
+      cloud.innerHTML = allBtn + pills;
+    }
     document.addEventListener("click", function(ev) {
+      const acItem = ev.target && ev.target.closest ? ev.target.closest("[data-ac-tag]") : null;
+      if (acItem) {
+        ev.preventDefault();
+        filterByTag(acItem.getAttribute("data-ac-tag") || "");
+        return;
+      }
+      const tagBtn = ev.target && ev.target.closest ? ev.target.closest("[data-filter-tag]") : null;
+      if (tagBtn) {
+        ev.preventDefault();
+        filterByTag(tagBtn.getAttribute("data-filter-tag") || "");
+        return;
+      }
+      if (!ev.target || !ev.target.closest || !ev.target.closest(".ac-wrap")) {
+        hideAutofill();
+      }
       const btn = ev.target && ev.target.closest ? ev.target.closest("[data-alert-url]") : null;
       if (!btn) return;
       ev.preventDefault();
@@ -236,24 +339,26 @@ function renderLanding(origin, contactEmail) {
         const res = await fetch("/api/scan" + (q ? "?q=" + encodeURIComponent(q) : ""));
         const d = await res.json();
         document.getElementById("countBadge").textContent = String(d.matched_count ?? 0);
+        renderTagCatalog(d.searchable_tags || [], d.total_stored_caution_videos || 0, q);
         const list = d.caution_videos || [];
         if (!list.length) {
-          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived). Poll via <code>scripts/poll_tiktok_caution.py</code> (Apify/EnsembleData) or submit an observed Caution clip below, or subscribe on the right to receive live alerts automatically.</div>';
+          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived). Click <strong>Show All</strong> above, poll via <code>scripts/poll_tiktok_caution.py</code>, or submit an observed Caution clip below.</div>';
           return;
         }
         out.innerHTML = list.map((v) => {
           const iframeHtml = v.playerUrl
             ? '<div class="embed-box"><iframe src="' + esc(v.playerUrl) + '" style="width:100%;height:390px;border:0;" allow="fullscreen" loading="lazy" title="TikTok Embed"></iframe></div>'
             : "";
-          const tagsHtml = (v.hashtags || []).slice(0, 6).map((h) => '<span class="pill">#' + esc(h) + '</span>').join("");
+          const tagsHtml = (v.hashtags || []).slice(0, 8).map((h) => '<span class="pill clickable" data-filter-tag="#' + esc(h) + '">#' + esc(h) + '</span>').join("");
+          const creatorLabel = v.authorUsername || v.authorName || "unknown";
           return '<div class="feed-item">' +
             '<div class="caution-bar">&#9888; ' + esc(v.cautionText || "Caution: Video flagged for unverified content") + '</div>' +
-            '<div><span class="pill">' + esc(v.authorUsername || v.authorName) + '</span><span class="pill">Matched: ' + esc(v.matchedField || "warnInfo") + '</span>' + tagsHtml + '</div>' +
+            '<div><span class="pill clickable" data-filter-tag="' + esc(creatorLabel) + '">' + esc(creatorLabel) + '</span><span class="pill">Matched: ' + esc(v.matchedField || "warnInfo") + '</span>' + tagsHtml + '</div>' +
             '<div style="margin-top:0.45rem;font-size:0.88rem;">' + esc(v.description || "(No caption saved)") + '</div>' +
             iframeHtml +
             '<div class="fallback-box"><strong>Saved Fallback Record</strong> (preserved if creator deletes clip): Video ID <code>' + esc(v.videoId) + '</code> | Creator <code>' + esc(v.authorUsername) + '</code>' +
             (v.voiceToText ? ' | Transcript: ' + esc(v.voiceToText.slice(0, 220)) : '') +
-            '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.brandTag || v.authorUsername) + '">Get Live Alerts / Escalate</a></div></div></div>';
+            '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.authorUsername || v.brandTag) + '">Get Live Alerts ($15)</a> | <a href="javascript:void(0)" onclick="document.getElementById(\'queryInput\').value=\'' + esc(v.videoId) + '\';buyPlan(\'single\')">Instant Proof ZIP ($2)</a></div></div></div>';
         }).join("");
       } catch (e) {
         out.textContent = "Failed to load feed: " + e.message;

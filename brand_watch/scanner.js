@@ -316,18 +316,81 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
   return entries.slice(0, limit);
 }
 
+const STOPWORDS = new Set([
+  "watch", "what", "happened", "after", "following", "this", "that", "with", "from", "have", "will",
+  "your", "they", "them", "been", "were", "when", "where", "which", "about", "into", "more", "some",
+  "video", "tiktok", "flagged", "unverified", "content", "caution", "before", "gets", "deleted",
+]);
+
+export function buildCautionTagCatalog(entries = []) {
+  const tagMap = new Map();
+  const bump = (rawTag, type) => {
+    const clean = String(rawTag || "").trim();
+    if (!clean || clean.length < 2) return;
+    const key = clean.toLowerCase();
+    const cur = tagMap.get(key);
+    if (cur) {
+      cur.count += 1;
+    } else {
+      tagMap.set(key, { tag: clean, type, count: 1 });
+    }
+  };
+
+  for (const v of entries || []) {
+    if (!v || typeof v !== "object") continue;
+    for (const h of v.hashtags || []) {
+      const cleanH = String(h || "").trim().replace(/^#+/, "");
+      if (cleanH) bump(`#${cleanH}`, "hashtag");
+    }
+    const handle = String(v.authorUsername || "").trim();
+    if (handle && handle.toLowerCase() !== "unknown") {
+      bump(handle.startsWith("@") ? handle : `@${handle}`, "creator");
+    }
+    const bt = String(v.brandTag || "").trim();
+    if (bt && !bt.toLowerCase().startsWith("apify:") && !bt.toLowerCase().startsWith("local_json")) {
+      bump(bt, "topic");
+    }
+    const textBlob = `${v.description || ""} ${v.voiceToText || ""}`;
+    const properMatches = textBlob.match(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+\b/g) || [];
+    for (const phrase of properMatches.slice(0, 5)) {
+      if (!STOPWORDS.has(phrase.toLowerCase())) bump(phrase.trim(), "topic");
+    }
+    const lowerWords = textBlob
+      .replace(/#[A-Za-z0-9_]+/g, " ")
+      .replace(/[^A-Za-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .map((w) => w.trim())
+      .filter((w) => w.length >= 4 && !STOPWORDS.has(w.toLowerCase()));
+    for (const w of new Set(lowerWords.slice(0, 8))) {
+      const low = w.toLowerCase();
+      if (!tagMap.has(low) && !tagMap.has(`#${low}`)) {
+        bump(w, "keyword");
+      }
+    }
+  }
+
+  const typeRank = { hashtag: 0, creator: 1, topic: 2, keyword: 3 };
+  const searchable_tags = Array.from(tagMap.values())
+    .sort((a, b) => b.count - a.count || (typeRank[a.type] ?? 9) - (typeRank[b.type] ?? 9) || a.tag.localeCompare(b.tag))
+    .slice(0, 40);
+
+  const autofill_suggestions = searchable_tags.map((t) => t.tag);
+  return { searchable_tags, autofill_suggestions };
+}
+
 export async function runCautionOnlyScan(rawQuery, kv = null) {
   const query = String(rawQuery || "").trim().slice(0, 120);
   const qLow = query.toLowerCase();
+  const qBare = qLow.replace(/^[#@]+/, "");
   const allCaution = await loadCautionFeedEntries(kv, 100);
+  const catalog = buildCautionTagCatalog(allCaution);
   const filtered =
     !qLow || qLow === "tiktok"
       ? allCaution
-      : allCaution.filter((v) =>
-          `${v.description || ""} ${v.voiceToText || ""} ${v.authorUsername || ""} ${v.authorName || ""} ${(v.hashtags || []).join(" ")} ${v.brandTag || ""}`
-            .toLowerCase()
-            .includes(qLow),
-        );
+      : allCaution.filter((v) => {
+          const hay = `${v.description || ""} ${v.voiceToText || ""} ${v.authorUsername || ""} ${v.authorName || ""} ${(v.hashtags || []).map((h) => `#${h} ${h}`).join(" ")} ${v.brandTag || ""}`.toLowerCase();
+          return hay.includes(qLow) || (qBare.length >= 2 && hay.includes(qBare));
+        });
 
   return {
     ok: true,
@@ -336,6 +399,8 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
     scanned_at: new Date().toISOString(),
     total_stored_caution_videos: allCaution.length,
     matched_count: filtered.length,
+    searchable_tags: catalog.searchable_tags,
+    autofill_suggestions: catalog.autofill_suggestions,
     caution_videos: filtered,
   };
 }

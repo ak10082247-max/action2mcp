@@ -1252,7 +1252,7 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     }
     if (u === "https://api.stripe.com/v1/checkout/sessions/cs_test_bw_1") {
       return new Response(
-        JSON.stringify({ id: "cs_test_bw_1", payment_status: "paid", amount_total: 4900, metadata: { tier: "audit", target_domain: "Anthony Joshua" } }),
+        JSON.stringify({ id: "cs_test_bw_1", payment_status: "paid", amount_total: 500, metadata: { tier: "audit", target_domain: "Anthony Joshua" } }),
         { status: 200 },
       );
     }
@@ -1355,6 +1355,14 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
       BW_ENV,
     )).json();
     assert.equal(feedRes.total_stored_caution_videos, baseCount + 2);
+    assert.ok(Array.isArray(feedRes.searchable_tags) && feedRes.searchable_tags.length > 0);
+    assert.ok(Array.isArray(feedRes.autofill_suggestions) && feedRes.autofill_suggestions.includes("@maskedtruthmt"));
+
+    const tagFilterRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=%23maskedtruth"),
+      BW_ENV,
+    )).json();
+    assert.ok(tagFilterRes.matched_count >= 1);
 
     // 5. Businesses & Individuals Alert Contact + authenticated inbox read
     const leadBad = await brandWatchWorker.fetch(
@@ -1396,13 +1404,13 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     assert.equal(authLeads.count, 1);
     assert.equal(authLeads.leads[0].account_type, "Individual / Creator / Public Figure");
 
-    // 6. Stripe Dossier Checkout + Verified ZIP Download
+    // 6. Stripe Dossier Checkout + Verified ZIP Download ($5 Impulse Deal = 500 cents)
     const ck = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/checkout?tier=audit&domain=Anthony%20Joshua&format=json"),
       BW_ENV,
     )).json();
     assert.equal(ck.id, "cs_test_bw_1");
-    assert.equal(ck.amount_cents, 4900);
+    assert.equal(ck.amount_cents, 500);
 
     const dlConfirm = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/download?session_id=cs_test_bw_1"),

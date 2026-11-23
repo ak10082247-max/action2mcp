@@ -958,7 +958,20 @@ def poll_apify(
             all_novi_terms.append(clean_t)
     clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:8]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:45]
-    actors = [a.strip() for a in actor_id.split(",") if a.strip()] or ["novi~tiktok-scraper-ultimate"]
+    expanded_actors: list[str] = []
+    for a in ([x.strip() for x in actor_id.split(",") if x.strip()] or ["novi~tiktok-scraper-ultimate"]):
+        if a == "novi~tiktok-scraper-ultimate" and apify_remaining_usd < 2.0:
+            print(
+                f"[apify] Remaining credit ${apify_remaining_usd:.3f} < $2.00 gate for novi~tiktok-scraper-ultimate; "
+                "auto-switching to min=None mobile aweme actors (xtdata~tiktok-scraper, novi~tiktok-search-api).",
+                file=sys.stderr,
+            )
+            for fb in ("xtdata~tiktok-scraper", "novi~tiktok-search-api"):
+                if fb not in expanded_actors:
+                    expanded_actors.append(fb)
+        elif a not in expanded_actors:
+            expanded_actors.append(a)
+    actors = expanded_actors
     all_results: list[tuple[str, dict]] = []
 
     def _run_apify_job(
@@ -968,7 +981,13 @@ def poll_apify(
         tag_prefix: str = "",
         charge_cap_usd: float | None = None,
     ) -> list[tuple[str, dict]]:
-        extra_q = "&memory=512" if "novi~" in single_actor_id else ""
+        extra_q = ""
+        if "novi~tiktok-scraper-ultimate" in single_actor_id:
+            extra_q = "&memory=512"
+        elif "novi~tiktok-search-api" in single_actor_id:
+            extra_q = "&memory=256"
+        elif "xtdata~" in single_actor_id:
+            extra_q = "&memory=512"
         if charge_cap_usd is not None and charge_cap_usd > 0:
             extra_q += f"&maxTotalChargeUsd={charge_cap_usd:.2f}"
         run_url = f"https://api.apify.com/v2/acts/{urllib.parse.quote(single_actor_id)}/runs?token={urllib.parse.quote(token)}&waitForFinish=180{extra_q}"
@@ -992,11 +1011,110 @@ def poll_apify(
             return [(label, it) for it in items if isinstance(it, dict)]
         return []
 
-    per_actor_budget = max(10, max_items // max(1, len(actors)))
+    spent_est = 0.0
+    per_actor_budget = max(15, max_items // max(1, len(actors)))
     for single_actor in actors:
         remaining = max(1, min(per_actor_budget, max_items - len(all_results)))
         if len(all_results) >= max_items:
             break
+        if "xtdata~" in single_actor:
+            xt_jobs: list[tuple[dict, int, str]] = []
+            kw_only = [q for q in queries if not q.startswith("#")]
+            tag_list = [q.lstrip("#") for q in queries if q.startswith("#")]
+            if clean_profiles:
+                p_lim = min(70, max(35, remaining // 3))
+                for p in clean_profiles[:2]:
+                    xt_jobs.append((
+                        {
+                            "type": "USER",
+                            "region": "GB",
+                            "url": f"https://www.tiktok.com/@{p}",
+                            "keywords": [],
+                            "maxItems": p_lim,
+                            "isUnlimited": False,
+                            "sortType": 0,
+                            "publishTime": "ALL_TIME",
+                        },
+                        p_lim,
+                        f"#user_{p}",
+                    ))
+            if tag_list and queries:
+                t_lim = min(60, max(25, remaining // 4))
+                for t in tag_list[:2]:
+                    xt_jobs.append((
+                        {
+                            "type": "HASHTAG",
+                            "region": "GB",
+                            "url": f"https://www.tiktok.com/tag/{t}",
+                            "keywords": [],
+                            "maxItems": t_lim,
+                            "isUnlimited": False,
+                            "sortType": 0,
+                            "publishTime": "ALL_TIME",
+                        },
+                        t_lim,
+                        f"#tag_{t}",
+                    ))
+            if kw_only:
+                s_lim = max(40, remaining // 2)
+                for idx, chunk in enumerate([kw_only[:10], kw_only[10:20]]):
+                    if not chunk:
+                        continue
+                    xt_jobs.append((
+                        {
+                            "type": "SEARCH",
+                            "region": "GB" if idx == 0 else "US",
+                            "url": "",
+                            "keywords": chunk,
+                            "maxItems": s_lim,
+                            "isUnlimited": False,
+                            "sortType": 0,
+                            "publishTime": "ALL_TIME",
+                        },
+                        s_lim,
+                        f"#search{idx + 1}",
+                    ))
+            for inp, dlim, tpf in xt_jobs:
+                avail = apify_remaining_usd - spent_est - 0.02
+                if avail < 0.03:
+                    break
+                cap_usd = max(0.03, min(round(dlim * 0.0005 + 0.02, 2), 0.14, avail))
+                try:
+                    batch_res = _run_apify_job(single_actor, inp, dlim, tpf, charge_cap_usd=cap_usd)
+                    all_results.extend(batch_res)
+                    spent_est += max(0.005, len(batch_res) * 0.0004)
+                except Exception as exc:
+                    print(f"[xtdata batch error {tpf}] {exc}", file=sys.stderr)
+            continue
+        if "novi~tiktok-search-api" in single_actor:
+            kw_pool = [q for q in queries if not q.startswith("#")] or ["anthony joshua not following the script"]
+            high_priority_kws = (
+                [f"@{p}" for p in clean_profiles[:2]]
+                + kw_pool[:6]
+                + [q for q in queries if q.startswith("#")][:3]
+            )
+            per_kw = max(25, min(60, remaining // max(1, min(6, len(high_priority_kws)))))
+            for idx, kw in enumerate(high_priority_kws[:6]):
+                avail = apify_remaining_usd - spent_est - 0.02
+                if avail < 0.03 or len(all_results) >= max_items:
+                    break
+                cap_usd = max(0.03, min(round(per_kw * 0.0005 + 0.02, 2), 0.12, avail))
+                inp = {
+                    "keyword": kw,
+                    "sortType": 0,
+                    "region": "GB" if idx % 2 == 0 else "US",
+                    "publishTime": "ALL_TIME",
+                    "limit": per_kw,
+                    "isDownloadVideoCover": False,
+                    "isDownloadVideo": False,
+                }
+                try:
+                    batch_res = _run_apify_job(single_actor, inp, per_kw, f"#q{idx + 1}", charge_cap_usd=cap_usd)
+                    all_results.extend(batch_res)
+                    spent_est += max(0.005, len(batch_res) * 0.0004)
+                except Exception as exc:
+                    print(f"[novi-search batch error {kw}] {exc}", file=sys.stderr)
+            continue
         if "novi~" in single_actor:
             novi_jobs: list[tuple[dict, int, str]] = []
             # Dedicated startUrls jobs WITHOUT keywords (novi ignores startUrls whenever keywords are supplied)
