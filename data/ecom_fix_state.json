@@ -1,5 +1,5 @@
 {
-  "cc_page": 8,
+  "cc_page": 15,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -139,17 +139,23 @@
     {
       "domain": "queenbeeflowershop.com",
       "email": "queenbeeflowershop@gmail.com",
-      "sent_date": "2026-11-20T21:59:41.278308+00:00"
+      "sent_date": "2026-11-20T21:59:41.278308+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T11:18:49.118139+00:00"
     },
     {
       "domain": "philipsburgdutyfree.com",
       "email": "info@philipsburgdutyfree.com",
-      "sent_date": "2026-11-20T21:59:46.900743+00:00"
+      "sent_date": "2026-11-20T21:59:46.900743+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T11:18:49.118139+00:00"
     },
     {
       "domain": "wantagebookshop.co.uk",
       "email": "hello@wantagebookshop.co.uk",
-      "sent_date": "2026-11-21T10:15:16.490703+00:00"
+      "sent_date": "2026-11-21T10:15:16.490703+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-23T11:18:49.118139+00:00"
     },
     {
       "domain": "casestudycoffee.com",
@@ -182,7 +188,7 @@
       "sent_date": "2026-11-21T21:08:22.835509+00:00"
     }
   ],
-  "updated_at": "2026-11-22T20:52:32.051110+00:00",
+  "updated_at": "2026-11-23T11:18:59.281401+00:00",
   "bounced_emails": [
     "marketing@ruceru.com",
     "xxx@xxx.xxx"
