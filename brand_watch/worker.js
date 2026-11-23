@@ -21,7 +21,10 @@ import { cleanSecret, hasSigningSecretConfigured } from "../stripe_billing.js";
 import {
   extractUnverifiedCautionRecord,
   resolveTikTokOembed,
+  validateTikTokHandle,
   loadCautionFeedEntries,
+  loadMonitoredAccounts,
+  inspectTikTokAccountLive,
   runCautionOnlyScan,
   buildCautionDossier,
 } from "./scanner.js";
@@ -161,7 +164,10 @@ function renderLanding(origin, contactEmail) {
   <div class="grid">
     <div>
       <div class="card">
-        <strong>Verified "Caution: Unverified Content" Video Feed (<span id="countBadge">0</span>)</strong>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+          <strong>Verified "Caution: Unverified Content" Video Feed (<span id="countBadge">0</span>)</strong>
+          <span id="autoUpdateStatus" style="font-size:0.75rem;color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.35);padding:0.18rem 0.55rem;border-radius:999px;">&#9679; Self-Updating Archive Active (Auto-Refreshes Every 30s)</span>
+        </div>
         <div class="row" style="margin-top:0.6rem;">
           <div class="ac-wrap">
             <input id="queryInput" type="text" list="cautionSuggestions" autocomplete="off" placeholder="Search or autofill by #hashtag, @handle, business, person, or claim..." style="margin:0;" oninput="onSearchInput(this.value)" onfocus="onSearchInput(this.value)" onkeydown="if(event.key==='Enter'){hideAutofill();loadCautionFeed();}" />
@@ -175,16 +181,41 @@ function renderLanding(origin, contactEmail) {
         <div id="feedOut" style="margin-top:0.6rem;font-size:0.88rem;color:#94a3b8;">Loading verified Caution-tagged TikTok feed...</div>
       </div>
 
+      <div class="card" id="report-account">
+        <strong>Report TikTok Account (<code>@handle</code> Only) — Auto-Inspect All Account Videos</strong>
+        <p style="font-size:0.83rem;color:#cbd5e1;margin:0.35rem 0 0.7rem;">Solely the TikTok <code>@handle</code> is needed (e.g. <code>@maskedtruthmt</code>). Submitting a handle registers the account in the self-updating watchlist and inspects all of its videos via mobile <code>aweme</code> metadata to extract every video carrying the <code>"Caution: Video flagged for unverified content"</code> tag.</p>
+        <div class="row">
+          <div style="flex:2;">
+            <label for="acctHandle">TikTok Account @Handle Only *</label>
+            <input id="acctHandle" type="text" list="cautionSuggestions" placeholder="e.g. @maskedtruthmt or maskedtruthmt" onkeydown="if(event.key==='Enter'){submitAccountHandle();}" />
+          </div>
+          <div style="flex:1;">
+            <label for="acctBrand">Topic / Brand Watch Tag (optional)</label>
+            <input id="acctBrand" type="text" list="cautionSuggestions" placeholder="e.g. Anthony Joshua / Viral Claims" onkeydown="if(event.key==='Enter'){submitAccountHandle();}" />
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="submitAccountHandle()">Inspect All Videos on @Handle for Caution Tags</button>
+        <div id="acctStatus" style="margin-top:0.7rem;font-size:0.85rem;"></div>
+
+        <div style="margin-top:1rem;padding-top:0.85rem;border-top:1px solid #1e293b;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;">
+            <strong style="font-size:0.86rem;color:#f8fafc;">Self-Updating Monitored Accounts Registry (<span id="acctCountBadge">0</span> Accounts &middot; <span id="inspectedVideosBadge">0</span> Videos Inspected)</strong>
+            <button type="button" class="tag-btn" onclick="loadCautionFeed()">&#8635; Sync Registry Now</button>
+          </div>
+          <div id="accountsRegistryOut" style="margin-top:0.55rem;font-size:0.82rem;color:#94a3b8;">Loading monitored @handle registry...</div>
+        </div>
+      </div>
+
       <div class="card" id="log-caution">
-        <strong>Submit Verified "Caution: Video flagged for unverified content" Clip</strong>
-        <p style="font-size:0.83rem;color:#cbd5e1;margin:0.35rem 0 0.7rem;">Spotted a video carrying the grey Caution banner in TikTok? Paste its link below (or drag the 1-click bookmarklet <a href="${escapeHtml(bookmarkletHref)}" style="color:#fbbf24;font-weight:700;">+ Add Caution Video</a> to your browser bookmarks bar). We verify via official TikTok oEmbed and archive it strictly under the Caution label.</p>
-        <label for="tkUrl">TikTok Video URL</label>
-        <input id="tkUrl" type="url" placeholder="https://www.tiktok.com/@maskedtruthmt/video/..." />
+        <strong>Submit Specific Verified "Caution: Video flagged for unverified content" Clip (or @Handle)</strong>
+        <p style="font-size:0.83rem;color:#cbd5e1;margin:0.35rem 0 0.7rem;">Have a direct link to a specific video carrying the grey Caution banner (or paste a <code>@handle</code>)? Paste it below (or drag the 1-click bookmarklet <a href="${escapeHtml(bookmarkletHref)}" style="color:#fbbf24;font-weight:700;">+ Add Caution Video</a> to your browser bookmarks bar).</p>
+        <label for="tkUrl">TikTok Video URL (or @Handle)</label>
+        <input id="tkUrl" type="text" placeholder="https://www.tiktok.com/@maskedtruthmt/video/... or @maskedtruthmt" />
         <label for="tkBrand">Subject / Brand / Name Mentioned (optional)</label>
         <input id="tkBrand" type="text" list="cautionSuggestions" placeholder="e.g. Anthony Joshua or Acme Brand" />
         <label for="tkVoice">Observed Caption / Audio Summary (preserved if creator deletes clip)</label>
         <input id="tkVoice" type="text" placeholder="Optional transcript or context note" />
-        <button class="btn btn-amber" onclick="submitCautionVideo()">Verify oEmbed &amp; Add Caution Video</button>
+        <button class="btn btn-amber" onclick="submitCautionVideo()">Verify &amp; Archive Caution Clip / Account</button>
         <div id="logStatus" style="margin-top:0.7rem;font-size:0.85rem;"></div>
       </div>
     </div>
@@ -324,25 +355,70 @@ function renderLanding(origin, contactEmail) {
         hideAutofill();
       }
       const btn = ev.target && ev.target.closest ? ev.target.closest("[data-alert-url]") : null;
-      if (!btn) return;
-      ev.preventDefault();
-      document.getElementById("cRefUrl").value = btn.getAttribute("data-alert-url") || "";
-      const kw = btn.getAttribute("data-alert-kw") || "";
-      if (kw && !document.getElementById("cKeywords").value.trim()) document.getElementById("cKeywords").value = kw;
-      document.getElementById("alert-contact").scrollIntoView({ behavior: "smooth" });
+      if (btn) {
+        ev.preventDefault();
+        document.getElementById("cRefUrl").value = btn.getAttribute("data-alert-url") || "";
+        const kw = btn.getAttribute("data-alert-kw") || "";
+        if (kw && !document.getElementById("cKeywords").value.trim()) document.getElementById("cKeywords").value = kw;
+        document.getElementById("alert-contact").scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+      const reinspectBtn = ev.target && ev.target.closest ? ev.target.closest("[data-inspect-handle]") : null;
+      if (reinspectBtn) {
+        ev.preventDefault();
+        const h = reinspectBtn.getAttribute("data-inspect-handle") || "";
+        if (h) {
+          document.getElementById("acctHandle").value = h;
+          submitAccountHandle();
+        }
+      }
     });
-    async function loadCautionFeed() {
+    function renderMonitoredAccounts(accounts, totalVideosInspected) {
+      const list = Array.isArray(accounts) ? accounts : [];
+      const countEl = document.getElementById("acctCountBadge");
+      if (countEl) countEl.textContent = String(list.length);
+      const vidEl = document.getElementById("inspectedVideosBadge");
+      if (vidEl) vidEl.textContent = String(totalVideosInspected ?? list.reduce((a, x) => a + Number(x.videosInspected || 0), 0));
+      const box = document.getElementById("accountsRegistryOut");
+      if (!box) return;
+      if (!list.length) {
+        box.textContent = "No @handle accounts monitored yet. Submit a @handle above.";
+        return;
+      }
+      box.innerHTML = list.map((a) => {
+        const hasMatch = Number(a.cautionFoundCount || 0) > 0;
+        const badgeColor = hasMatch ? "background:#3f1d0b;border-color:#f59e0b;color:#fde68a;" : "background:#0f172a;border-color:#334155;color:#94a3b8;";
+        return '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;padding:0.42rem 0.6rem;background:#0a0e1a;border:1px solid #1e293b;border-radius:8px;margin-top:0.35rem;">' +
+          '<div>' +
+            '<span class="pill clickable" data-filter-tag="' + esc(a.displayHandle) + '" style="font-weight:700;color:#38bdf8;">' + esc(a.displayHandle) + '</span>' +
+            '<span class="pill" style="' + badgeColor + '">' + Number(a.cautionFoundCount || 0) + ' Caution Flagged</span>' +
+            '<span class="pill">' + Number(a.videosInspected || 0) + ' Videos Inspected</span>' +
+            '<span class="pill" style="text-transform:uppercase;font-size:0.68rem;">' + esc(a.status || "inspected") + '</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:0.4rem;align-items:center;">' +
+            '<a href="' + esc(a.profileUrl) + '" target="_blank" rel="noopener" style="font-size:0.75rem;">TikTok Profile</a>' +
+            '<button type="button" class="tag-btn" data-inspect-handle="' + esc(a.displayHandle) + '">Inspect All Videos</button>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+    }
+    async function loadCautionFeed(silent) {
       const q = document.getElementById("queryInput").value.trim();
       const out = document.getElementById("feedOut");
-      out.textContent = "Loading strict Caution-flagged TikTok videos...";
+      if (!silent) out.textContent = "Loading strict Caution-flagged TikTok videos...";
       try {
         const res = await fetch("/api/scan" + (q ? "?q=" + encodeURIComponent(q) : ""));
         const d = await res.json();
         document.getElementById("countBadge").textContent = String(d.matched_count ?? 0);
         renderTagCatalog(d.searchable_tags || [], d.total_stored_caution_videos || 0, q);
+        renderMonitoredAccounts(d.monitored_accounts || [], d.total_videos_inspected || 0);
+        const autoEl = document.getElementById("autoUpdateStatus");
+        if (autoEl) {
+          autoEl.innerHTML = "&#9679; Self-Updating Archive Active &middot; " + Number(d.total_monitored_accounts || 0) + " Accounts &middot; " + Number(d.total_videos_inspected || 0) + " Videos Inspected";
+        }
         const list = d.caution_videos || [];
         if (!list.length) {
-          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived). Click <strong>Show All</strong> above, poll via <code>scripts/poll_tiktok_caution.py</code>, or submit an observed Caution clip below.</div>';
+          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived across ' + Number(d.total_videos_inspected || 0) + ' inspected videos). Click <strong>Show All</strong> above or report a TikTok <code>@handle</code> below to inspect all of its videos.</div>';
           return;
         }
         out.innerHTML = list.map((v) => {
@@ -361,7 +437,30 @@ function renderLanding(origin, contactEmail) {
             '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.authorUsername || v.brandTag) + '">Get Live Alerts ($15)</a> | <a href="javascript:void(0)" onclick="document.getElementById(\'queryInput\').value=\'' + esc(v.videoId) + '\';buyPlan(\'single\')">Instant Proof ZIP ($2)</a></div></div></div>';
         }).join("");
       } catch (e) {
-        out.textContent = "Failed to load feed: " + e.message;
+        if (!silent) out.textContent = "Failed to load feed: " + e.message;
+      }
+    }
+    async function submitAccountHandle() {
+      const handle = document.getElementById("acctHandle").value.trim();
+      const brandTag = document.getElementById("acctBrand").value.trim();
+      const st = document.getElementById("acctStatus");
+      if (!handle) { st.style.color = "#fca5a5"; st.textContent = "Enter a TikTok @handle first (e.g. @maskedtruthmt)."; return; }
+      st.style.color = "#38bdf8";
+      st.textContent = "Registering " + handle + " and inspecting all account videos for 'Caution: Video flagged for unverified content' tags...";
+      try {
+        const res = await fetch("/api/report-account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ handle, brandTag })
+        });
+        const d = await res.json();
+        if (!res.ok || !d.ok) { st.style.color = "#fca5a5"; st.textContent = "Error: " + (d.error || res.status); return; }
+        st.style.color = "#34d399";
+        st.innerHTML = 'Account <strong>' + esc(d.handle) + '</strong> registered &amp; inspected (' + Number(d.videosInspected || 0) + ' videos inspected, <strong>' + Number(d.cautionFoundCount || 0) + ' Caution-flagged videos</strong> archived; status: <code>' + esc(d.status) + '</code>).';
+        loadCautionFeed(true);
+      } catch (e) {
+        st.style.color = "#fca5a5";
+        st.textContent = "Inspection request failed: " + e.message;
       }
     }
     async function submitCautionVideo() {
@@ -369,8 +468,9 @@ function renderLanding(origin, contactEmail) {
       const brandTag = document.getElementById("tkBrand").value.trim();
       const voiceToText = document.getElementById("tkVoice").value.trim();
       const st = document.getElementById("logStatus");
-      if (!url) { st.textContent = "Paste a TikTok video URL first."; return; }
-      st.textContent = "Verifying via official TikTok oEmbed and archiving Caution record...";
+      if (!url) { st.textContent = "Paste a TikTok video URL or @handle first."; return; }
+      st.style.color = "#38bdf8";
+      st.textContent = "Verifying and archiving Caution record / inspecting @handle...";
       try {
         const res = await fetch("/api/report", {
           method: "POST",
@@ -385,8 +485,12 @@ function renderLanding(origin, contactEmail) {
         const d = await res.json();
         if (!res.ok || !d.ok) { st.style.color = "#fca5a5"; st.textContent = "Error: " + (d.error || res.status); return; }
         st.style.color = "#34d399";
-        st.innerHTML = 'Verified &amp; archived Caution clip <code>' + esc(d.entry?.videoId) + '</code> by <strong>' + esc(d.entry?.authorUsername) + '</strong>.';
-        loadCautionFeed();
+        if (d.handle && !d.entry) {
+          st.innerHTML = 'Account <strong>' + esc(d.handle) + '</strong> inspected (' + Number(d.videosInspected || 0) + ' videos inspected, <strong>' + Number(d.cautionFoundCount || 0) + ' Caution matches</strong> archived).';
+        } else {
+          st.innerHTML = 'Verified &amp; archived Caution clip <code>' + esc(d.entry?.videoId) + '</code> by <strong>' + esc(d.entry?.authorUsername) + '</strong>.';
+        }
+        loadCautionFeed(true);
       } catch (e) {
         st.style.color = "#fca5a5";
         st.textContent = "Submit failed: " + e.message;
@@ -429,8 +533,17 @@ function renderLanding(origin, contactEmail) {
     (function init() {
       const qs = new URLSearchParams(window.location.search);
       const logUrl = qs.get("log") || qs.get("inspect");
-      if (logUrl) document.getElementById("tkUrl").value = logUrl;
+      if (logUrl) {
+        if (logUrl.indexOf("/video/") === -1) {
+          document.getElementById("acctHandle").value = logUrl;
+        } else {
+          document.getElementById("tkUrl").value = logUrl;
+        }
+      }
       loadCautionFeed();
+      setInterval(function() {
+        loadCautionFeed(true);
+      }, 30000);
     })();
   </script>
 </body>
@@ -440,6 +553,117 @@ function renderLanding(origin, contactEmail) {
 async function buildPackForTarget(targetBrand, tier, bodyParams = {}, env = null) {
   const scan = await runCautionOnlyScan(targetBrand, env?.FUNNEL_KV || null);
   return buildCautionDossier(targetBrand, tier, scan, bodyParams.notes || "");
+}
+
+async function handleAccountInspectionRequest(body, req, env, cors) {
+  let handleInfo;
+  try {
+    handleInfo = validateTikTokHandle(body?.handle || body?.username || body?.account || body?.url || "");
+  } catch (err) {
+    return jsonResp({ ok: false, error: err.message }, err.httpStatus || 400, cors);
+  }
+
+  const allCaution = await loadCautionFeedEntries(env?.FUNNEL_KV || null, 100);
+  const existingAccounts = await loadMonitoredAccounts(env?.FUNNEL_KV || null, allCaution, 100);
+  const existing = existingAccounts.find((a) => a.handle === handleInfo.handle) || null;
+  const brandTag = String(body?.brandTag || existing?.brandTag || handleInfo.displayHandle).trim().slice(0, 140);
+  const notes = String(body?.notes || existing?.notes || "").trim().slice(0, 500);
+
+  let liveRes = {
+    liveApifyRan: false,
+    apifyStatus: "skipped",
+    apifyRunId: null,
+    inspectedCount: 0,
+    cautionRecords: [],
+    dispatchedWorkflow: false,
+  };
+
+  const isAdminSync = Boolean(body?.sync_stats && isAuthorizedAdmin(req, env));
+  if (!isAdminSync && body?.skipLive !== true) {
+    liveRes = await inspectTikTokAccountLive(handleInfo, env, fetch, {
+      maxVideos: Number(body?.maxVideos || 50),
+      waitForFinish: Number(body?.waitForFinish ?? 25),
+      brandTag,
+    });
+    for (const rec of liveRes.cautionRecords) {
+      await appendKvIndexItem(env?.FUNNEL_KV, "bw:caution:index", "bw:caution:item:", rec.id, rec);
+    }
+    if (liveRes.cautionRecords.length > 0) {
+      await incrementFunnelCounter(env, "brand_watch", "caution_ingested", liveRes.cautionRecords.length);
+    }
+  }
+
+  const updatedCaution = await loadCautionFeedEntries(env?.FUNNEL_KV || null, 100);
+  const matchedMap = new Map();
+  for (const v of [...liveRes.cautionRecords, ...updatedCaution]) {
+    const u = String(v?.authorUsername || "").trim().replace(/^@+/, "").toLowerCase();
+    if (u === handleInfo.handle && v?.id && !matchedMap.has(v.id)) {
+      matchedMap.set(v.id, v);
+    }
+  }
+  const matchedVideos = Array.from(matchedMap.values());
+
+  const videosInspected = isAdminSync
+    ? Math.max(Number(body?.videosInspected ?? 0), Number(existing?.videosInspected || 0), matchedVideos.length)
+    : Math.max(
+        Number(existing?.videosInspected || 0) + Number(liveRes.inspectedCount || 0),
+        Number(body?.videosInspected || 0),
+        matchedVideos.length,
+      );
+  const cautionFoundCount = isAdminSync
+    ? Math.max(Number(body?.cautionFoundCount ?? 0), matchedVideos.length)
+    : matchedVideos.length;
+  const nowIso = new Date().toISOString();
+  const status = isAdminSync
+    ? String(body?.status || "inspected")
+    : liveRes.liveApifyRan || videosInspected > 0
+      ? "inspected"
+      : "queued";
+
+  const accountRecord = {
+    handle: handleInfo.handle,
+    displayHandle: handleInfo.displayHandle,
+    profileUrl: handleInfo.profileUrl,
+    status,
+    videosInspected,
+    cautionFoundCount,
+    matchedVideoIds: matchedVideos.map((v) => v.videoId || v.id),
+    brandTag,
+    notes,
+    source: isAdminSync ? String(body?.source || "poller_account_sync") : "user_reported_handle",
+    reportedAt: existing?.reportedAt || nowIso,
+    lastInspectedAt: status === "inspected" ? nowIso : existing?.lastInspectedAt || null,
+  };
+
+  const persisted = await appendKvIndexItem(
+    env?.FUNNEL_KV,
+    "bw:accounts:index",
+    "bw:account:item:",
+    handleInfo.handle,
+    accountRecord,
+  );
+  await incrementFunnelCounter(env, "brand_watch", "accounts_reported");
+
+  return jsonResp(
+    {
+      ok: true,
+      persisted,
+      handle: handleInfo.displayHandle,
+      username: handleInfo.handle,
+      profileUrl: handleInfo.profileUrl,
+      status: accountRecord.status,
+      videosInspected: accountRecord.videosInspected,
+      cautionFoundCount: accountRecord.cautionFoundCount,
+      liveApifyRan: liveRes.liveApifyRan,
+      apifyStatus: liveRes.apifyStatus,
+      apifyRunId: liveRes.apifyRunId,
+      dispatchedWorkflow: liveRes.dispatchedWorkflow,
+      matchedVideos,
+      account: accountRecord,
+    },
+    201,
+    cors,
+  );
 }
 
 export default {
@@ -514,6 +738,37 @@ export default {
       return jsonResp({ ok: true, accepted, rejected, items: saved }, accepted > 0 ? 201 : 200, cors);
     }
 
+    if (path === "/api/accounts") {
+      if (req.method !== "GET") return jsonResp({ error: "GET required" }, 405, cors);
+      const allCaution = await loadCautionFeedEntries(env?.FUNNEL_KV || null, 100);
+      const accounts = await loadMonitoredAccounts(env?.FUNNEL_KV || null, allCaution, 100);
+      const totalVideosInspected = accounts.reduce((acc, a) => acc + Number(a.videosInspected || 0), 0);
+      const totalCautionFound = accounts.reduce((acc, a) => acc + Number(a.cautionFoundCount || 0), 0);
+      return jsonResp(
+        {
+          ok: true,
+          total_accounts: accounts.length,
+          total_videos_inspected: totalVideosInspected,
+          total_caution_found: totalCautionFound,
+          self_updating_schedule: "Every 12 hours + On-Demand @Handle Full-Profile Inspection",
+          accounts,
+        },
+        200,
+        cors,
+      );
+    }
+
+    if (path === "/api/report-account") {
+      if (req.method !== "POST") return jsonResp({ error: "POST required" }, 405, cors);
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResp({ error: "Invalid JSON body" }, 400, cors);
+      }
+      return handleAccountInspectionRequest(body, req, env, cors);
+    }
+
     if (path === "/api/report") {
       if (req.method !== "POST") return jsonResp({ error: "POST required" }, 405, cors);
       let body;
@@ -521,6 +776,13 @@ export default {
         body = await req.json();
       } catch {
         return jsonResp({ error: "Invalid JSON body" }, 400, cors);
+      }
+      const rawUrlOrHandle = String(body?.url || "").trim();
+      const isHandleOnly =
+        Boolean(body?.handle || body?.username || body?.account) ||
+        (rawUrlOrHandle && !/\/video\/\d+/i.test(rawUrlOrHandle) && !/^https?:\/\/(?:vt|vm)\.tiktok\.com\//i.test(rawUrlOrHandle));
+      if (isHandleOnly) {
+        return handleAccountInspectionRequest(body, req, env, cors);
       }
       const cautionLabel = String(body?.cautionLabel || "").trim();
       if (!/(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content/i.test(cautionLabel)) {

@@ -694,11 +694,22 @@ def harvest_free_factcheck_targets(max_articles: int = 45) -> tuple[list[str], l
     return sorted(video_urls), sorted(handles)
 
 
+def fetch_reported_accounts(worker_base: str = BRAND_WATCH_URL) -> list[dict]:
+    try:
+        data = http_get_json(f"{worker_base}/api/accounts", timeout=10)
+        accts = data.get("accounts") if isinstance(data, dict) else []
+        return [a for a in (accts or []) if isinstance(a, dict)]
+    except Exception:
+        return []
+
+
 def collect_discovery_profiles(
     leads: list[dict],
     existing_flagged: list[dict] | None = None,
     extra_profiles: list[str] | None = None,
-    cap: int = 8,
+    reported_accounts: list[dict] | None = None,
+    factcheck_handles: list[str] | None = None,
+    cap: int = 24,
 ) -> list[str]:
     profiles: list[str] = []
     seen: set[str] = set()
@@ -711,8 +722,18 @@ def collect_discovery_profiles(
 
     for p in (extra_profiles or []):
         add_p(p)
+    # Prioritize user-reported @handle accounts awaiting inspection first
+    for acct in (reported_accounts or []):
+        if str(acct.get("status") or "").lower() in ("queued", "inspecting"):
+            add_p(str(acct.get("handle") or acct.get("displayHandle") or ""))
+    # Prioritize PolitiFact / IFCN fact-checked TikTok accounts next
+    for fh in (factcheck_handles or []):
+        if fh.lower() != "politifactenespanol":
+            add_p(fh)
     for p in DEFAULT_SUSPECT_PROFILES:
         add_p(p)
+    for acct in (reported_accounts or []):
+        add_p(str(acct.get("handle") or acct.get("displayHandle") or ""))
     for lead in leads:
         for chunk in re.split(r"[,;\n\s]+", str(lead.get("keywords") or "")):
             if chunk.strip().startswith("@"):
@@ -935,6 +956,87 @@ def _fetch_large_json(url: str, timeout: int = 60):
         return json.loads(resp.read(120_000_000).decode("utf-8", "replace"))
 
 
+def consolidate_all_apify_datasets(token: str, max_runs: int = 100, per_dataset_limit: int = 1000) -> tuple[list[tuple[str, dict]], set[str]]:
+    """Consolidate 100% of items across all past SUCCEEDED Apify runs/datasets ($0 credit cost)."""
+    if not token:
+        return [], set()
+    dataset_ids: list[str] = []
+    seen_ds: set[str] = set()
+    try:
+        runs_meta = http_get_json(
+            f"https://api.apify.com/v2/actor-runs?token={urllib.parse.quote(token)}&limit={max_runs}&desc=true",
+            timeout=15,
+        )
+        run_items = ((runs_meta.get("data") or {}).get("items") or []) if isinstance(runs_meta, dict) else []
+        for r_info in run_items:
+            if not isinstance(r_info, dict) or r_info.get("status") not in ("SUCCEEDED", "TIMED-OUT", "RUNNING"):
+                continue
+            ds_id = str(r_info.get("defaultDatasetId") or "").strip()
+            if ds_id and ds_id not in seen_ds:
+                seen_ds.add(ds_id)
+                dataset_ids.append(ds_id)
+    except Exception:
+        pass
+
+    try:
+        ds_meta = http_get_json(
+            f"https://api.apify.com/v2/datasets?token={urllib.parse.quote(token)}&limit={max_runs}&desc=true",
+            timeout=15,
+        )
+        ds_items = ((ds_meta.get("data") or {}).get("items") or []) if isinstance(ds_meta, dict) else []
+        for d_info in ds_items:
+            if not isinstance(d_info, dict) or int(d_info.get("itemCount") or 0) <= 0:
+                continue
+            ds_id = str(d_info.get("id") or "").strip()
+            if ds_id and ds_id not in seen_ds:
+                seen_ds.add(ds_id)
+                dataset_ids.append(ds_id)
+    except Exception:
+        pass
+
+    def _pull_dataset(ds_id: str) -> list[tuple[str, dict]]:
+        try:
+            ds_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(ds_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit={per_dataset_limit}"
+            cached_items = _fetch_large_json(ds_url, timeout=30)
+            if isinstance(cached_items, list):
+                return [(f"apify:consolidated:{ds_id[:8]}", it) for it in cached_items if isinstance(it, dict)]
+        except Exception:
+            pass
+        return []
+
+    consolidated: list[tuple[str, dict]] = []
+    if dataset_ids:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+            for chunk in pool.map(_pull_dataset, dataset_ids[:80]):
+                consolidated.extend(chunk)
+
+    handle_counts: dict[str, int] = {}
+    for _, raw in consolidated:
+        root = _extract_root(raw)
+        author = root.get("authorMeta") or root.get("author") or raw.get("authorMeta") or raw.get("author") or {}
+        uname = ""
+        if isinstance(author, dict):
+            uname = str(
+                author.get("name")
+                or author.get("uniqueId")
+                or author.get("unique_id")
+                or author.get("username")
+                or ""
+            ).strip()
+        if not uname:
+            for u_cand in (root.get("webVideoUrl"), root.get("share_url"), root.get("url"), raw.get("url")):
+                m = re.search(r"tiktok\.com/@([A-Za-z0-9_.]{2,35})", str(u_cand or ""))
+                if m:
+                    uname = m.group(1)
+                    break
+        clean_h = uname.lstrip("@").lower()
+        if clean_h and clean_h != "unknown":
+            handle_counts[clean_h] = handle_counts.get(clean_h, 0) + 1
+
+    already_scraped = {h for h, cnt in handle_counts.items() if cnt >= 5}
+    return consolidated, already_scraped
+
+
 def poll_apify(
     queries: list[str],
     actor_id: str = "clockworks~free-tiktok-scraper",
@@ -942,10 +1044,15 @@ def poll_apify(
     min_balance_usd: float = 0.02,
     profiles: list[str] | None = None,
     post_urls: list[str] | None = None,
+    consolidate_only: bool = False,
 ) -> list[tuple[str, dict]]:
     token = (os.environ.get("APIFY_TOKEN") or "").strip()
     if not token:
         return []
+    consolidated_cached, already_scraped_handles = consolidate_all_apify_datasets(token)
+    if consolidate_only:
+        return consolidated_cached
+
     apify_remaining_usd = 5.0
     try:
         usage = http_get_json(f"https://api.apify.com/v2/users/me/usage/monthly?token={urllib.parse.quote(token)}", timeout=10)
@@ -955,6 +1062,12 @@ def poll_apify(
         max_monthly = float((limits.get("data") or {}).get("monthlyUsageUsd") or 5.0)
         apify_remaining_usd = max(0.0, max_monthly - used)
         if apify_remaining_usd <= min_balance_usd:
+            if consolidated_cached:
+                print(
+                    f"[apify] Remaining credit ${apify_remaining_usd:.3f} <= ${min_balance_usd:.2f}; returning {len(consolidated_cached)} consolidated items from past Apify datasets.",
+                    file=sys.stderr,
+                )
+                return consolidated_cached
             raise RuntimeError(f"Apify safety stop triggered: remaining ${apify_remaining_usd:.3f} <= ${min_balance_usd:.2f}")
     except RuntimeError:
         raise
@@ -970,7 +1083,10 @@ def poll_apify(
         if clean_t and clean_t.lower() not in seen_novi:
             seen_novi.add(clean_t.lower())
             all_novi_terms.append(clean_t)
-    clean_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()][:8]
+    raw_profiles = [p.lstrip("@") for p in (profiles or []) if p.strip()]
+    unscanned_profiles = [p for p in raw_profiles if p.lower() not in already_scraped_handles]
+    scanned_profiles = [p for p in raw_profiles if p.lower() in already_scraped_handles]
+    clean_profiles = (unscanned_profiles + scanned_profiles)[:16]
     clean_post_urls = [u for u in (post_urls or []) if "/video/" in u][:45]
     expanded_actors: list[str] = []
     for a in ([x.strip() for x in actor_id.split(",") if x.strip()] or ["novi~tiktok-scraper-ultimate"]):
@@ -1036,12 +1152,12 @@ def poll_apify(
             kw_only = [q for q in queries if not q.startswith("#")]
             tag_list = [q.lstrip("#") for q in queries if q.startswith("#")]
             if clean_profiles:
-                p_lim = min(60, max(30, remaining // 4))
-                for p in clean_profiles[:4]:
+                p_lim = min(30, max(20, remaining // 6))
+                for p in clean_profiles[:10]:
                     xt_jobs.append((
                         {
                             "type": "USER",
-                            "region": "GB",
+                            "region": "US",
                             "url": f"https://www.tiktok.com/@{p}",
                             "keywords": [],
                             "maxItems": p_lim,
@@ -1052,9 +1168,30 @@ def poll_apify(
                         p_lim,
                         f"#user_{p}",
                     ))
+            if kw_only:
+                s_lim = max(30, remaining // 4)
+                priority_search = [
+                    "they showed anthony joshua what happens",
+                    "anthony joshua after not following the script",
+                    "watch what happened to anthony joshua",
+                ] + kw_only[:9]
+                xt_jobs.append((
+                    {
+                        "type": "SEARCH",
+                        "region": "GB",
+                        "url": "",
+                        "keywords": priority_search[:10],
+                        "maxItems": s_lim,
+                        "isUnlimited": False,
+                        "sortType": 0,
+                        "publishTime": "ALL_TIME",
+                    },
+                    s_lim,
+                    "#search_priority",
+                ))
             if tag_list and queries:
-                t_lim = min(50, max(25, remaining // 5))
-                for t in tag_list[:3]:
+                t_lim = min(40, max(20, remaining // 6))
+                for t in tag_list[:2]:
                     xt_jobs.append((
                         {
                             "type": "HASHTAG",
@@ -1069,30 +1206,11 @@ def poll_apify(
                         t_lim,
                         f"#tag_{t}",
                     ))
-            if kw_only:
-                s_lim = max(40, remaining // 3)
-                for idx, chunk in enumerate([kw_only[10:22], kw_only[22:34]]):
-                    if not chunk:
-                        continue
-                    xt_jobs.append((
-                        {
-                            "type": "SEARCH",
-                            "region": "US" if idx == 0 else "GB",
-                            "url": "",
-                            "keywords": chunk,
-                            "maxItems": s_lim,
-                            "isUnlimited": False,
-                            "sortType": 1,
-                            "publishTime": "ALL_TIME",
-                        },
-                        s_lim,
-                        f"#search{idx + 1}",
-                    ))
             for inp, dlim, tpf in xt_jobs:
-                avail = apify_remaining_usd - spent_est - 0.02
-                if avail < 0.03:
+                avail = apify_remaining_usd - spent_est - 0.015
+                if avail < 0.02:
                     break
-                cap_usd = max(0.03, min(round(dlim * 0.0005 + 0.02, 2), 0.14, avail))
+                cap_usd = max(0.02, min(round(dlim * 0.0005 + 0.015, 2), 0.10, avail))
                 try:
                     batch_res = _run_apify_job(single_actor, inp, dlim, tpf, charge_cap_usd=cap_usd)
                     all_results.extend(batch_res)
@@ -1248,29 +1366,87 @@ def poll_apify(
 
         all_results.extend(_run_apify_job(single_actor, actor_input, dataset_limit))
 
-    # Also harvest recent SUCCEEDED Apify datasets from this account ($0 credit cost) so no aweme_info item is missed
-    try:
-        runs_meta = http_get_json(
-            f"https://api.apify.com/v2/actor-runs?token={urllib.parse.quote(token)}&limit=12&desc=true",
-            timeout=12,
-        )
-        run_items = ((runs_meta.get("data") or {}).get("items") or []) if isinstance(runs_meta, dict) else []
-        seen_ds: set[str] = set()
-        for r_info in run_items:
-            if not isinstance(r_info, dict) or r_info.get("status") != "SUCCEEDED":
-                continue
-            ds_id = str(r_info.get("defaultDatasetId") or "").strip()
-            if not ds_id or ds_id in seen_ds:
-                continue
-            seen_ds.add(ds_id)
-            ds_url = f"https://api.apify.com/v2/datasets/{urllib.parse.quote(ds_id)}/items?token={urllib.parse.quote(token)}&clean=false&limit=250"
-            cached_items = _fetch_large_json(ds_url, timeout=25)
-            if isinstance(cached_items, list):
-                all_results.extend((f"apify:cached_dataset:{ds_id[:8]}", it) for it in cached_items if isinstance(it, dict))
-    except Exception:
-        pass
-
+    all_results.extend(consolidated_cached)
     return all_results
+
+
+def verify_caution_via_emulator_ocr(video_urls: list[str], max_checks: int = 12) -> list[tuple[str, dict]]:
+    """Optional Android phone emulator + OCR verifier for 'Caution: Video flagged for unverified content' banner."""
+    import shutil
+    import subprocess
+    import tempfile
+
+    adb_bin = shutil.which("adb")
+    if not adb_bin or not video_urls:
+        return []
+    try:
+        dev_out = subprocess.check_output([adb_bin, "devices"], text=True, timeout=5)
+        active_devs = [
+            line.split()[0]
+            for line in dev_out.splitlines()[1:]
+            if line.strip() and "\tdevice" in line
+        ]
+        if not active_devs:
+            return []
+    except Exception:
+        return []
+
+    verified: list[tuple[str, dict]] = []
+    for url in video_urls[:max_checks]:
+        m = re.search(r"tiktok\.com/@([A-Za-z0-9_.]{2,35})/video/(\d+)", url)
+        if not m:
+            continue
+        handle, vid = m.group(1), m.group(2)
+        try:
+            subprocess.run(
+                [adb_bin, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=8,
+            )
+            time.sleep(4.5)
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+                png_path = tf.name
+            with open(png_path, "wb") as out_f:
+                subprocess.run([adb_bin, "exec-out", "screencap", "-p"], stdout=out_f, timeout=8)
+            ps_ocr = (
+                "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
+                "$asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]; "
+                "Function Await($WinRtTask, $ResultType) { $asTask = $asTaskGeneric.MakeGenericMethod($ResultType); $netTask = $asTask.Invoke($null, @($WinRtTask)); $netTask.Wait(-1) | Out-Null; $netTask.Result }; "
+                "[Windows.Storage.StorageFile,Windows.Storage,ContentType=WindowsRuntime] | Out-Null; "
+                "[Windows.Media.Ocr.OcrEngine,Windows.Foundation,ContentType=WindowsRuntime] | Out-Null; "
+                "[Windows.Graphics.Imaging.BitmapDecoder,Windows.Graphics,ContentType=WindowsRuntime] | Out-Null; "
+                f"$file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync('{png_path}')) ([Windows.Storage.StorageFile]); "
+                "$stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream]); "
+                "$decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder]); "
+                "$bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap]); "
+                "$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages(); "
+                "$ocr = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult]); "
+                "Write-Output $ocr.Text"
+            )
+            ocr_txt = subprocess.check_output(["powershell", "-NoProfile", "-Command", ps_ocr], text=True, timeout=15)
+            try:
+                os.remove(png_path)
+            except OSError:
+                pass
+            if UNVERIFIED_CAUTION_RE.search(ocr_txt):
+                verified.append((
+                    "emulator_ocr",
+                    {
+                        "id": vid,
+                        "webVideoUrl": f"https://www.tiktok.com/@{handle}/video/{vid}",
+                        "authorMeta": {"name": handle, "nickName": handle},
+                        "misc_info": json.dumps({
+                            "ktf_info": {
+                                "Caution": "Caution:",
+                                "warn_text": "Video flagged for unverified content.",
+                            }
+                        }),
+                    },
+                ))
+        except Exception:
+            continue
+    return verified
 
 
 def sync_records_to_worker(records: list[dict], worker_base: str = BRAND_WATCH_URL) -> dict | None:
@@ -1312,6 +1488,92 @@ def sync_records_to_worker(records: list[dict], worker_base: str = BRAND_WATCH_U
         "merged_total": latest_merged_total,
         "items": synced_items[:15],
     }
+
+
+def sync_account_inspection_stats(
+    raw_items: list[tuple[str, dict]],
+    caution_records: list[dict],
+    queried_profiles: list[str] | None = None,
+    worker_base: str = BRAND_WATCH_URL,
+) -> dict | None:
+    token = _resolve_ingest_token()
+    if not token:
+        return None
+    per_handle_vids: dict[str, set[str]] = {}
+    for idx, (_, raw) in enumerate(raw_items):
+        if not isinstance(raw, dict):
+            continue
+        root = _extract_root(raw)
+        author = root.get("authorMeta") or root.get("author") or raw.get("authorMeta") or raw.get("author") or {}
+        uname = ""
+        if isinstance(author, dict):
+            uname = str(
+                author.get("name")
+                or author.get("uniqueId")
+                or author.get("unique_id")
+                or author.get("username")
+                or ""
+            ).strip()
+        elif isinstance(author, str):
+            uname = author.strip()
+        if not uname:
+            for u_cand in (
+                root.get("webVideoUrl"),
+                root.get("share_url"),
+                root.get("url"),
+                raw.get("webVideoUrl"),
+                raw.get("share_url"),
+                raw.get("url"),
+            ):
+                m = re.search(r"tiktok\.com/@([A-Za-z0-9_.]{2,35})", str(u_cand or ""))
+                if m:
+                    uname = m.group(1)
+                    break
+        clean_h = uname.lstrip("@").lower()
+        if not clean_h or clean_h == "unknown":
+            continue
+        vid = str(root.get("id") or root.get("aweme_id") or raw.get("id") or f"idx_{idx}")
+        per_handle_vids.setdefault(clean_h, set()).add(vid)
+
+    caution_by_handle: dict[str, int] = {}
+    for rec in caution_records:
+        h = str(rec.get("authorUsername") or "").strip().lstrip("@").lower()
+        if h and h != "unknown":
+            caution_by_handle[h] = caution_by_handle.get(h, 0) + 1
+
+    target_handles: set[str] = {p.lstrip("@").lower() for p in (queried_profiles or []) if p.strip()}
+    for h, vids in per_handle_vids.items():
+        if len(vids) >= 3 or h in caution_by_handle:
+            target_handles.add(h)
+
+    synced = 0
+    for h in sorted(target_handles)[:25]:
+        inspected_cnt = len(per_handle_vids.get(h, set()))
+        caution_cnt = caution_by_handle.get(h, 0)
+        if inspected_cnt == 0 and caution_cnt == 0:
+            continue
+        try:
+            http_fetch(
+                f"{worker_base}/api/report-account",
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {token}",
+                },
+                data=json.dumps({
+                    "handle": f"@{h}",
+                    "sync_stats": True,
+                    "videosInspected": inspected_cnt,
+                    "cautionFoundCount": caution_cnt,
+                    "status": "inspected",
+                    "source": "automated_caution_poller",
+                }).encode("utf-8"),
+                timeout=15,
+            )
+            synced += 1
+        except Exception:
+            continue
+    return {"ok": True, "accounts_synced": synced}
 
 
 def _parse_lead_keywords(lead: dict) -> list[str]:
@@ -1497,6 +1759,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-ssr-enrich", action="store_true", help="Skip passive TikTok video page SSR enrichment.")
     parser.add_argument("--profiles-only", action="store_true", help="Poll ONLY suspect/subscribed profiles without keyword/hashtag dilution.")
     parser.add_argument("--search-only", action="store_true", help="Poll ONLY search/hashtag queries & fact-check URLs without profile crawls.")
+    parser.add_argument("--consolidate-only", action="store_true", help="Consolidate all existing Apify datasets without starting new paid actor runs.")
+    parser.add_argument("--emulator-ocr", action="store_true", help="Verify candidate TikTok URLs on connected Android emulator via adb + Windows OCR.")
     parser.add_argument("--input-json", default="", help="Process local raw scraper JSON list without spending API credits.")
     parser.add_argument("--sync-worker", action="store_true", help="Push stored records to Worker /api/ingest-caution.")
     parser.add_argument("--send-alerts", action="store_true", help="Allow dispatching email/webhook alerts to matched leads.")
@@ -1507,13 +1771,26 @@ def main(argv: list[str] | None = None) -> int:
     ).rstrip("/")
     existing = load_flagged_videos(FLAGGED_JSON_PATH)
     leads = fetch_subscriber_leads(BRAND_WATCH_URL_RUNTIME)
+    reported_accounts = fetch_reported_accounts(BRAND_WATCH_URL_RUNTIME)
     queries = [] if args.profiles_only else collect_discovery_queries(leads, args.query)
 
     harvested_urls: list[str] = list(args.post_url or [])
-    if args.live and not args.no_harvest_free and not args.profiles_only and not args.post_url:
-        extra_fc, _ = harvest_free_factcheck_targets()
-        harvested_urls.extend(extra_fc)
-    profiles = [] if args.search_only else collect_discovery_profiles(leads, existing, args.profile)
+    extra_fc_handles: list[str] = []
+    if args.live and not args.no_harvest_free and not args.post_url:
+        extra_fc, extra_fc_handles = harvest_free_factcheck_targets()
+        if not args.profiles_only:
+            harvested_urls.extend(extra_fc)
+    profiles = (
+        []
+        if args.search_only
+        else collect_discovery_profiles(
+            leads,
+            existing,
+            args.profile,
+            reported_accounts=reported_accounts,
+            factcheck_handles=extra_fc_handles,
+        )
+    )
 
     raw_items: list[tuple[str, dict]] = []
     if args.input_json:
@@ -1521,28 +1798,31 @@ def main(argv: list[str] | None = None) -> int:
             loaded = json.loads(fh.read())
         if isinstance(loaded, list):
             raw_items = [("local_json", x) for x in loaded if isinstance(x, dict)]
-    elif args.live:
+    elif args.live or args.consolidate_only:
         prov = args.provider
-        if prov in ("auto", "ensembledata") and os.environ.get("ENSEMBLEDATA_TOKEN"):
+        if not args.consolidate_only and prov in ("auto", "ensembledata") and os.environ.get("ENSEMBLEDATA_TOKEN"):
             raw_items.extend(poll_ensembledata(queries, max_items=args.max_items))
-        if len(raw_items) < args.max_items and prov in ("auto", "rapidapi") and os.environ.get("RAPIDAPI_KEY"):
+        if not args.consolidate_only and len(raw_items) < args.max_items and prov in ("auto", "rapidapi") and os.environ.get("RAPIDAPI_KEY"):
             raw_items.extend(poll_rapidapi(queries, max_items=args.max_items - len(raw_items)))
-        if len(raw_items) < args.max_items and prov in ("auto", "apify") and os.environ.get("APIFY_TOKEN"):
+        if (args.consolidate_only or len(raw_items) < args.max_items) and prov in ("auto", "apify") and os.environ.get("APIFY_TOKEN"):
             raw_items.extend(
                 poll_apify(
                     queries,
                     actor_id=args.apify_actor,
-                    max_items=args.max_items - len(raw_items),
+                    max_items=max(1, args.max_items - len(raw_items)),
                     profiles=profiles,
                     post_urls=harvested_urls,
+                    consolidate_only=args.consolidate_only,
                 )
             )
-        if not args.no_ssr_enrich:
+        if not args.no_ssr_enrich and not args.consolidate_only:
             raw_items = enrich_items_with_tiktok_ssr(
                 raw_items,
                 extra_urls=harvested_urls,
                 max_fetches=max(140, args.max_items + 25),
             )
+        if args.emulator_ocr and harvested_urls:
+            raw_items.extend(verify_caution_via_emulator_ocr(harvested_urls))
 
     provider_label = args.provider if args.input_json == "" else "local_json"
     caution_records: list[dict] = []
@@ -1559,9 +1839,12 @@ def main(argv: list[str] | None = None) -> int:
         write_flagged_artifacts(merged, FLAGGED_JSON_PATH, SEED_JS_PATH)
 
     worker_sync = None
+    account_sync = None
     if (args.live or args.sync_worker) and (added or caution_records or merged != existing):
         to_sync = merged if merged != existing else (added or caution_records)
         worker_sync = sync_records_to_worker(to_sync, BRAND_WATCH_URL_RUNTIME)
+    if (args.live or args.sync_worker) and raw_items:
+        account_sync = sync_account_inspection_stats(raw_items, merged, profiles, BRAND_WATCH_URL_RUNTIME)
 
     alert_summary = dispatch_subscriber_alerts(
         added or caution_records,
@@ -1579,12 +1862,14 @@ def main(argv: list[str] | None = None) -> int:
                 "profiles": profiles,
                 "harvested_factcheck_urls": len(harvested_urls),
                 "leads_loaded": len(leads),
+                "reported_accounts_loaded": len(reported_accounts),
                 "raw_scanned": len(raw_items),
                 "strict_caution_accepted": len(caution_records),
                 "non_caution_rejected": rejected_count,
                 "newly_added": len(added),
                 "total_archived": len(merged),
                 "worker_sync": worker_sync,
+                "account_sync": account_sync,
                 "alerts": alert_summary,
                 "diagnostics": summarize_raw_diagnostics(raw_items) if raw_items else None,
             },

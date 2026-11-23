@@ -71,6 +71,7 @@ jobs:
           CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
           CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           DASHBOARD_INGEST_TOKEN: ${{ secrets.DASHBOARD_INGEST_TOKEN }}
@@ -94,6 +95,10 @@ jobs:
           done
           if [ -n "${APIFY_TOKEN:-}" ]; then
             printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@4 secret put APIFY_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
+            printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@4 secret put APIFY_TOKEN --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${GH_PAT:-}" ]; then
+            printf '%s' "$GH_PAT" | npx --yes wrangler@4 secret put GH_PAT --config brand_watch/wrangler.toml >/dev/null
           fi
           if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
             printf '%s' "$CLOUDFLARE_API_TOKEN" | npx --yes wrangler@4 secret put CF_ANALYTICS_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null

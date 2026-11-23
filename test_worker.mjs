@@ -1363,6 +1363,41 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
       BW_ENV,
     )).json();
     assert.ok(tagFilterRes.matched_count >= 1);
+    assert.ok(Array.isArray(tagFilterRes.monitored_accounts) && tagFilterRes.monitored_accounts.length >= 7);
+    assert.ok(tagFilterRes.total_videos_inspected >= 480);
+
+    // 4b. Report TikTok Account solely by @handle + GET /api/accounts self-updating registry
+    const reportAcctRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/report-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle: "@maskedtruthmt" }),
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(reportAcctRes.ok, true);
+    assert.equal(reportAcctRes.handle, "@maskedtruthmt");
+    assert.ok(reportAcctRes.videosInspected >= 59);
+    assert.ok(reportAcctRes.cautionFoundCount >= 2);
+
+    const reportNewHandleViaReport = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "@new_rumor_account" }),
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(reportNewHandleViaReport.ok, true);
+    assert.equal(reportNewHandleViaReport.handle, "@new_rumor_account");
+
+    const accountsRes = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/accounts"),
+      BW_ENV,
+    )).json();
+    assert.equal(accountsRes.ok, true);
+    assert.ok(accountsRes.accounts.some((a) => a.handle === "maskedtruthmt" && a.cautionFoundCount >= 2));
+    assert.ok(accountsRes.accounts.some((a) => a.handle === "new_rumor_account"));
 
     // 5. Businesses & Individuals Alert Contact + authenticated inbox read
     const leadBad = await brandWatchWorker.fetch(

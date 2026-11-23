@@ -31,6 +31,130 @@ export function validateTikTokVideoUrl(rawUrl) {
   return { cleanUrl, host, pathname: parsed.pathname };
 }
 
+export function validateTikTokHandle(rawInput) {
+  const input = String(rawInput || "").trim();
+  if (!input) {
+    throw Object.assign(new Error("TikTok account @handle is required."), { httpStatus: 400 });
+  }
+  let candidate = "";
+  if (/^https?:\/\//i.test(input) || /^(?:www\.|m\.|vt\.|vm\.)?tiktok\.com\//i.test(input)) {
+    const normalized = /^https?:\/\//i.test(input) ? input : `https://${input}`;
+    let parsed;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      throw Object.assign(new Error("Invalid TikTok profile URL format."), { httpStatus: 400 });
+    }
+    const host = parsed.hostname.toLowerCase();
+    if (!ALLOWED_TIKTOK_HOSTS.has(host)) {
+      throw Object.assign(new Error("Host must be a valid tiktok.com domain."), { httpStatus: 403 });
+    }
+    const match = parsed.pathname.match(/\/@([A-Za-z0-9_.]{2,35})/);
+    if (!match) {
+      throw Object.assign(new Error("Could not extract a @handle from the TikTok URL."), { httpStatus: 400 });
+    }
+    candidate = match[1];
+  } else {
+    candidate = input.replace(/^@+/, "").split(/[/?#\s]/)[0].trim();
+  }
+  if (!/^[A-Za-z0-9_.]{2,35}$/.test(candidate) || !/[A-Za-z0-9]/.test(candidate)) {
+    throw Object.assign(new Error("Invalid TikTok @handle format. Enter a valid handle such as @maskedtruthmt."), { httpStatus: 400 });
+  }
+  const handle = candidate.toLowerCase();
+  return {
+    handle,
+    displayHandle: `@${handle}`,
+    profileUrl: `https://www.tiktok.com/@${handle}`,
+  };
+}
+
+export const DEFAULT_MONITORED_ACCOUNTS = [
+  {
+    handle: "maskedtruthmt",
+    displayHandle: "@maskedtruthmt",
+    profileUrl: "https://www.tiktok.com/@maskedtruthmt",
+    status: "inspected",
+    videosInspected: 59,
+    cautionFoundCount: 1,
+    brandTag: "Anthony Joshua / Viral Claims",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T18:10:00.000Z",
+    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+  },
+  {
+    handle: "maskedtruthnews",
+    displayHandle: "@maskedtruthnews",
+    profileUrl: "https://www.tiktok.com/@maskedtruthnews",
+    status: "inspected",
+    videosInspected: 161,
+    cautionFoundCount: 0,
+    brandTag: "Unverified News Claims",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T19:35:00.000Z",
+    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+  },
+  {
+    handle: "unmasked_truth101",
+    displayHandle: "@unmasked_truth101",
+    profileUrl: "https://www.tiktok.com/@unmasked_truth101",
+    status: "inspected",
+    videosInspected: 123,
+    cautionFoundCount: 0,
+    brandTag: "Viral Rumor Watch",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T19:35:00.000Z",
+    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+  },
+  {
+    handle: "th3.mask3d.truth",
+    displayHandle: "@th3.mask3d.truth",
+    profileUrl: "https://www.tiktok.com/@th3.mask3d.truth",
+    status: "inspected",
+    videosInspected: 101,
+    cautionFoundCount: 0,
+    brandTag: "Viral Rumor Watch",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T19:35:00.000Z",
+    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+  },
+  {
+    handle: "vfortruths",
+    displayHandle: "@vfortruths",
+    profileUrl: "https://www.tiktok.com/@vfortruths",
+    status: "inspected",
+    videosInspected: 28,
+    cautionFoundCount: 0,
+    brandTag: "Unverified Claims Watch",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T19:35:00.000Z",
+    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+  },
+  {
+    handle: "masterysoulreality",
+    displayHandle: "@masterysoulreality",
+    profileUrl: "https://www.tiktok.com/@masterysoulreality",
+    status: "inspected",
+    videosInspected: 8,
+    cautionFoundCount: 0,
+    brandTag: "Viral Claims Watch",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T20:05:00.000Z",
+    lastInspectedAt: "2026-11-23T20:07:20.000Z",
+  },
+  {
+    handle: ".masked.truth",
+    displayHandle: "@.masked.truth",
+    profileUrl: "https://www.tiktok.com/@.masked.truth",
+    status: "inspected",
+    videosInspected: 6,
+    cautionFoundCount: 0,
+    brandTag: "Viral Claims Watch",
+    source: "apify_aweme_profile_scan",
+    reportedAt: "2026-11-23T20:05:00.000Z",
+    lastInspectedAt: "2026-11-23T20:07:20.000Z",
+  },
+];
+
 const TOP_LEVEL_IGNORED_KEYS = new Set([
   "text", "desc", "description", "title", "video_description", "voice_to_text", "voiceToText",
   "transcript", "comments", "hashtags", "hashtag_names", "suggestedWords",
@@ -336,6 +460,214 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
   return entries.slice(0, limit);
 }
 
+export async function loadMonitoredAccounts(kv = null, cautionEntries = null, limit = 100) {
+  const entries = Array.isArray(cautionEntries) ? cautionEntries : await loadCautionFeedEntries(kv, 100);
+  const byHandle = new Map();
+  for (const v of entries) {
+    const rawUser = String(v?.authorUsername || "").trim().replace(/^@+/, "").toLowerCase();
+    if (!rawUser || rawUser === "unknown") continue;
+    if (!byHandle.has(rawUser)) byHandle.set(rawUser, []);
+    byHandle.get(rawUser).push(v);
+  }
+
+  const accountMap = new Map();
+  const upsertAccount = (rawAcct) => {
+    if (!rawAcct || typeof rawAcct !== "object") return;
+    const handle = String(rawAcct.handle || rawAcct.username || rawAcct.displayHandle || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+    if (!handle || handle === "unknown") return;
+    const prev = accountMap.get(handle) || {};
+    const matched = byHandle.get(handle) || [];
+    const videosInspected = Math.max(
+      Number(rawAcct.videosInspected || 0),
+      Number(prev.videosInspected || 0),
+      matched.length,
+    );
+    const cautionFoundCount = Math.max(
+      Number(rawAcct.cautionFoundCount || 0),
+      Number(prev.cautionFoundCount || 0),
+      matched.length,
+    );
+    accountMap.set(handle, {
+      handle,
+      displayHandle: `@${handle}`,
+      profileUrl: `https://www.tiktok.com/@${handle}`,
+      status: rawAcct.status || prev.status || (videosInspected > 0 ? "inspected" : "queued"),
+      videosInspected,
+      cautionFoundCount,
+      matchedVideoIds: matched.map((v) => v.videoId || v.id),
+      brandTag: String(rawAcct.brandTag || prev.brandTag || "").trim(),
+      notes: String(rawAcct.notes || prev.notes || "").trim(),
+      source: String(rawAcct.source || prev.source || "user_reported_handle"),
+      reportedAt: rawAcct.reportedAt || prev.reportedAt || new Date().toISOString(),
+      lastInspectedAt: rawAcct.lastInspectedAt || prev.lastInspectedAt || null,
+    });
+  };
+
+  for (const def of DEFAULT_MONITORED_ACCOUNTS) {
+    upsertAccount(def);
+  }
+
+  if (kv) {
+    try {
+      const idxRaw = await kv.get("bw:accounts:index");
+      const ids = idxRaw ? JSON.parse(idxRaw) : [];
+      for (const h of ids.slice(0, limit)) {
+        const itemRaw = await kv.get(`bw:account:item:${String(h).toLowerCase()}`);
+        if (itemRaw) {
+          upsertAccount(JSON.parse(itemRaw));
+        }
+      }
+    } catch {
+      // Fall back to default accounts cleanly
+    }
+  }
+
+  for (const [handle, matched] of byHandle.entries()) {
+    if (!accountMap.has(handle)) {
+      upsertAccount({
+        handle,
+        status: "inspected",
+        videosInspected: matched.length,
+        cautionFoundCount: matched.length,
+        brandTag: matched[0]?.brandTag || "Caution Archive Creator",
+        source: "caution_archive_derived",
+        reportedAt: matched[0]?.capturedAt || new Date().toISOString(),
+        lastInspectedAt: matched[0]?.capturedAt || new Date().toISOString(),
+      });
+    }
+  }
+
+  return Array.from(accountMap.values())
+    .sort(
+      (a, b) =>
+        b.cautionFoundCount - a.cautionFoundCount ||
+        (a.status === "queued" ? -1 : 0) - (b.status === "queued" ? -1 : 0) ||
+        b.videosInspected - a.videosInspected ||
+        a.handle.localeCompare(b.handle),
+    )
+    .slice(0, limit);
+}
+
+export async function inspectTikTokAccountLive(handleInfo, env = {}, fetchFn = fetch, options = {}) {
+  const cleanHandle = String(handleInfo?.handle || handleInfo || "").trim().replace(/^@+/, "").toLowerCase();
+  const profileUrl = `https://www.tiktok.com/@${cleanHandle}`;
+  const maxVideos = Math.min(Math.max(Number(options.maxVideos || 50), 1), 150);
+  const waitSec = Math.min(Math.max(Number(options.waitForFinish ?? 25), 0), 60);
+  const brandTag = String(options.brandTag || `@${cleanHandle}`).trim();
+
+  const apifyToken = String(env?.APIFY_TOKEN || "").trim();
+  const ghPat = String(env?.GH_PAT || "").trim();
+
+  let liveApifyRan = false;
+  let apifyStatus = "not_configured";
+  let apifyRunId = null;
+  let inspectedCount = 0;
+  const cautionRecords = [];
+  const seenIds = new Set();
+
+  if (apifyToken) {
+    try {
+      const runUrl = `https://api.apify.com/v2/acts/xtdata~tiktok-scraper/runs?token=${encodeURIComponent(apifyToken)}&waitForFinish=${waitSec}&memory=512&maxTotalChargeUsd=0.04`;
+      const runRes = await fetchFn(runUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          type: "USER",
+          region: "GB",
+          url: profileUrl,
+          keywords: [],
+          maxItems: maxVideos,
+          isUnlimited: false,
+          sortType: 0,
+          publishTime: "ALL_TIME",
+        }),
+        signal: AbortSignal.timeout((waitSec + 8) * 1000),
+      });
+      if (runRes.ok) {
+        const runPayload = await runRes.json();
+        const runData = runPayload?.data || {};
+        apifyRunId = runData.id || null;
+        apifyStatus = String(runData.status || "RUNNING");
+        const datasetId = runData.defaultDatasetId;
+        if (datasetId && (apifyStatus === "SUCCEEDED" || apifyStatus === "RUNNING" || apifyStatus === "TIMED-OUT")) {
+          const dsUrl = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?token=${encodeURIComponent(apifyToken)}&clean=true&format=json`;
+          const dsRes = await fetchFn(dsUrl, {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(12000),
+          });
+          if (dsRes.ok) {
+            const rawItems = await dsRes.json();
+            if (Array.isArray(rawItems)) {
+              liveApifyRan = true;
+              inspectedCount = rawItems.length;
+              for (const raw of rawItems) {
+                const rec = extractUnverifiedCautionRecord(raw, "apify_account_inspector");
+                if (rec && !seenIds.has(rec.id)) {
+                  seenIds.add(rec.id);
+                  if (!rec.brandTag || rec.brandTag.startsWith("apify:")) rec.brandTag = brandTag;
+                  cautionRecords.push(rec);
+                }
+              }
+            }
+          }
+        }
+      } else {
+        apifyStatus = `http_${runRes.status}`;
+      }
+    } catch (err) {
+      apifyStatus = `error:${String(err?.message || err).slice(0, 80)}`;
+    }
+  }
+
+  let dispatchedWorkflow = false;
+  if (ghPat && (!liveApifyRan || inspectedCount === 0)) {
+    try {
+      const ghRes = await fetchFn(
+        "https://api.github.com/repos/ak10082247-max/action2mcp/actions/workflows/brand_watch_caution_cron.yml/dispatches",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ghPat}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "User-Agent": "CautionWatch-Worker/1.0",
+          },
+          body: JSON.stringify({
+            ref: "main",
+            inputs: {
+              run_live: "true",
+              provider: "apify",
+              extra_profile: cleanHandle,
+              profiles_only: "true",
+              max_items: String(maxVideos),
+              extra_args: "--no-ssr-enrich --no-harvest-free",
+            },
+          }),
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+      dispatchedWorkflow = ghRes.status === 204 || ghRes.ok;
+    } catch {
+      dispatchedWorkflow = false;
+    }
+  }
+
+  return {
+    handle: cleanHandle,
+    displayHandle: `@${cleanHandle}`,
+    profileUrl,
+    liveApifyRan,
+    apifyStatus,
+    apifyRunId,
+    inspectedCount,
+    cautionRecords,
+    dispatchedWorkflow,
+  };
+}
+
 const STOPWORDS = new Set([
   "watch", "what", "happened", "after", "following", "this", "that", "with", "from", "have", "will",
   "your", "they", "them", "been", "were", "when", "where", "which", "about", "into", "more", "some",
@@ -403,7 +735,16 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
   const qLow = query.toLowerCase();
   const qBare = qLow.replace(/^[#@]+/, "");
   const allCaution = await loadCautionFeedEntries(kv, 100);
+  const monitoredAccounts = await loadMonitoredAccounts(kv, allCaution, 100);
+  const totalVideosInspected = monitoredAccounts.reduce((acc, a) => acc + Number(a.videosInspected || 0), 0);
   const catalog = buildCautionTagCatalog(allCaution);
+  const existingSugLow = new Set(catalog.autofill_suggestions.map((s) => s.toLowerCase()));
+  for (const acct of monitoredAccounts) {
+    if (acct.displayHandle && !existingSugLow.has(acct.displayHandle.toLowerCase())) {
+      existingSugLow.add(acct.displayHandle.toLowerCase());
+      catalog.autofill_suggestions.push(acct.displayHandle);
+    }
+  }
   const filtered =
     !qLow || qLow === "tiktok"
       ? allCaution
@@ -419,6 +760,16 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
     scanned_at: new Date().toISOString(),
     total_stored_caution_videos: allCaution.length,
     matched_count: filtered.length,
+    total_monitored_accounts: monitoredAccounts.length,
+    total_videos_inspected: totalVideosInspected,
+    self_updating: {
+      enabled: true,
+      schedule: "Every 12 hours (GitHub Actions Cron) + On-Demand @Handle Full-Profile Inspection",
+      ui_auto_refresh_seconds: 30,
+      total_monitored_accounts: monitoredAccounts.length,
+      total_videos_inspected: totalVideosInspected,
+    },
+    monitored_accounts: monitoredAccounts,
     searchable_tags: catalog.searchable_tags,
     autofill_suggestions: catalog.autofill_suggestions,
     caution_videos: filtered,
