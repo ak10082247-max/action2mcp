@@ -236,254 +236,434 @@ function buildStructuredJsonLd(origin) {
 
 function renderLanding(origin, contactEmail) {
   const deadline = getArticle50DeadlineInfo();
-  const daysText =
+  const daysLine =
     deadline.daysUntilLegacyDeadline > 0
-      ? `EU AI Act Article 50(2) Legacy Grace Period Ends Dec 2, 2026 (${deadline.daysUntilLegacyDeadline} days)`
-      : "EU AI Act Article 50 Full Enforcement Active";
+      ? `EU AI Act Article 50 grace period ends Dec 2, 2026 (${deadline.daysUntilLegacyDeadline} days away).`
+      : "EU AI Act Article 50 full enforcement is now active.";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Art50Scan — EU AI Act Article 50 C2PA &amp; Live CDN Provenance Scanner</title>
-  <meta name="description" content="Audit any live website CDN for EU AI Act Article 50 C2PA Content Credentials survival, inspect local files for C2PA/ComfyUI/EXIF metadata privately in-browser, and download drop-in CDN &amp; CI fix kits." />
+  <title>Art50Scan — Check if your website is stripping AI image labels (EU AI Act Art. 50)</title>
+  <meta name="description" content="Free live check to see if Next.js, Cloudflare, Shopify, or Cloudinary is stripping C2PA AI image labels from your website before the Dec 2, 2026 EU AI Act Article 50 deadline." />
   <link rel="canonical" href="${escapeHtml(origin)}/" />
   <link rel="manifest" href="/manifest.json" />
   ${buildStructuredJsonLd(origin)}
   <style>
-    :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#060911; color:#f1f5f9; max-width:1160px; margin:0 auto; padding:1.4rem 1rem 4.5rem; line-height:1.58; }
-    a { color:#38bdf8; }
-    header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; border-bottom:1px solid #1e293b; padding-bottom:1rem; margin-bottom:1.1rem; }
-    h1 { margin:0.25rem 0 0; font-size:1.85rem; color:#f8fafc; letter-spacing:-0.02em; }
-    h2 { font-size:1.25rem; color:#f8fafc; margin:1.6rem 0 0.6rem; }
-    .badge-red { display:inline-block; background:#450a0a; border:1px solid #ef4444; color:#fca5a5; font-size:0.74rem; font-weight:800; padding:0.24rem 0.68rem; border-radius:999px; letter-spacing:0.03em; }
-    .badge-ok { display:inline-block; background:#052e16; border:1px solid #10b981; color:#6ee7b7; font-size:0.74rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:999px; }
-    .notice { background:#0f172a; border:1px solid #334155; border-left:4px solid #38bdf8; border-radius:8px; padding:0.85rem 1rem; font-size:0.86rem; color:#cbd5e1; margin-bottom:1.2rem; }
-    .grid { display:grid; grid-template-columns:1.32fr 0.92fr; gap:1.25rem; align-items:start; }
-    @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
-    .card { background:#0f1624; border:1px solid #1e293b; border-radius:12px; padding:1.2rem; margin-bottom:1rem; }
-    .row { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; }
-    input, textarea, select { width:100%; background:#050810; color:#f8fafc; border:1px solid #334155; border-radius:8px; padding:0.68rem 0.8rem; font-size:0.9rem; margin:0.3rem 0 0.7rem; font-family:inherit; }
-    label { display:block; font-size:0.8rem; font-weight:600; color:#94a3b8; }
-    .btn { display:inline-block; padding:0.7rem 1.05rem; border-radius:8px; font-weight:700; cursor:pointer; border:0; color:#fff; background:#0284c7; text-align:center; font-size:0.89rem; text-decoration:none; }
-    .btn:hover { filter:brightness(1.08); }
-    .btn-green { background:#059669; }
-    .btn-amber { background:#d97706; }
-    .btn-slate { background:#334155; }
-    .btn-sm { padding:0.42rem 0.75rem; font-size:0.78rem; }
-    .pill { display:inline-block; font-size:0.72rem; font-weight:700; padding:0.15rem 0.52rem; border-radius:6px; margin:0.15rem 0.3rem 0.15rem 0; background:#0c4a6e; color:#7dd3fc; border:1px solid #075985; }
-    .pill-warn { background:#451a03; color:#fde68a; border-color:#d97706; }
-    .pill-err { background:#450a0a; color:#fca5a5; border-color:#dc2626; }
-    .pill-ok { background:#052e16; color:#6ee7b7; border-color:#059669; }
-    .dropzone { border:2px dashed #334155; border-radius:10px; padding:1.2rem; text-align:center; background:#080d18; cursor:pointer; margin:0.5rem 0 0.75rem; transition:border-color 0.15s; }
-    .dropzone:hover { border-color:#38bdf8; }
-    .tier { background:#090e1a; border:1px solid #1e293b; border-radius:10px; padding:0.95rem; margin-top:0.75rem; }
-    .price { font-size:1.35rem; font-weight:800; color:#34d399; }
-    .score-box { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; background:#080d18; border:1px solid #1e293b; border-radius:10px; padding:0.85rem 1rem; margin-top:0.75rem; }
-    .asset-row { background:#080d18; border:1px solid #1e293b; border-radius:8px; padding:0.72rem; margin-top:0.55rem; font-size:0.82rem; }
-    table { width:100%; border-collapse:collapse; margin:0.8rem 0; font-size:0.84rem; }
-    th, td { border:1px solid #1e293b; padding:0.58rem 0.7rem; text-align:left; vertical-align:top; }
-    th { background:#0b1220; color:#e2e8f0; }
-    details { background:#0b1220; border:1px solid #1e293b; border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.55rem; }
-    summary { cursor:pointer; font-weight:700; color:#f8fafc; font-size:0.9rem; }
-    pre { background:#050810; border:1px solid #1e293b; border-radius:8px; padding:0.75rem; overflow:auto; max-height:260px; font-size:0.77rem; color:#93c5fd; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f8f6f1;
+      color: #1c1917;
+      margin: 0;
+      padding: 0 1.2rem 5rem;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 820px; margin: 0 auto; }
+    a { color: #0f4c81; text-underline-offset: 3px; }
+    a:hover { color: #1c1917; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86em;
+      background: #efece4;
+      color: #1c1917;
+      padding: 0.12rem 0.36rem;
+      border-radius: 4px;
+    }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid #e4e0d5;
+      margin-bottom: 2.2rem;
+      font-size: 0.88rem;
+    }
+    .brand {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #1c1917;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .nav-links { display: flex; gap: 1.15rem; align-items: center; flex-wrap: wrap; }
+    .nav-links a, .nav-links button {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: #57534e;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-links a:hover, .nav-links button:hover { color: #1c1917; text-decoration: underline; }
+    .kicker {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #991b1b;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      padding: 0.22rem 0.62rem;
+      border-radius: 4px;
+      margin-bottom: 0.9rem;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.9rem, 4.2vw, 2.65rem);
+      line-height: 1.16;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.85rem;
+      color: #111110;
+    }
+    .lead {
+      font-size: 1.06rem;
+      color: #44403c;
+      margin: 0 0 1.6rem;
+      max-width: 680px;
+    }
+    h2 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.45rem;
+      letter-spacing: -0.015em;
+      margin: 0 0 0.55rem;
+      color: #111110;
+    }
+    h3 { font-size: 1rem; margin: 0 0 0.35rem; color: #1c1917; }
+    .panel {
+      background: #ffffff;
+      border: 1px solid #e2ded3;
+      border-radius: 10px;
+      padding: 1.35rem;
+      box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+    }
+    section { margin-top: 2.6rem; padding-top: 2.2rem; border-top: 1px solid #e4e0d5; }
+    .scan-bar { display: flex; gap: 0.55rem; flex-wrap: wrap; }
+    input, textarea {
+      width: 100%;
+      background: #ffffff;
+      color: #1c1917;
+      border: 1px solid #cbc6b8;
+      border-radius: 7px;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.96rem;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: 2px solid #1c1917; outline-offset: 1px; border-color: #1c1917; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #44403c; margin: 0.65rem 0 0.25rem; }
+    .btn {
+      display: inline-block;
+      background: #1c1917;
+      color: #faf8f4;
+      border: 1px solid #1c1917;
+      border-radius: 7px;
+      padding: 0.75rem 1.2rem;
+      font-size: 0.93rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #292524; }
+    .btn-green { background: #166534; border-color: #166534; color: #ffffff; }
+    .btn-green:hover { background: #14532d; }
+    .btn-outline { background: #ffffff; color: #1c1917; border: 1px solid #cbc6b8; }
+    .btn-outline:hover { background: #f3f0e8; border-color: #a8a29e; }
+    .btn-sm { padding: 0.36rem 0.7rem; font-size: 0.8rem; font-weight: 500; }
+    .demos { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; margin-top: 0.85rem; font-size: 0.83rem; color: #57534e; }
+    .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media(max-width:680px){ .two-col{ grid-template-columns: 1fr; } }
+    .verdict-box {
+      margin-top: 1.15rem;
+      padding: 1.1rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid #e2ded3;
+      background: #fcfbf8;
+    }
+    .check-list { list-style: none; padding: 0; margin: 0.75rem 0; font-size: 0.9rem; }
+    .check-list li { padding: 0.32rem 0; border-bottom: 1px solid #efece4; display: flex; gap: 0.55rem; align-items: baseline; }
+    .check-list li:last-child { border-bottom: 0; }
+    .mark-ok { color: #15803d; font-weight: 700; }
+    .mark-no { color: #b91c1c; font-weight: 700; }
+    .tag {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 0.12rem 0.48rem;
+      border-radius: 4px;
+      margin-right: 0.3rem;
+      background: #efece4;
+      color: #44403c;
+    }
+    .tag-ok { background: #dcfce7; color: #166534; }
+    .tag-err { background: #fee2e2; color: #991b1b; }
+    .tag-warn { background: #fef3c7; color: #92400e; }
+    .file-row {
+      padding: 0.65rem 0.8rem;
+      border: 1px solid #e7e3d8;
+      border-radius: 7px;
+      background: #ffffff;
+      margin-top: 0.45rem;
+      font-size: 0.84rem;
+    }
+    .fix-box {
+      margin-top: 1.1rem;
+      padding: 1.15rem 1.25rem;
+      border: 1.5px solid #166534;
+      border-radius: 9px;
+      background: #f0fdf4;
+    }
+    .dropzone {
+      border: 1.5px dashed #b8b2a4;
+      border-radius: 8px;
+      padding: 1.35rem 1rem;
+      text-align: center;
+      background: #fcfbf8;
+      cursor: pointer;
+      margin: 0.75rem 0;
+    }
+    .dropzone:hover { border-color: #1c1917; background: #ffffff; }
+    .price-num {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #111110;
+    }
+    .price-sub { font-size: 0.82rem; color: #78716c; font-weight: 400; }
+    .muted { color: #57534e; font-size: 0.88rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.86rem; background: #ffffff; }
+    th, td { border: 1px solid #e2ded3; padding: 0.65rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f3f0e8; color: #1c1917; font-weight: 600; }
+    details {
+      background: #ffffff;
+      border: 1px solid #e2ded3;
+      border-radius: 7px;
+      padding: 0.75rem 0.95rem;
+      margin-bottom: 0.55rem;
+    }
+    summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; color: #1c1917; }
+    pre {
+      background: #f3f0e8;
+      border: 1px solid #e2ded3;
+      border-radius: 6px;
+      padding: 0.7rem;
+      overflow: auto;
+      max-height: 220px;
+      font-size: 0.78rem;
+      color: #1c1917;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <span class="badge-red">&#9888; ${escapeHtml(daysText)}</span>
-      <h1>Art50Scan — EU AI Act Article 50 C2PA &amp; CDN Survival Scanner</h1>
-    </div>
-    <div class="row">
-      <button type="button" class="btn btn-slate btn-sm" onclick="toggleRestore()">Restore Purchase</button>
-      <a class="btn btn-green btn-sm" href="#pricing">Get Fix Kit ($15)</a>
-    </div>
-  </header>
-
-  <div class="notice">
-    <strong>The Silent CDN Problem:</strong> Even when generative AI tools sign files with C2PA Content Credentials, production image pipelines (<code>Next.js /_next/image</code>, <code>Cloudflare Polish</code>, <code>Shopify CDN</code>, <code>Cloudinary</code>) strip JPEG <code>APP11</code> JUMBF and PNG <code>caBX</code> segments by default. In our live test, even <code>contentcredentials.org</code> served <strong>0 / 4</strong> C2PA-surviving images across its CDN (<code>55/100</code>). Audit your live production URL in 3 seconds below — or inspect &amp; scrub local files 100% privately in your browser.
-  </div>
-
-  <div id="restoreModal" class="card" style="display:none;border-color:#38bdf8;">
-    <strong>Restore Previous Compliance Kit Purchase (Cross-Device)</strong>
-    <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Enter either your Stripe Checkout <code>session_id</code> (<code>cs_live_...</code>) or the email address used at checkout to recover your HMAC-signed License Key and download link.</p>
-    <div class="row">
-      <input id="restoreInput" type="text" placeholder="you@company.com or cs_live_..." style="flex:1;margin:0;" />
-      <button type="button" class="btn" onclick="runRestore()">Verify &amp; Restore</button>
-    </div>
-    <div id="restoreOut" style="margin-top:0.65rem;font-size:0.84rem;"></div>
-  </div>
-
-  <div class="grid">
-    <div>
-      <div class="card" id="live-scanner">
-        <strong>1. Free Live Website &amp; CDN C2PA Survival Audit</strong>
-        <p style="font-size:0.83rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Fetches live images directly from your production CDN, parses raw binary JUMBF / <code>APP11</code> / <code>caBX</code> / <code>C2PA</code> / XMP containers, checks CDN stripping headers, and scores EU AI Act Article 50(2) &amp; 50(4) readiness.</p>
-        <div class="row">
-          <input id="urlInput" type="text" placeholder="https://your-saas-or-agency.com (or direct .jpg / .png / .webp URL)" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter'){runLiveScan();}" />
-          <button type="button" class="btn" onclick="runLiveScan()">Audit Live CDN</button>
-        </div>
-        <div class="row" style="margin-top:0.55rem;">
-          <span style="font-size:0.76rem;color:#94a3b8;">Quick demos:</span>
-          <button type="button" class="btn btn-slate btn-sm" data-demo-url="https://contentcredentials.org">Scan contentcredentials.org</button>
-          <button type="button" class="btn btn-slate btn-sm" data-demo-url="https://openai.com">Scan openai.com</button>
-        </div>
-        <div id="liveOut" style="margin-top:0.75rem;font-size:0.86rem;color:#94a3b8;">Enter any domain above to run a live Article 50 &amp; CDN C2PA survival audit.</div>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="/">Art50Scan</a>
+      <div class="nav-links">
+        <a href="#local-check">Check a local file</a>
+        <a href="#pricing">Fix Pack ($15)</a>
+        <a href="#faq">FAQ</a>
+        <button type="button" onclick="toggleRestore()">Restore purchase</button>
       </div>
+    </nav>
 
-      <div class="card" id="local-inspector">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;">
-          <strong>2. 100% Free Local File C2PA Inspector &amp; Lossless Scrubber</strong>
-          <span class="badge-ok">Zero Server Upload &middot; Runs Locally</span>
-        </div>
-        <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.55rem;">Drop JPG, PNG, WEBP, AVIF, HEIC, MP4, or MOV files locally. Detects C2PA JUMBF boxes, X.509 signers, leaked ComfyUI/A1111/Midjourney prompts, EXIF GPS risks, generates a SHA-256 Authorship Receipt, and offers true <strong>lossless binary byte-splicing</strong> for JPEG/PNG/WebP.</p>
+    <div id="restoreModal" class="panel" style="display:none;margin-bottom:1.5rem;border-color:#1c1917;">
+      <h3>Restore a previous Fix Pack purchase</h3>
+      <p class="muted" style="margin:0.2rem 0 0.75rem;">Enter the email address you paid with (or your Stripe <code>session_id</code>) to get a fresh download link and license key.</p>
+      <div class="scan-bar">
+        <input id="restoreInput" type="text" placeholder="you@company.com or cs_live_..." style="flex:1;" />
+        <button type="button" class="btn" onclick="runRestore()">Find my order</button>
+      </div>
+      <div id="restoreOut" style="margin-top:0.65rem;font-size:0.86rem;"></div>
+    </div>
+
+    <div class="kicker">${escapeHtml(daysLine)}</div>
+    <h1>Is your website quietly stripping AI image labels?</h1>
+    <p class="lead">EU AI Act Article 50 requires AI-generated media to carry machine-readable provenance tags (C2PA). Most teams add them — then <strong>Next.js, Cloudflare, Shopify, or Cloudinary</strong> wipes them out on the way to visitors. Paste your URL to check in 3 seconds.</p>
+
+    <div class="panel" id="live-scanner">
+      <div class="scan-bar">
+        <input id="urlInput" type="text" placeholder="https://yourwebsite.com (or a direct image link)" style="flex:1;" onkeydown="if(event.key==='Enter'){runLiveScan();}" />
+        <button type="button" class="btn" onclick="runLiveScan()">Check my site — Free</button>
+      </div>
+      <div class="demos">
+        <span>Try real sites we tested today:</span>
+        <button type="button" class="btn btn-outline btn-sm" data-demo-url="https://contentcredentials.org">contentcredentials.org</button>
+        <button type="button" class="btn btn-outline btn-sm" data-demo-url="https://blackforestlabs.ai">blackforestlabs.ai</button>
+        <button type="button" class="btn btn-outline btn-sm" data-demo-url="https://photoroom.com">photoroom.com</button>
+      </div>
+      <div id="liveOut" style="margin-top:0.9rem;font-size:0.88rem;color:#57534e;">
+        No account needed. We inspect up to 8 live images straight from your CDN and tell you in plain English what survived and what got wiped.
+      </div>
+    </div>
+
+    <section id="local-check">
+      <h2>Check or clean a file on your computer (100% private)</h2>
+      <p class="muted" style="margin:0 0 0.7rem;">Files never leave your device. See whether a photo or video carries C2PA AI labels, hidden Stable Diffusion / ComfyUI prompts, or your phone&apos;s GPS location — and strip metadata cleanly without losing a single pixel of quality.</p>
+      <div class="panel">
         <div class="dropzone" onclick="document.getElementById('localFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-          <strong>Drop image/video here or click to inspect locally</strong>
-          <div style="font-size:0.78rem;color:#94a3b8;margin-top:0.25rem;">Never leaves your device &middot; Instant ArrayBuffer binary parser</div>
+          <strong>Drop a JPG, PNG, WebP, or MP4 here — or click to pick a file</strong>
+          <div class="muted" style="margin-top:0.2rem;font-size:0.82rem;">Runs locally in your browser &middot; zero upload</div>
           <input id="localFileInput" type="file" style="display:none;" onchange="handleFilePick(event)" />
         </div>
-        <div class="row" style="margin-bottom:0.65rem;">
-          <span style="font-size:0.76rem;color:#94a3b8;">1-Click Synthetic Binary Samples:</span>
-          <button type="button" class="btn btn-slate btn-sm" onclick="runSyntheticSample('c2pa_jpeg')">OpenAI C2PA v2.1 JPEG</button>
-          <button type="button" class="btn btn-slate btn-sm" onclick="runSyntheticSample('comfy_png')">ComfyUI Leaked Prompt PNG</button>
-          <button type="button" class="btn btn-slate btn-sm" onclick="runSyntheticSample('gps_jpeg')">iPhone GPS-Exposed JPEG</button>
+        <div class="demos" style="margin-top:0.35rem;">
+          <span>Or test with a sample file:</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="runSyntheticSample('c2pa_jpeg')">AI photo with C2PA label</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="runSyntheticSample('comfy_png')">PNG leaking a hidden prompt</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="runSyntheticSample('gps_jpeg')">iPhone photo leaking GPS</button>
         </div>
-        <div id="localOut" style="font-size:0.84rem;color:#94a3b8;">Select a file or click a 1-click binary sample above to inspect locally.</div>
+        <div id="localOut" style="margin-top:0.8rem;font-size:0.86rem;color:#57534e;">Drop a file or click a sample above to see what&apos;s hidden inside it.</div>
       </div>
-    </div>
+    </section>
 
-    <div>
-      <div class="card" id="pricing">
-        <strong>EU AI Act Article 50 Compliance &amp; CDN Fix Kits</strong>
-        <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">One-time engineering kits (no subscription, no sales call). Saves ~10&ndash;15 engineering hours configuring CDN C2PA preservation, GitHub Actions CI checks, and Article 50(4) disclosure docs. Server-compiled ZIP with Stripe &amp; x402 USDC checkout.</p>
+    <section id="pricing">
+      <h2>Need to fix your site before Dec 2?</h2>
+      <p class="muted" style="margin:0 0 1rem;">Checking your site and inspecting/cleaning local files is free. If your CDN is stripping tags and you don&apos;t want to burn two days figuring out C2PA configs, download a ready-to-commit Fix Pack tailored to your exact domain. One-time payment, no subscription.</p>
 
-        <div class="tier" style="border-color:#059669;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Single-Site Article 50 Fix Kit (.zip)</strong>
-            <span class="price">$15 <span style="font-size:0.74rem;color:#94a3b8;font-weight:500;">one-time</span></span>
+      <div class="two-col">
+        <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h3>Single-Site Fix Pack</h3>
+            <div style="margin:0.35rem 0 0.65rem;"><span class="price-num">$15</span> <span class="price-sub">one-time ZIP download</span></div>
+            <p class="muted" style="margin:0 0 0.7rem;">Built from your live scan above. Includes 7 files you can commit straight to your repo:</p>
+            <ul style="margin:0 0 1rem 1.1rem;padding:0;font-size:0.85rem;color:#44403c;">
+              <li>Exact CDN rules to stop stripping C2PA (Cloudflare, Next.js, Cloudinary, Nginx)</li>
+              <li>Copy-paste GitHub Actions check that blocks broken deploys</li>
+              <li>Working Node.js <code>c2pa-node</code> signing script for AI images</li>
+              <li>Visible "Made with AI" HTML badge + Schema.org markup (Art. 50(4))</li>
+              <li>Timestamped SHA-256 audit log (JSON + CSV) &amp; plain-English summary memo</li>
+            </ul>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">7 ready-to-commit files tailored to your scanned domain: SHA-256 audit JSON, asset CSV matrix, compliance memo, Cloudflare/Next.js/Cloudinary/Nginx C2PA configs, GitHub Actions CI gate, Node.js <code>c2pa-node</code> v2.1 signing starter, and WCAG Article 50(4) badge.</p>
-          <button type="button" class="btn btn-green" style="width:100%;" onclick="buyKit('audit')">Download Site Fix Kit — $15 (Card / Apple Pay)</button>
+          <button type="button" class="btn btn-green" style="width:100%;" onclick="buyKit('audit')">Download Fix Pack — $15</button>
         </div>
 
-        <div class="tier" style="border-color:#d97706;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>Pro Dev &amp; Agency Multi-Site Pack</strong>
-            <span class="price" style="color:#fbbf24;">$39 <span style="font-size:0.74rem;color:#94a3b8;font-weight:500;">one-time</span></span>
+        <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h3>Agency / Multi-Site Pack</h3>
+            <div style="margin:0.35rem 0 0.65rem;"><span class="price-num">$39</span> <span class="price-sub">one-time ZIP + license key</span></div>
+            <p class="muted" style="margin:0 0 0.7rem;">For studios, agencies, and teams managing multiple EU client sites or AI apps:</p>
+            <ul style="margin:0 0 1rem 1.1rem;padding:0;font-size:0.85rem;color:#44403c;">
+              <li>Everything in the Single-Site Fix Pack</li>
+              <li>Multi-client rollout checklist for the Dec 2 deadline</li>
+              <li>Automated CI / API verification templates (<code>$0.05</code>/scan pay-as-you-go)</li>
+              <li>Cross-device purchase restore by email + verifiable license key</li>
+            </ul>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Everything in the Site Fix Kit PLUS multi-site agency rollout playbook, CI/x402 automation templates, and cross-device verifiable License Key restore.</p>
-          <button type="button" class="btn btn-amber" style="width:100%;" onclick="buyKit('pro')">Get Pro Agency Pack — $39 (Card / Apple Pay)</button>
+          <button type="button" class="btn" style="width:100%;" onclick="buyKit('pro')">Get Agency Pack — $39</button>
         </div>
-
-        <div class="tier">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong>CI / AI Agent API (<code>POST /api/verify-c2pa</code>)</strong>
-            <span class="price" style="color:#38bdf8;font-size:1.1rem;">$0.05 / scan</span>
-          </div>
-          <p style="font-size:0.8rem;color:#cbd5e1;margin:0.35rem 0 0;">Gasless x402 V2 pay-per-call verification on Base &amp; Solana USDC. Zero monthly commitment; discoverable at <a href="/.well-known/x402.json">/.well-known/x402.json</a> &amp; <a href="/llms.txt">/llms.txt</a>.</p>
-        </div>
-        <p style="font-size:0.75rem;color:#94a3b8;margin:0.65rem 0 0;"><strong>Engineering Transparency:</strong> Art50Scan inspects real binary JUMBF/APP11/caBX/C2PA boxes, IPTC tags, and CDN headers on live edge responses. For full CA trust-list cryptographic signature validation &amp; signing in production, use the official <code>c2pa-node</code> starter included in every kit. Container scrubbing does not remove pixel-level watermarks like Google SynthID.</p>
       </div>
 
-      <div class="card" id="enterprise-contact">
-        <strong>Need Managed C2PA Signing API / Custom Agency Audit?</strong>
-        <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Need HSM-backed X.509 C2PA signing or bulk EU AI Act compliance across 10+ domains before Dec 2, 2026? Drop your stack below.</p>
+      <p class="muted" style="margin-top:0.85rem;font-size:0.81rem;">
+        <strong>Honest technical note:</strong> Art50Scan inspects real binary C2PA boxes, IPTC tags, and CDN headers on live delivered files. For full cryptographic certificate validation &amp; signing in production, use the official <code>c2pa-node</code> starter inside the pack. Stripping file metadata does not remove pixel-level watermarks like Google SynthID. Programmatic CI / x402 API (<code>$0.05</code> USDC): <a href="/.well-known/x402.json">/.well-known/x402.json</a> &middot; <a href="/llms.txt">/llms.txt</a>.
+      </p>
+    </section>
+
+    <section id="enterprise-contact">
+      <h2>Managing 10+ sites or need a custom signing pipeline?</h2>
+      <p class="muted" style="margin:0 0 0.85rem;">Drop your email and stack below if you want help rolling out C2PA signing or auditing multiple client domains before Dec 2.</p>
+      <div class="panel">
         <form onsubmit="submitLead(event)">
-          <label for="leadCompany">Company / Agency Name *</label>
-          <input id="leadCompany" required placeholder="e.g. Acme Media SaaS" />
-          <label for="leadEmail">Work Email *</label>
-          <input id="leadEmail" type="email" required placeholder="cto@company.com" />
-          <label for="leadDomain">Primary Domain &amp; CDN Stack *</label>
+          <div class="two-col">
+            <div>
+              <label for="leadCompany">Your name or company *</label>
+              <input id="leadCompany" required placeholder="Acme Studio" />
+            </div>
+            <div>
+              <label for="leadEmail">Work email *</label>
+              <input id="leadEmail" type="email" required placeholder="you@company.com" />
+            </div>
+          </div>
+          <label for="leadDomain">Website &amp; stack *</label>
           <input id="leadDomain" required placeholder="https://company.com (Next.js + Cloudflare)" />
-          <label for="leadNotes">Monthly AI Assets / Deadline Notes (optional)</label>
-          <textarea id="leadNotes" rows="2" placeholder="e.g. ~50,000 generated images/month needing C2PA signing + CDN rules"></textarea>
-          <button type="submit" class="btn" style="width:100%;">Request Managed C2PA / Audit Quote</button>
-          <div id="leadStatus" style="margin-top:0.6rem;font-size:0.82rem;"></div>
+          <label for="leadNotes">What do you need help with? (optional)</label>
+          <textarea id="leadNotes" rows="2" placeholder="e.g. Auditing 12 EU client sites and setting up C2PA signing"></textarea>
+          <button type="submit" class="btn" style="margin-top:0.75rem;">Send note</button>
+          <div id="leadStatus" style="margin-top:0.6rem;font-size:0.85rem;"></div>
         </form>
       </div>
-    </div>
+    </section>
+
+    <section id="faq">
+      <article>
+        <h2>Plain-English Guide: EU AI Act Article 50 &amp; Why CDNs Break It</h2>
+        <p class="muted"><strong>EU AI Act Article 50</strong> went into effect on <strong>August 2, 2026</strong>, with a grace period ending <strong>December 2, 2026</strong> for legacy generative AI tools to attach machine-readable provenance labels (Article 50(2)). Penalties under Article 99(4) can reach up to <strong>&euro;15 million or 3% of global annual turnover</strong>. The European Commission&apos;s Code of Practice points directly to <strong>C2PA Content Credentials (ISO/IEC 22144)</strong> as the benchmark standard.</p>
+        <p class="muted">The catch: almost everyone tests C2PA on local files before uploading. The moment those files pass through default <code>Next.js /_next/image</code>, <code>Cloudflare Polish</code>, <code>Shopify CDN</code>, or <code>Cloudinary</code> pipelines, the image optimizer strips out the C2PA headers to save a few kilobytes. In our live scan of 15 European &amp; global AI websites, <strong>all 15 delivered 0 surviving C2PA tags across their CDN</strong>.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>What you need to check</th>
+              <th>Art50Scan</th>
+              <th>Normal single-file C2PA viewers</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Does C2PA survive your live CDN?</strong></td>
+              <td>Fetches live images straight from your website CDN and flags stripping headers</td>
+              <td>Only checks files sitting on your laptop</td>
+            </tr>
+            <tr>
+              <td><strong>Visible "Made with AI" notice (Art. 50(4))</strong></td>
+              <td>Checks page HTML, meta tags, and Schema.org markup</td>
+              <td>Not checked</td>
+            </tr>
+            <tr>
+              <td><strong>Ready-to-commit CDN &amp; CI fix files</strong></td>
+              <td>7 tailored files in an instant $15 ZIP</td>
+              <td>Read-only viewer</td>
+            </tr>
+            <tr>
+              <td><strong>Local file privacy &amp; lossless scrubbing</strong></td>
+              <td>Free in-browser inspection, prompt check, and lossless JPEG/PNG/WebP clean</td>
+              <td>Often uploads files to a server or re-compresses pixels</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 style="margin-top:1.8rem;">Frequently Asked Questions</h2>
+        <details>
+          <summary>What actually happens on December 2, 2026?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Article 50 took general effect on August 2, 2026. Generative AI systems already on the EU market before August 2 got until December 2, 2026 to ship compliant machine-readable markings under Article 50(2).</p>
+        </details>
+        <details>
+          <summary>Why do Next.js, Cloudflare, Shopify, and Cloudinary strip C2PA tags?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Image optimizers re-encode images into smaller WebP/AVIF files and drop extra file headers (like JPEG APP11 and PNG caBX C2PA blocks) unless you explicitly tell them to preserve metadata (e.g. Cloudflare <code>metadata=keep</code>, Cloudinary <code>fl_keep_iptc</code>, or Next.js <code>unoptimized</code> for signed AI assets).</p>
+        </details>
+        <details>
+          <summary>How do I check if a PNG is accidentally leaking my Stable Diffusion or ComfyUI prompts?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Drop the PNG into the local file checker above. It reads PNG text chunks right in your browser so you can see leaked prompts or workflow JSON and strip them losslessly without uploading the file anywhere.</p>
+        </details>
+        <details>
+          <summary>Does cleaning metadata remove Google SynthID invisible watermarks?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">No. Lossless cleaning removes container metadata (EXIF, GPS, prompts, C2PA headers) without changing pixels. Pixel-level watermarks like SynthID live inside the pixels themselves and are not removed by metadata scrubbers.</p>
+        </details>
+        <details>
+          <summary>Are local files ever uploaded to a server?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">No. The local checker, SHA-256 receipt, and lossless scrubber run 100% inside your browser.</p>
+        </details>
+        <details>
+          <summary>What exact files come in the $15 Fix Pack ZIP?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Seven files built for your domain: <code>article50-compliance-audit.json</code>, <code>asset-provenance-matrix.csv</code>, <code>article50-executive-memo.md</code>, <code>cdn-c2pa-preservation-configs.md</code>, <code>.github/workflows/art50-c2pa-gate.yml</code>, <code>c2pa-sign-and-verify-starter.mjs</code>, and <code>article50-disclosure-snippets.html</code>.</p>
+        </details>
+        <details>
+          <summary>Can I re-download my Fix Pack on another computer?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Yes — click <strong>Restore purchase</strong> at the top of the page and enter the email you paid with to get a fresh verified download link.</p>
+        </details>
+        <details>
+          <summary>Can CI pipelines or AI agents run automated checks?</summary>
+          <p class="muted" style="margin:0.45rem 0 0;">Yes. Send a POST request to <code>${escapeHtml(origin)}/api/verify-c2pa</code> with <code>{"url":"https://..."}</code> via x402 V2 ($0.05 USDC on Base or Solana), or drop the GitHub Actions workflow from the Fix Pack into your repo.</p>
+        </details>
+      </article>
+    </section>
   </div>
-
-  <article class="card" id="guide">
-    <h2>2026 EU AI Act Article 50 &amp; C2PA Content Credentials Compliance Guide</h2>
-    <p style="font-size:0.88rem;color:#cbd5e1;"><strong>EU AI Act Article 50</strong> became legally enforceable on <strong>August 2, 2026</strong>, with a short grace period ending <strong>December 2, 2026</strong> for legacy generative AI systems to implement machine-readable provenance markings (Article 50(2)). Violations carry statutory penalties under Article 99(4) of up to <strong>&euro;15 million or 3% of global annual turnover</strong>. While the statute does not name a single vendor, the European Commission&apos;s Code of Practice highlights <strong>C2PA Content Credentials (ISO/IEC 22144)</strong> as the primary interoperable benchmark for machine-readable AI provenance.</p>
-
-    <h2>Comparison: Art50Scan Live CDN Audit vs. Single-File Metadata Viewers</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Capability</th>
-          <th>Art50Scan (Live CDN + Local Suite)</th>
-          <th>Standard Free C2PA / EXIF Viewers</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Live Production URL &amp; CDN Survival Test</strong></td>
-          <td>Fetches live edge-delivered assets across Cloudflare, Next.js, Shopify &amp; Cloudinary to prove whether C2PA actually survives delivery</td>
-          <td>Manual single-file drag-and-drop only (misses silent CDN stripping)</td>
-        </tr>
-        <tr>
-          <td><strong>Article 50(4) Page Disclosure Check</strong></td>
-          <td>Audits visible AI labels, HTML meta tags, and Schema.org <code>DigitalSourceType</code> markup</td>
-          <td>Not checked</td>
-        </tr>
-        <tr>
-          <td><strong>Drop-In Engineering Fix Kit (.zip)</strong></td>
-          <td>Domain-tailored CDN configs, GitHub Actions CI gate, <code>c2pa-node</code> v2.1 signing starter, CSV/JSON audit trail</td>
-          <td>None (read-only)</td>
-        </tr>
-        <tr>
-          <td><strong>Local File Privacy &amp; Lossless Scrubbing</strong></td>
-          <td>100% browser-local ArrayBuffer parser + lossless JPEG/PNG/WebP byte-splicing + SHA-256 authorship receipt (Free)</td>
-          <td>Often requires cloud upload or re-encodes pixels lossily</td>
-        </tr>
-        <tr>
-          <td><strong>Honest SynthID Transparency</strong></td>
-          <td>Explicitly notes that metadata scrubbing removes container tags only and cannot strip pixel-level watermarks like Google SynthID</td>
-          <td>Often makes misleading claims about defeating pixel watermarks</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2>Frequently Asked Questions</h2>
-    <details>
-      <summary>What happens on December 2, 2026 under EU AI Act Article 50?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Article 50 took general effect on August 2, 2026. Legacy generative AI systems placed on the EU market prior to August 2, 2026 were granted until December 2, 2026 to implement compliant machine-readable markings under Article 50(2).</p>
-    </details>
-    <details>
-      <summary>Why do Next.js, Cloudflare, Shopify, and Cloudinary strip C2PA metadata?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Automatic image optimization pipelines transcode JPEG/PNG files into smaller WebP/AVIF buffers and discard application segments (JPEG APP11 JUMBF, PNG caBX) by default unless explicitly configured to preserve metadata (e.g., Cloudflare <code>metadata=keep</code>, Cloudinary <code>fl_keep_iptc</code>, or Next.js <code>unoptimized</code> for signed assets).</p>
-    </details>
-    <details>
-      <summary>How do I inspect leaked Stable Diffusion or ComfyUI prompts inside PNG files?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Drop any PNG into the Local File Inspector above. Art50Scan reads PNG <code>tEXt</code>, <code>iTXt</code>, and <code>zTXt</code> chunks directly in browser memory to surface embedded Automatic1111 parameters, ComfyUI workflow JSON, and Midjourney descriptions — and lets you scrub them losslessly without re-encoding pixels.</p>
-    </details>
-    <details>
-      <summary>Does lossless metadata scrubbing remove Google SynthID or invisible pixel watermarks?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">No. Lossless binary splicing excises file-header metadata blocks (EXIF, GPS, XMP, PNG text chunks, C2PA containers) with zero pixel degradation. Invisible pixel-level watermarks such as Google SynthID live inside pixel values themselves and are unaffected by metadata removal.</p>
-    </details>
-    <details>
-      <summary>Are local files uploaded to any server?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Never. Everything in Section 2 (local binary C2PA parser, prompt viewer, SHA-256 receipt, and lossless scrubber) executes 100% locally in your browser using Web Crypto and typed <code>Uint8Array</code> buffers.</p>
-    </details>
-    <details>
-      <summary>What exact files are inside the $15 Compliance &amp; CDN Fix Kit?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Seven tailored files: <code>article50-compliance-audit.json</code>, <code>asset-provenance-matrix.csv</code>, <code>article50-executive-memo.md</code>, <code>cdn-c2pa-preservation-configs.md</code>, <code>.github/workflows/art50-c2pa-gate.yml</code>, <code>c2pa-sign-and-verify-starter.mjs</code>, and <code>article50-disclosure-snippets.html</code>.</p>
-    </details>
-    <details>
-      <summary>Can I restore my purchase on another laptop or browser?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Yes. Click <strong>Restore Purchase</strong> at the top of the page and enter your checkout email or Stripe <code>session_id</code>. Our Cloudflare Worker verifies your paid Stripe session server-side and mints a fresh signed download link and License Key.</p>
-    </details>
-    <details>
-      <summary>How do CI pipelines or AI agents call Art50Scan automatically?</summary>
-      <p style="font-size:0.84rem;color:#cbd5e1;margin-top:0.5rem;">Send a JSON request to <code>POST ${escapeHtml(origin)}/api/verify-c2pa</code> with <code>{"url":"https://..."}</code> using x402 V2 USDC payment headers ($0.05 on Base or Solana), or drop the included GitHub Actions workflow into your repository.</p>
-    </details>
-  </article>
 
   <script>
     let LAST_LOCAL_BYTES = null;
@@ -620,18 +800,18 @@ function renderLanding(origin, contactEmail) {
       const canScrub = fmt === "JPEG" || fmt === "PNG" || fmt === "WEBP";
       const out = document.getElementById("localOut");
       out.innerHTML =
-        '<div class="asset-row">' +
-          '<div><strong>' + esc(filename) + '</strong> <span class="pill">' + esc(fmt) + '</span><span class="pill">' + Number(bytes.length) + ' bytes</span>' +
-          (c2paFound ? '<span class="pill pill-ok">C2PA Manifest Present</span>' : '<span class="pill pill-warn">No C2PA Manifest</span>') +
-          (gpsRisk ? '<span class="pill pill-err">EXIF GPS Exposed</span>' : '') +
-          (leaked ? '<span class="pill pill-warn">Leaked AI Prompt Found</span>' : '') +
+        '<div class="file-row">' +
+          '<div><strong>' + esc(filename) + '</strong> <span class="tag">' + esc(fmt) + '</span><span class="tag">' + Number(bytes.length) + ' bytes</span>' +
+          (c2paFound ? '<span class="tag tag-ok">C2PA Manifest Present</span>' : '<span class="tag tag-warn">No C2PA Label</span>') +
+          (gpsRisk ? '<span class="tag tag-err">GPS Location Found</span>' : '') +
+          (leaked ? '<span class="tag tag-warn">Leaked AI Prompt Found</span>' : '') +
           '</div>' +
-          '<div style="margin-top:0.45rem;color:#cbd5e1;"><strong>SHA-256:</strong> <code>' + esc(hash) + '</code></div>' +
-          '<div style="margin-top:0.35rem;color:#cbd5e1;"><strong>Signers / Generators:</strong> ' + esc(signers.join(", ") || "None detected") + ' &middot; <strong>DigitalSourceType:</strong> ' + esc(srcTypes.join(", ") || "None") + ' &middot; <strong>EXIF/XMP:</strong> ' + (exifFound ? "EXIF " : "") + (xmpFound ? "XMP" : (!exifFound ? "None" : "")) + '</div>' +
+          '<div style="margin-top:0.45rem;color:#44403c;"><strong>File fingerprint (SHA-256):</strong> <code>' + esc(hash.slice(0, 32)) + '...</code></div>' +
+          '<div style="margin-top:0.28rem;color:#44403c;"><strong>Tool / camera found:</strong> ' + esc(signers.join(", ") || "None") + ' &middot; <strong>AI label type:</strong> ' + esc(srcTypes.join(", ") || "None") + ' &middot; <strong>Metadata blocks:</strong> ' + (exifFound ? "EXIF " : "") + (xmpFound ? "XMP" : (!exifFound ? "None" : "")) + '</div>' +
           (leaked ? '<pre style="margin-top:0.5rem;">' + esc(leaked) + '</pre>' : '') +
           '<div class="row" style="margin-top:0.65rem;">' +
-            (canScrub ? '<button type="button" class="btn btn-amber btn-sm" onclick="downloadLosslessScrubbed()">Lossless Binary Scrub (' + esc(fmt) + ')</button>' : '') +
-            '<button type="button" class="btn btn-slate btn-sm" onclick="downloadShaReceipt()">Download SHA-256 Authorship Receipt</button>' +
+            (canScrub ? '<button type="button" class="btn btn-sm" onclick="downloadLosslessScrubbed()">Clean metadata losslessly (' + esc(fmt) + ')</button>' : '') +
+            '<button type="button" class="btn btn-outline btn-sm" onclick="downloadShaReceipt()">Save SHA-256 receipt</button>' +
           '</div>' +
         '</div>';
     }
@@ -812,47 +992,67 @@ function renderLanding(origin, contactEmail) {
         const res = await fetch("/api/scan?url=" + encodeURIComponent(target));
         const d = await res.json();
         if (!res.ok || !d.ok) {
-          out.innerHTML = '<div class="asset-row" style="border-color:#dc2626;color:#fca5a5;">Scan failed: ' + esc(d.error || res.status) + '</div>';
+          out.innerHTML = '<div class="file-row" style="border-color:#fca5a5;color:#991b1b;">Could not scan that site: ' + esc(d.error || res.status) + '</div>';
           return;
         }
-        const scoreColor = d.readiness_score >= 80 ? "#34d399" : d.readiness_score >= 50 ? "#fbbf24" : "#f87171";
-        const issuesHtml = (d.issues || []).map((i) =>
-          '<div class="asset-row" style="border-color:#d97706;"><strong>[' + esc(i.severity) + '] ' + esc(i.title) + '</strong><div style="color:#cbd5e1;margin-top:0.2rem;">' + esc(i.remediation) + '</div></div>'
-        ).join("");
+        const pct = Math.max(5, Math.min(100, Number(d.readiness_score || 0)));
+        const scoreColor = pct >= 80 ? "#15803d" : pct >= 50 ? "#b45309" : "#b91c1c";
+        const cdnSummary = (d.site_cdn || []).join(", ") || "Direct Origin";
+        const scannedN = Number(d.assets_scanned || 0);
+        const c2paN = Number(d.assets_with_c2pa || 0);
+        const stripN = Number(d.assets_stripped_by_cdn || 0);
+        const leakN = Number(d.assets_with_leaked_prompts || 0);
+        const gpsN = Number(d.assets_with_gps_risk || 0);
+        const hasDisc = Boolean(d.page_disclosure && d.page_disclosure.hasVisibleDisclosure);
+        const headline =
+          scannedN === 0
+            ? "No raster images found on that page to test."
+            : c2paN === scannedN
+              ? "All " + scannedN + " checked images kept their C2PA label."
+              : c2paN + " of " + scannedN + " live images kept their AI provenance label.";
+
+        const plainStatus = (st) => {
+          if (st === "C2PA_PRESENT" || st === "C2PA_BOX_DETECTED") return '<span class="tag tag-ok">C2PA tag survived</span>';
+          if (st === "LIKELY_STRIPPED_BY_CDN") return '<span class="tag tag-err">Stripped by CDN</span>';
+          if (st === "IPTC_ONLY_NO_C2PA") return '<span class="tag tag-warn">IPTC only (no C2PA)</span>';
+          return '<span class="tag tag-err">No C2PA tag</span>';
+        };
+
         const assetsHtml = (d.assets || []).map((a) =>
-          '<div class="asset-row"><div><strong>' + esc(a.filename || a.url) + '</strong> <span class="pill">' + esc(a.format) + '</span>' +
-          (a.c2paPresent ? '<span class="pill pill-ok">C2PA Present</span>' : '<span class="pill pill-err">' + esc(a.article50Status) + '</span>') +
-          (a.leakedPrompts && a.leakedPrompts.length ? '<span class="pill pill-warn">Leaked Prompt</span>' : '') +
-          (a.gpsRisk ? '<span class="pill pill-err">GPS Risk</span>' : '') +
-          '</div><div style="color:#94a3b8;margin-top:0.2rem;">CDN: ' + esc((a.cdnDetected || []).join(", ") || "Origin") + ' &middot; Signers: ' + esc((a.signerIssuers || []).join(", ") || "None") + ' &middot; SHA-256: <code>' + esc((a.sha256 || "").slice(0, 16)) + '...</code></div></div>'
+          '<div class="file-row">' +
+            '<div><strong>' + esc(a.filename || a.url) + '</strong> <span class="tag">' + esc(a.format) + '</span>' +
+            plainStatus(a.article50Status) +
+            (a.leakedPrompts && a.leakedPrompts.length ? '<span class="tag tag-warn">Prompt leaked</span>' : '') +
+            (a.gpsRisk ? '<span class="tag tag-err">GPS leaked</span>' : '') +
+            '</div>' +
+            '<div style="color:#57534e;margin-top:0.2rem;">Delivered via: ' + esc((a.cdnDetected || []).join(", ") || "Direct origin") + ' &middot; Tool detected: ' + esc((a.signerIssuers || []).join(", ") || "None") + ' &middot; SHA-256: <code>' + esc((a.sha256 || "").slice(0, 14)) + '...</code></div>' +
+          '</div>'
         ).join("");
 
-        const pct = Math.max(5, Math.min(100, Number(d.readiness_score || 0)));
-        const barBg = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#ef4444";
-        const cdnSummary = (d.site_cdn || []).join(", ") || "Direct Origin";
         const curlCmd = 'curl -sS ' + window.location.origin + '/api/scan?url=' + encodeURIComponent(d.target_url || target);
 
         out.innerHTML =
-          '<div class="score-box">' +
-            '<div style="flex:1;min-width:220px;"><strong style="font-size:1.05rem;">' + esc(d.hostname) + '</strong><div style="font-size:0.78rem;color:#94a3b8;">CDN: ' + esc(cdnSummary) + ' &middot; Assets Scanned: ' + Number(d.assets_scanned || 0) + ' &middot; C2PA Surviving: ' + Number(d.assets_with_c2pa || 0) + '</div>' +
-            '<div style="margin-top:0.45rem;height:7px;background:#1e293b;border-radius:999px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barBg + ';"></div></div></div>' +
-            '<div style="text-align:right;"><div style="font-size:1.55rem;font-weight:800;color:' + scoreColor + ';">' + pct + ' / 100</div><div style="font-size:0.74rem;color:#cbd5e1;">' + esc(d.verdict) + '</div></div>' +
-          '</div>' +
-          issuesHtml +
-          assetsHtml +
-          '<div class="asset-row" style="border-color:#059669;background:#071512;margin-top:0.75rem;">' +
-            '<strong style="color:#6ee7b7;">Ready-to-Download Fix Kit Compiled for ' + esc(d.hostname) + ' (7 Files)</strong>' +
-            '<ul style="margin:0.4rem 0 0.65rem 1.15rem;padding:0;color:#cbd5e1;font-size:0.8rem;">' +
-              '<li><code>article50-compliance-audit.json</code> &amp; <code>asset-provenance-matrix.csv</code> (with exact SHA-256 hashes above)</li>' +
-              '<li><code>cdn-c2pa-preservation-configs.md</code> (tailored for ' + esc(cdnSummary) + ')</li>' +
-              '<li><code>.github/workflows/art50-c2pa-gate.yml</code> (pre-wired CI gate for <code>' + esc(d.hostname) + '</code>)</li>' +
-              '<li><code>c2pa-sign-and-verify-starter.mjs</code> + <code>article50-disclosure-snippets.html</code> + executive memo</li>' +
-            '</ul>' +
-            '<div class="row">' +
-              '<button type="button" class="btn btn-green" data-buy-tier="audit">Download 7-File Fix Kit for ' + esc(d.hostname) + ' ($15)</button>' +
-              '<button type="button" class="btn btn-amber" data-buy-tier="pro">Multi-Site Agency Pack ($39)</button>' +
+          '<div class="verdict-box">' +
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem;">' +
+              '<div><strong style="font-size:1.08rem;color:#111110;">' + esc(d.hostname) + ': ' + esc(headline) + '</strong><div class="muted" style="font-size:0.82rem;">CDN detected: ' + esc(cdnSummary) + '</div></div>' +
+              '<div style="font-family:Georgia,serif;font-size:1.45rem;font-weight:700;color:' + scoreColor + ';">' + pct + ' / 100</div>' +
             '</div>' +
-            '<div style="margin-top:0.55rem;font-size:0.75rem;color:#94a3b8;">Free CI one-liner: <code>' + esc(curlCmd) + '</code></div>' +
+            '<ul class="check-list">' +
+              '<li><span class="' + (c2paN > 0 ? 'mark-ok">&#10003;' : 'mark-no">&#10007;') + '</span><span><strong>AI provenance tags survived CDN delivery:</strong> ' + c2paN + ' of ' + scannedN + ' live images carried C2PA tags.</span></li>' +
+              '<li><span class="' + (stripN === 0 ? 'mark-ok">&#10003;' : 'mark-no">&#10007;') + '</span><span><strong>CDN image optimizer check:</strong> ' + (stripN > 0 ? stripN + ' image(s) went through an optimizer that wipes C2PA by default.' : 'No active C2PA-stripping image proxy headers seen.') + '</span></li>' +
+              '<li><span class="' + (hasDisc ? 'mark-ok">&#10003;' : 'mark-no">&#10007;') + '</span><span><strong>Visible &ldquo;Made with AI&rdquo; page notice (Art. 50(4)):</strong> ' + (hasDisc ? 'Disclosure text or markup found.' : 'None detected on this page.') + '</span></li>' +
+              '<li><span class="' + (leakN === 0 && gpsN === 0 ? 'mark-ok">&#10003;' : 'mark-no">&#10007;') + '</span><span><strong>Private prompt &amp; GPS leak check:</strong> ' + (leakN === 0 && gpsN === 0 ? 'Clean (0 leaked prompts, 0 GPS tags).' : leakN + ' leaked prompt(s), ' + gpsN + ' GPS exposure(s).') + '</span></li>' +
+            '</ul>' +
+            assetsHtml +
+            '<div class="fix-box">' +
+              '<strong style="color:#14532d;font-size:0.98rem;">Fix ' + esc(d.hostname) + ' in 10 minutes — 7-file ZIP ready ($15 one-time)</strong>' +
+              '<p class="muted" style="margin:0.25rem 0 0.65rem;font-size:0.83rem;color:#166534;">Includes your exact SHA-256 audit log (JSON + CSV), copy-paste CDN rules for <strong>' + esc(cdnSummary) + '</strong>, a GitHub Actions CI check pre-wired for <code>' + esc(d.hostname) + '</code>, a working Node.js C2PA signing starter, and an Art. 50(4) disclosure badge.</p>' +
+              '<div class="row">' +
+                '<button type="button" class="btn btn-green" data-buy-tier="audit">Download Fix Pack for ' + esc(d.hostname) + ' — $15</button>' +
+                '<button type="button" class="btn btn-outline" data-buy-tier="pro">Multi-Site Agency Pack — $39</button>' +
+              '</div>' +
+              '<div style="margin-top:0.55rem;font-size:0.76rem;color:#57534e;">Free terminal check: <code>' + esc(curlCmd) + '</code></div>' +
+            '</div>' +
           '</div>';
       } catch (e) {
         out.textContent = "Scan error: " + e.message;
@@ -878,15 +1078,15 @@ function renderLanding(origin, contactEmail) {
         });
         const d = await res.json();
         if (!res.ok || !d.ok) {
-          out.style.color = "#fca5a5";
+          out.style.color = "#991b1b";
           out.textContent = "Restore failed: " + (d.error || res.status);
           return;
         }
         localStorage.setItem("art50_license_token", d.token || "");
-        out.style.color = "#34d399";
-        out.innerHTML = 'Verified <strong>' + esc(d.tier) + '</strong> purchase for <code>' + esc(d.domain) + '</code>. License Key: <code>' + esc(d.licenseKey) + '</code> &middot; <a href="' + esc(d.downloadUrl) + '">Download Compliance Kit ZIP</a>';
+        out.style.color = "#166534";
+        out.innerHTML = 'Verified <strong>' + esc(d.tier) + '</strong> purchase for <code>' + esc(d.domain) + '</code>. License Key: <code>' + esc(d.licenseKey) + '</code> &middot; <a href="' + esc(d.downloadUrl) + '">Download Fix Pack ZIP</a>';
       } catch (e) {
-        out.style.color = "#fca5a5";
+        out.style.color = "#991b1b";
         out.textContent = "Restore error: " + e.message;
       }
     }
@@ -894,7 +1094,7 @@ function renderLanding(origin, contactEmail) {
     async function submitLead(ev) {
       ev.preventDefault();
       const st = document.getElementById("leadStatus");
-      st.textContent = "Submitting request...";
+      st.textContent = "Sending...";
       try {
         const res = await fetch("/api/contact", {
           method: "POST",
@@ -907,11 +1107,11 @@ function renderLanding(origin, contactEmail) {
           }),
         });
         const d = await res.json();
-        if (!res.ok || !d.ok) { st.style.color = "#fca5a5"; st.textContent = "Error: " + (d.error || res.status); return; }
-        st.style.color = "#34d399";
-        st.innerHTML = 'Saved inquiry (Ref: <code>' + esc(d.lead_id) + '</code>). We respond within 24h or reach us directly at <a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a>.';
+        if (!res.ok || !d.ok) { st.style.color = "#991b1b"; st.textContent = "Error: " + (d.error || res.status); return; }
+        st.style.color = "#166534";
+        st.innerHTML = 'Note received (Ref: <code>' + esc(d.lead_id) + '</code>). We reply within 24h, or email <a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a> directly.';
       } catch (e) {
-        st.style.color = "#fca5a5";
+        st.style.color = "#991b1b";
         st.textContent = "Network error: " + e.message;
       }
     }
