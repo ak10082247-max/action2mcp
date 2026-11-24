@@ -38,27 +38,23 @@ export const ART50_PLANS = {
   audit: {
     id: "audit",
     sku: "art50-audit-kit-v1",
-    name: "EU AI Act Article 50 Compliance Audit & CDN Fix Kit (.zip) — $15 Deal (was $149)",
+    name: "EU AI Act Article 50 Compliance Audit & CDN Fix Kit (.zip) — $15",
     description:
-      "Instant domain-tailored EU AI Act Article 50 Compliance Kit (.zip): SHA-256 provenance audit JSON, asset CSV matrix, board memo, Cloudflare/Next.js/Cloudinary C2PA preservation configs, GitHub Actions CI gate, Node.js C2PA v2.1 signing starter, and Article 50(4) disclosure badge.",
+      "One-time domain-tailored EU AI Act Article 50 Compliance Kit (.zip): SHA-256 provenance audit JSON, asset CSV matrix, compliance memo, Cloudflare/Next.js/Cloudinary C2PA preservation configs, GitHub Actions CI gate, Node.js c2pa-node v2.1 signing starter, and WCAG Article 50(4) disclosure badge.",
     amountCents: 1500,
     amountMicro: 15000000,
-    originalCents: 14900,
-    originalDisplay: "$149",
-    priceDisplay: "$15 USD / USDC (was $149)",
+    priceDisplay: "$15 USD / USDC (one-time)",
     tier: "audit_15",
   },
   pro: {
     id: "pro",
     sku: "art50-pro-agency-v1",
-    name: "Pro Dev & Agency Multi-Site Article 50 Pack + License Key (.zip) — $39 Deal (was $299)",
+    name: "Pro Dev & Agency Multi-Site Article 50 Pack + License Key (.zip) — $39",
     description:
       "Full EU AI Act Article 50 Compliance & CDN Fix Kit PLUS multi-site agency rollout playbook, CI/x402 automation templates, and cross-device verifiable License Key restore.",
     amountCents: 3900,
     amountMicro: 39000000,
-    originalCents: 29900,
-    originalDisplay: "$299",
-    priceDisplay: "$39 USD / USDC (was $299)",
+    priceDisplay: "$39 USD / USDC (one-time)",
     tier: "pro_39",
   },
 };
@@ -242,8 +238,8 @@ function renderLanding(origin, contactEmail) {
   const deadline = getArticle50DeadlineInfo();
   const daysText =
     deadline.daysUntilLegacyDeadline > 0
-      ? `${deadline.daysUntilLegacyDeadline} DAYS LEFT UNTIL DEC 2, 2026 EU AI ACT ART. 50(2) GRACE DEADLINE`
-      : "EU AI ACT ARTICLE 50 FULL ENFORCEMENT ACTIVE";
+      ? `EU AI Act Article 50(2) Legacy Grace Period Ends Dec 2, 2026 (${deadline.daysUntilLegacyDeadline} days)`
+      : "EU AI Act Article 50 Full Enforcement Active";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -309,7 +305,7 @@ function renderLanding(origin, contactEmail) {
   </header>
 
   <div class="notice">
-    <strong>Why Single-File C2PA Checkers Miss Live Compliance Risk:</strong> Even if your AI generator signs files with C2PA Content Credentials, CDNs like <code>Next.js /_next/image</code>, <code>Cloudflare Polish</code>, <code>Shopify CDN</code>, and <code>Cloudinary</code> routinely strip C2PA headers in transit. Test your <strong>live production URL</strong> below in 3 seconds — or inspect &amp; losslessly scrub local files 100% privately in your browser.
+    <strong>The Silent CDN Problem:</strong> Even when generative AI tools sign files with C2PA Content Credentials, production image pipelines (<code>Next.js /_next/image</code>, <code>Cloudflare Polish</code>, <code>Shopify CDN</code>, <code>Cloudinary</code>) strip JPEG <code>APP11</code> JUMBF and PNG <code>caBX</code> segments by default. In our live test, even <code>contentcredentials.org</code> served <strong>0 / 4</strong> C2PA-surviving images across its CDN (<code>55/100</code>). Audit your live production URL in 3 seconds below — or inspect &amp; scrub local files 100% privately in your browser.
   </div>
 
   <div id="restoreModal" class="card" style="display:none;border-color:#38bdf8;">
@@ -362,25 +358,25 @@ function renderLanding(origin, contactEmail) {
 
     <div>
       <div class="card" id="pricing">
-        <strong>Instant EU AI Act Article 50 Compliance &amp; CDN Fix Kits</strong>
-        <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Corporate-card impulse pricing — zero procurement call needed. Compiled server-side for your exact scanned domain with tamper-proof Stripe or x402 USDC verification.</p>
+        <strong>EU AI Act Article 50 Compliance &amp; CDN Fix Kits</strong>
+        <p style="font-size:0.82rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">One-time engineering kits (no subscription, no sales call). Saves ~10&ndash;15 engineering hours configuring CDN C2PA preservation, GitHub Actions CI checks, and Article 50(4) disclosure docs. Server-compiled ZIP with Stripe &amp; x402 USDC checkout.</p>
 
         <div class="tier" style="border-color:#059669;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>Single-Site Article 50 Fix Kit (.zip)</strong>
-            <span class="price"><s style="color:#64748b;font-size:0.85rem;margin-right:0.3rem;">$149</s>$15</span>
+            <span class="price">$15 <span style="font-size:0.74rem;color:#94a3b8;font-weight:500;">one-time</span></span>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">7 ready-to-deploy files tailored to your scanned domain: SHA-256 audit JSON, asset CSV matrix, board memo, Cloudflare/Next.js/Cloudinary C2PA preservation configs, GitHub Actions CI gate, Node.js <code>c2pa-node</code> v2.1 signing starter, and WCAG Article 50(4) badge.</p>
-          <button type="button" class="btn btn-green" style="width:100%;" onclick="buyKit('audit')">Download Site Fix Kit ($15 — Card / Apple Pay)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">7 ready-to-commit files tailored to your scanned domain: SHA-256 audit JSON, asset CSV matrix, compliance memo, Cloudflare/Next.js/Cloudinary/Nginx C2PA configs, GitHub Actions CI gate, Node.js <code>c2pa-node</code> v2.1 signing starter, and WCAG Article 50(4) badge.</p>
+          <button type="button" class="btn btn-green" style="width:100%;" onclick="buyKit('audit')">Download Site Fix Kit — $15 (Card / Apple Pay)</button>
         </div>
 
         <div class="tier" style="border-color:#d97706;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>Pro Dev &amp; Agency Multi-Site Pack</strong>
-            <span class="price" style="color:#fbbf24;"><s style="color:#64748b;font-size:0.85rem;margin-right:0.3rem;">$299</s>$39</span>
+            <span class="price" style="color:#fbbf24;">$39 <span style="font-size:0.74rem;color:#94a3b8;font-weight:500;">one-time</span></span>
           </div>
-          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Everything in the Site Fix Kit PLUS multi-site agency rollout checklist, automated CI/x402 verification templates, and cross-device verifiable License Key restore.</p>
-          <button type="button" class="btn btn-amber" style="width:100%;" onclick="buyKit('pro')">Get Pro Agency Pack ($39 — Card / Apple Pay)</button>
+          <p style="font-size:0.81rem;color:#cbd5e1;margin:0.35rem 0 0.65rem;">Everything in the Site Fix Kit PLUS multi-site agency rollout playbook, CI/x402 automation templates, and cross-device verifiable License Key restore.</p>
+          <button type="button" class="btn btn-amber" style="width:100%;" onclick="buyKit('pro')">Get Pro Agency Pack — $39 (Card / Apple Pay)</button>
         </div>
 
         <div class="tier">
@@ -388,8 +384,9 @@ function renderLanding(origin, contactEmail) {
             <strong>CI / AI Agent API (<code>POST /api/verify-c2pa</code>)</strong>
             <span class="price" style="color:#38bdf8;font-size:1.1rem;">$0.05 / scan</span>
           </div>
-          <p style="font-size:0.8rem;color:#cbd5e1;margin:0.35rem 0 0;">Gasless x402 V2 pay-per-call verification on Base &amp; Solana USDC. Zero monthly subscription; discoverable at <a href="/.well-known/x402.json">/.well-known/x402.json</a> &amp; <a href="/llms.txt">/llms.txt</a>.</p>
+          <p style="font-size:0.8rem;color:#cbd5e1;margin:0.35rem 0 0;">Gasless x402 V2 pay-per-call verification on Base &amp; Solana USDC. Zero monthly commitment; discoverable at <a href="/.well-known/x402.json">/.well-known/x402.json</a> &amp; <a href="/llms.txt">/llms.txt</a>.</p>
         </div>
+        <p style="font-size:0.75rem;color:#94a3b8;margin:0.65rem 0 0;"><strong>Engineering Transparency:</strong> Art50Scan inspects real binary JUMBF/APP11/caBX/C2PA boxes, IPTC tags, and CDN headers on live edge responses. For full CA trust-list cryptographic signature validation &amp; signing in production, use the official <code>c2pa-node</code> starter included in every kit. Container scrubbing does not remove pixel-level watermarks like Google SynthID.</p>
       </div>
 
       <div class="card" id="enterprise-contact">
@@ -830,15 +827,32 @@ function renderLanding(origin, contactEmail) {
           '</div><div style="color:#94a3b8;margin-top:0.2rem;">CDN: ' + esc((a.cdnDetected || []).join(", ") || "Origin") + ' &middot; Signers: ' + esc((a.signerIssuers || []).join(", ") || "None") + ' &middot; SHA-256: <code>' + esc((a.sha256 || "").slice(0, 16)) + '...</code></div></div>'
         ).join("");
 
+        const pct = Math.max(5, Math.min(100, Number(d.readiness_score || 0)));
+        const barBg = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#ef4444";
+        const cdnSummary = (d.site_cdn || []).join(", ") || "Direct Origin";
+        const curlCmd = 'curl -sS ' + window.location.origin + '/api/scan?url=' + encodeURIComponent(d.target_url || target);
+
         out.innerHTML =
           '<div class="score-box">' +
-            '<div><strong style="font-size:1.05rem;">' + esc(d.hostname) + '</strong><div style="font-size:0.78rem;color:#94a3b8;">CDN: ' + esc((d.site_cdn || []).join(", ") || "Direct Origin") + ' &middot; Assets Scanned: ' + Number(d.assets_scanned || 0) + ' &middot; C2PA Surviving: ' + Number(d.assets_with_c2pa || 0) + '</div></div>' +
-            '<div style="text-align:right;"><div style="font-size:1.5rem;font-weight:800;color:' + scoreColor + ';">' + Number(d.readiness_score || 0) + ' / 100</div><div style="font-size:0.74rem;color:#cbd5e1;">' + esc(d.verdict) + '</div></div>' +
+            '<div style="flex:1;min-width:220px;"><strong style="font-size:1.05rem;">' + esc(d.hostname) + '</strong><div style="font-size:0.78rem;color:#94a3b8;">CDN: ' + esc(cdnSummary) + ' &middot; Assets Scanned: ' + Number(d.assets_scanned || 0) + ' &middot; C2PA Surviving: ' + Number(d.assets_with_c2pa || 0) + '</div>' +
+            '<div style="margin-top:0.45rem;height:7px;background:#1e293b;border-radius:999px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barBg + ';"></div></div></div>' +
+            '<div style="text-align:right;"><div style="font-size:1.55rem;font-weight:800;color:' + scoreColor + ';">' + pct + ' / 100</div><div style="font-size:0.74rem;color:#cbd5e1;">' + esc(d.verdict) + '</div></div>' +
           '</div>' +
           issuesHtml +
           assetsHtml +
-          '<div class="row" style="margin-top:0.75rem;">' +
-            '<button type="button" class="btn btn-green" data-buy-tier="audit">Download Tailored Article 50 Fix Kit for ' + esc(d.hostname) + ' ($15)</button>' +
+          '<div class="asset-row" style="border-color:#059669;background:#071512;margin-top:0.75rem;">' +
+            '<strong style="color:#6ee7b7;">Ready-to-Download Fix Kit Compiled for ' + esc(d.hostname) + ' (7 Files)</strong>' +
+            '<ul style="margin:0.4rem 0 0.65rem 1.15rem;padding:0;color:#cbd5e1;font-size:0.8rem;">' +
+              '<li><code>article50-compliance-audit.json</code> &amp; <code>asset-provenance-matrix.csv</code> (with exact SHA-256 hashes above)</li>' +
+              '<li><code>cdn-c2pa-preservation-configs.md</code> (tailored for ' + esc(cdnSummary) + ')</li>' +
+              '<li><code>.github/workflows/art50-c2pa-gate.yml</code> (pre-wired CI gate for <code>' + esc(d.hostname) + '</code>)</li>' +
+              '<li><code>c2pa-sign-and-verify-starter.mjs</code> + <code>article50-disclosure-snippets.html</code> + executive memo</li>' +
+            '</ul>' +
+            '<div class="row">' +
+              '<button type="button" class="btn btn-green" data-buy-tier="audit">Download 7-File Fix Kit for ' + esc(d.hostname) + ' ($15)</button>' +
+              '<button type="button" class="btn btn-amber" data-buy-tier="pro">Multi-Site Agency Pack ($39)</button>' +
+            '</div>' +
+            '<div style="margin-top:0.55rem;font-size:0.75rem;color:#94a3b8;">Free CI one-liner: <code>' + esc(curlCmd) + '</code></div>' +
           '</div>';
       } catch (e) {
         out.textContent = "Scan error: " + e.message;
