@@ -1,5 +1,5 @@
 {
-  "cursor": 4,
+  "cursor": 14,
   "contacted_domains": [
     "qodesocial.com",
     "comradeweb.com",
@@ -60,7 +60,27 @@
     "samsulnet.com",
     "seobank.ca",
     "digitalmarketingservpro.com",
-    "jasminesandlerdigitalmarketingmedia.com"
+    "jasminesandlerdigitalmarketingmedia.com",
+    "digitaljas.com",
+    "refokus.com",
+    "shopipoint.com",
+    "2211.co.uk",
+    "crawlapps.com",
+    "crookedyouth.co",
+    "atlasstudiosnyc.com",
+    "noughtsandones.com",
+    "webcode.com.ar",
+    "tenten-2024.webflow.io",
+    "ontheroaduk.co.uk",
+    "webdesignagencyfresno.com",
+    "tabontech.com",
+    "meditodigital.com",
+    "devit.group",
+    "mymonsterlab.com.my",
+    "webdesigningcompany.com",
+    "web-design-agency.com.au",
+    "squarespacehub.com",
+    "starscommerce.co"
   ],
   "contacted_emails": [
     "hello@qodesocial.com",
@@ -122,7 +142,27 @@
     "support@samsulnet.com",
     "info@seobank.ca",
     "brian@digitalmarketingservpro.com",
-    "jasmine@jasminesandler.com"
+    "jasmine@jasminesandler.com",
+    "hey@digitaljas.com",
+    "hello@refokus.com",
+    "support@shopipoint.com",
+    "help@2211.co.uk",
+    "hello@crawlapps.com",
+    "hello@crookedyouth.co",
+    "info@atlasstudios.com",
+    "hello@noughtsandones.com",
+    "contacto@webcode.com.ar",
+    "inquiry@tenten.co",
+    "info@ontheroaduk.co.uk",
+    "hello@amarquez.agency",
+    "info@tabontech.com",
+    "info@meditodigital.com",
+    "hi@devit.group",
+    "info@mymonsterlab.com.my",
+    "sales@webdesigningcompany.com",
+    "info@web-design-agency.com.au",
+    "info@squarespacehub.com",
+    "hello@starscommerce.co"
   ],
   "bounced_emails": [
     "hello@5kassi.com",
@@ -465,12 +505,113 @@
       "domain": "jasminesandlerdigitalmarketingmedia.com",
       "email": "jasmine@jasminesandler.com",
       "sent_date": "2026-11-23T01:52:04.803892+00:00"
+    },
+    {
+      "domain": "digitaljas.com",
+      "email": "hey@digitaljas.com",
+      "sent_date": "2026-11-24T02:18:08.751271+00:00"
+    },
+    {
+      "domain": "refokus.com",
+      "email": "hello@refokus.com",
+      "sent_date": "2026-11-24T02:18:14.874755+00:00"
+    },
+    {
+      "domain": "shopipoint.com",
+      "email": "support@shopipoint.com",
+      "sent_date": "2026-11-24T02:18:20.999976+00:00"
+    },
+    {
+      "domain": "2211.co.uk",
+      "email": "help@2211.co.uk",
+      "sent_date": "2026-11-24T02:18:27.008619+00:00"
+    },
+    {
+      "domain": "crawlapps.com",
+      "email": "hello@crawlapps.com",
+      "sent_date": "2026-11-24T02:18:33.028956+00:00"
+    },
+    {
+      "domain": "crookedyouth.co",
+      "email": "hello@crookedyouth.co",
+      "sent_date": "2026-11-24T02:18:39.193447+00:00"
+    },
+    {
+      "domain": "atlasstudiosnyc.com",
+      "email": "info@atlasstudios.com",
+      "sent_date": "2026-11-24T02:18:45.257458+00:00"
+    },
+    {
+      "domain": "noughtsandones.com",
+      "email": "hello@noughtsandones.com",
+      "sent_date": "2026-11-24T02:18:51.276201+00:00"
+    },
+    {
+      "domain": "webcode.com.ar",
+      "email": "contacto@webcode.com.ar",
+      "sent_date": "2026-11-24T02:18:57.351131+00:00"
+    },
+    {
+      "domain": "tenten-2024.webflow.io",
+      "email": "inquiry@tenten.co",
+      "sent_date": "2026-11-24T02:19:03.637909+00:00"
+    },
+    {
+      "domain": "ontheroaduk.co.uk",
+      "email": "info@ontheroaduk.co.uk",
+      "sent_date": "2026-11-24T02:19:09.755488+00:00"
+    },
+    {
+      "domain": "webdesignagencyfresno.com",
+      "email": "hello@amarquez.agency",
+      "sent_date": "2026-11-24T02:19:15.781701+00:00"
+    },
+    {
+      "domain": "tabontech.com",
+      "email": "info@tabontech.com",
+      "sent_date": "2026-11-24T02:19:21.749945+00:00"
+    },
+    {
+      "domain": "meditodigital.com",
+      "email": "info@meditodigital.com",
+      "sent_date": "2026-11-24T02:19:27.857338+00:00"
+    },
+    {
+      "domain": "devit.group",
+      "email": "hi@devit.group",
+      "sent_date": "2026-11-24T02:19:33.860497+00:00"
+    },
+    {
+      "domain": "mymonsterlab.com.my",
+      "email": "info@mymonsterlab.com.my",
+      "sent_date": "2026-11-24T02:19:40.049134+00:00"
+    },
+    {
+      "domain": "webdesigningcompany.com",
+      "email": "sales@webdesigningcompany.com",
+      "sent_date": "2026-11-24T02:19:46.179458+00:00"
+    },
+    {
+      "domain": "web-design-agency.com.au",
+      "email": "info@web-design-agency.com.au",
+      "sent_date": "2026-11-24T02:19:52.215631+00:00"
+    },
+    {
+      "domain": "squarespacehub.com",
+      "email": "info@squarespacehub.com",
+      "sent_date": "2026-11-24T02:19:58.235406+00:00"
+    },
+    {
+      "domain": "starscommerce.co",
+      "email": "hello@starscommerce.co",
+      "sent_date": "2026-11-24T02:20:04.271485+00:00"
     }
   ],
-  "updated_at": "2026-11-23T05:30:12.556468+00:00",
+  "updated_at": "2026-11-24T02:20:04.271565+00:00",
   "post_fix_bounced_emails": [
     "hello@5kassi.com",
     "info@imaginewebsolution.com",
     "kirbyinusre@aol.com"
-  ]
+  ],
+  "cc_page": 3
 }
