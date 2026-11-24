@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync, createHmac } from "node:crypto";
+import vm from "node:vm";
 import worker from "./worker.js";
 import { compileOpenApiToMcp, generateStandaloneWorkerJs, buildDeployableBundle } from "./compiler.js";
 import { createZipArchive } from "./zip_builder.js";
@@ -1260,11 +1261,14 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
   };
 
   try {
-    // 1. Landing HTML + Health strict filter check
+    // 1. Landing HTML + inline <script> syntax validation + Health strict filter check
     const homeRes = await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/"), BW_ENV);
     assert.equal(homeRes.status, 200);
     const homeHtml = await homeRes.text();
     assert.match(homeHtml, /Contact for Live Alerts \(Businesses &amp; Individuals\)/);
+    const scriptMatch = homeHtml.match(/<script>([\s\S]*?)<\/script>/);
+    assert.ok(scriptMatch && scriptMatch[1], "BrandWatch landing page must contain inline script");
+    assert.doesNotThrow(() => new vm.Script(scriptMatch[1]), "BrandWatch inline <script> must parse with zero SyntaxError");
 
     const healthJson = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/health"), BW_ENV)).json();
     assert.equal(healthJson.strict_filter, "Caution: Video flagged for unverified content & May contain inaccurate information ONLY");

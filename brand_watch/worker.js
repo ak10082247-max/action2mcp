@@ -388,6 +388,14 @@ function renderLanding(origin, contactEmail) {
           document.getElementById("acctHandle").value = h;
           submitAccountHandle();
         }
+        return;
+      }
+      const proofBtn = ev.target && ev.target.closest ? ev.target.closest("[data-proof-id]") : null;
+      if (proofBtn) {
+        ev.preventDefault();
+        const pid = proofBtn.getAttribute("data-proof-id") || "";
+        if (pid) document.getElementById("queryInput").value = pid;
+        buyPlan("single");
       }
     });
     function renderMonitoredAccounts(accounts, totalVideosInspected) {
@@ -474,7 +482,7 @@ function renderLanding(origin, contactEmail) {
             iframeHtml +
             '<div class="fallback-box"><strong>Saved Deletion-Proof Record</strong>: Video ID <code>' + esc(v.videoId) + '</code> | Creator <code>' + esc(v.authorUsername) + '</code>' +
             (v.voiceToText ? '<div style="margin-top:0.35rem;color:#e2e8f0;"><strong>Cached Transcript:</strong> ' + esc(v.voiceToText.slice(0, 320)) + '</div>' : '') +
-            '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.authorUsername || v.brandTag) + '">Get Live Alerts ($15)</a> | <a href="javascript:void(0)" onclick="document.getElementById(\'queryInput\').value=\'' + esc(v.videoId) + '\';buyPlan(\'single\')">Instant Proof ZIP ($2)</a></div></div></div>';
+            '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.authorUsername || v.brandTag) + '">Get Live Alerts ($15)</a> | <a href="#" data-proof-id="' + esc(v.videoId) + '">Instant Proof ZIP ($2)</a></div></div></div>';
         }).join("");
       } catch (e) {
         if (!silent) out.textContent = "Failed to load feed: " + e.message;
