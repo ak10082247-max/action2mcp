@@ -4,14 +4,16 @@
     "bellripple.com",
     "myballast.pro",
     "paneloui.com",
-    "marketplace.visualstudio.com"
+    "marketplace.visualstudio.com",
+    "tide.pinme.dev"
   ],
   "contacted_emails": [
     "yugakhans@gmail.com",
     "bellripplegarden@gmail.com",
     "contact@myballast.pro",
     "govindalapudisrinath@gmail.com",
-    "support@puzaricloud.in"
+    "support@puzaricloud.in",
+    "ilemon18n@163.com"
   ],
   "bounced_emails": [],
   "replied_emails": [],
@@ -49,7 +51,12 @@
       "domain": "marketplace.visualstudio.com",
       "email": "support@puzaricloud.in",
       "sent_date": "2026-11-23T08:05:01.684354+00:00"
+    },
+    {
+      "domain": "tide.pinme.dev",
+      "email": "ilemon18n@163.com",
+      "sent_date": "2026-11-24T10:21:15.390094+00:00"
     }
   ],
-  "updated_at": "2026-11-24T00:17:05.845539+00:00"
+  "updated_at": "2026-11-24T10:21:15.390196+00:00"
 }
