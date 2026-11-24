@@ -1,5 +1,5 @@
 {
-  "cursor": 30,
+  "cursor": 44,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -24,7 +24,8 @@
     "peckhamvets.co.uk",
     "abingdonvets.co.uk",
     "greatchapelst.org.uk",
-    "marktangri.com"
+    "marktangri.com",
+    "your-gp.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -50,7 +51,8 @@
     "reception@peckhamvets.co.uk",
     "reception@abingdonvets.co.uk",
     "clccg.gcs@nhs.net",
-    "reception@marktangri.com"
+    "reception@marktangri.com",
+    "reception@your.gp"
   ],
   "history": [
     {
@@ -200,9 +202,14 @@
       "domain": "marktangri.com",
       "email": "reception@marktangri.com",
       "sent_date": "2026-11-24T10:54:28.353341+00:00"
+    },
+    {
+      "domain": "your-gp.com",
+      "email": "reception@your.gp",
+      "sent_date": "2026-11-24T23:01:39.788379+00:00"
     }
   ],
-  "updated_at": "2026-11-24T10:54:34.228535+00:00",
+  "updated_at": "2026-11-24T23:01:39.788475+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
