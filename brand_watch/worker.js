@@ -19,6 +19,7 @@ import {
 } from "../edge_helpers.js";
 import { cleanSecret, hasSigningSecretConfigured } from "../stripe_billing.js";
 import {
+  ANY_CAUTION_MISINFO_RE,
   extractUnverifiedCautionRecord,
   resolveTikTokOembed,
   validateTikTokHandle,
@@ -26,6 +27,7 @@ import {
   loadMonitoredAccounts,
   inspectTikTokAccountLive,
   runCautionOnlyScan,
+  runScheduledCautionDiscovery,
   buildCautionDossier,
 } from "./scanner.js";
 
@@ -159,7 +161,7 @@ function renderLanding(origin, contactEmail) {
 <body>
   <header>
     <div>
-      <span class="badge">STRICT FILTER: "Caution: Video flagged for unverified content" ONLY</span>
+      <span class="badge">STRICT FILTER: TIKTOK "CAUTION: UNVERIFIED &amp; INACCURATE CONTENT" ONLY</span>
       <h1>CautionWatch — Live Flagged TikTok Tracker &amp; Alert Portal</h1>
     </div>
     <div>
@@ -168,15 +170,20 @@ function renderLanding(origin, contactEmail) {
   </header>
 
   <div class="notice">
-    <strong>Zero-Noise Strict Policy:</strong> This site indexes and displays <strong>only</strong> TikTok videos verified to carry the official <code>"Caution: Video flagged for unverified content"</code> label (extracted via raw scraper <code>misc_info.ktf_info</code> / <code>warnInfo</code> / <code>labelTop</code> fields or direct verified operator submissions). All unflagged videos, general news, and unrelated posts are excluded. Official TikTok embeds load directly from TikTok, with saved caption/thumbnail/transcript fallback records kept in case the creator deletes the post.
+    <strong>Zero-Noise Strict Policy:</strong> This site indexes and displays <strong>only</strong> TikTok videos verified to carry official TikTok misinformation Caution tags — both <code>"Caution: Video flagged for unverified content."</code> (<code>misc_info.ktf_info</code>) and <code>"Caution: May contain inaccurate information."</code> / <code>"Sharing limited to 1 chat"</code> (<code>misc_info.tns_im_info</code> / <code>label_category: 1</code>). All clean videos, standard AI labels, and generic disclaimers are excluded. Official TikTok embeds load directly from TikTok, with cached WebVTT transcripts &amp; cover snapshots preserved if the creator deletes the clip.
   </div>
 
   <div class="grid">
     <div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
-          <strong>Verified "Caution: Unverified Content" Video Feed (<span id="countBadge">0</span>)</strong>
+          <strong>Verified TikTok Caution Archive (<span id="countBadge">0</span>)</strong>
           <span id="autoUpdateStatus" style="font-size:0.75rem;color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.35);padding:0.18rem 0.55rem;border-radius:999px;">&#9679; Self-Updating Archive Active (Auto-Refreshes Every 30s)</span>
+        </div>
+        <div id="catTabs" class="tag-bar" style="margin-top:0.55rem;">
+          <button type="button" class="tag-btn active" data-cat="all" onclick="setCategory('all')">All Caution (<span id="catAllCount">0</span>)</button>
+          <button type="button" class="tag-btn" data-cat="unverified_content" onclick="setCategory('unverified_content')">&#9888; Flagged Unverified Content (<span id="catUnverifiedCount">0</span>)</button>
+          <button type="button" class="tag-btn" data-cat="inaccurate_info" onclick="setCategory('inaccurate_info')">&#9888; May Contain Inaccurate Info / Share-Limited (<span id="catInaccurateCount">0</span>)</button>
         </div>
         <div class="row" style="margin-top:0.6rem;">
           <div class="ac-wrap">
@@ -412,14 +419,33 @@ function renderLanding(origin, contactEmail) {
         '</div>';
       }).join("");
     }
+    let ACTIVE_CATEGORY = "all";
+    function setCategory(cat) {
+      ACTIVE_CATEGORY = cat || "all";
+      document.querySelectorAll("#catTabs [data-cat]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-cat") === ACTIVE_CATEGORY);
+      });
+      loadCautionFeed();
+    }
     async function loadCautionFeed(silent) {
       const q = document.getElementById("queryInput").value.trim();
       const out = document.getElementById("feedOut");
       if (!silent) out.textContent = "Loading strict Caution-flagged TikTok videos...";
       try {
-        const res = await fetch("/api/scan" + (q ? "?q=" + encodeURIComponent(q) : ""));
+        const qs = new URLSearchParams();
+        if (q) qs.set("q", q);
+        if (ACTIVE_CATEGORY && ACTIVE_CATEGORY !== "all") qs.set("category", ACTIVE_CATEGORY);
+        const res = await fetch("/api/scan" + (qs.toString() ? "?" + qs.toString() : ""));
         const d = await res.json();
         document.getElementById("countBadge").textContent = String(d.matched_count ?? 0);
+        if (d.category_counts) {
+          const elAll = document.getElementById("catAllCount");
+          const elUnv = document.getElementById("catUnverifiedCount");
+          const elIna = document.getElementById("catInaccurateCount");
+          if (elAll) elAll.textContent = String(d.category_counts.all ?? 0);
+          if (elUnv) elUnv.textContent = String(d.category_counts.unverified_content ?? 0);
+          if (elIna) elIna.textContent = String(d.category_counts.inaccurate_info ?? 0);
+        }
         renderTagCatalog(d.searchable_tags || [], d.total_stored_caution_videos || 0, q);
         renderMonitoredAccounts(d.monitored_accounts || [], d.total_videos_inspected || 0);
         const autoEl = document.getElementById("autoUpdateStatus");
@@ -428,7 +454,7 @@ function renderLanding(origin, contactEmail) {
         }
         const list = d.caution_videos || [];
         if (!list.length) {
-          out.innerHTML = '<div class="feed-item">No verified <code>Caution: Video flagged for unverified content</code> videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived across ' + Number(d.total_videos_inspected || 0) + ' inspected videos). Click <strong>Show All</strong> above or report a TikTok <code>@handle</code> below to inspect all of its videos.</div>';
+          out.innerHTML = '<div class="feed-item">No verified TikTok Caution videos matched right now (' + Number(d.total_stored_caution_videos || 0) + ' total archived across ' + Number(d.total_videos_inspected || 0) + ' inspected videos). Click <strong>All Caution</strong> above or report a TikTok <code>@handle</code> below to inspect all of its videos.</div>';
           return;
         }
         out.innerHTML = list.map((v) => {
@@ -437,13 +463,17 @@ function renderLanding(origin, contactEmail) {
             : "";
           const tagsHtml = (v.hashtags || []).slice(0, 8).map((h) => '<span class="pill clickable" data-filter-tag="#' + esc(h) + '">#' + esc(h) + '</span>').join("");
           const creatorLabel = v.authorUsername || v.authorName || "unknown";
+          const shareLimitPill = v.shareLimited ? '<span class="pill" style="background:#3f1d0b;border-color:#f59e0b;color:#fde68a;">Share-Limited (1 Chat Max)</span>' : "";
+          const catBadge = v.cautionCategory === "unverified_content"
+            ? '<span class="pill" style="background:#451a03;border-color:#f59e0b;color:#fde68a;">Flagged Unverified</span>'
+            : '<span class="pill" style="background:#1e1b4b;border-color:#818cf8;color:#c7d2fe;">Caution: Inaccurate Info</span>';
           return '<div class="feed-item">' +
             '<div class="caution-bar">&#9888; ' + esc(v.cautionText || "Caution: Video flagged for unverified content") + '</div>' +
-            '<div><span class="pill clickable" data-filter-tag="' + esc(creatorLabel) + '">' + esc(creatorLabel) + '</span><span class="pill">Matched: ' + esc(v.matchedField || "warnInfo") + '</span>' + tagsHtml + '</div>' +
+            '<div><span class="pill clickable" data-filter-tag="' + esc(creatorLabel) + '">' + esc(creatorLabel) + '</span>' + catBadge + shareLimitPill + '<span class="pill">Matched: ' + esc(v.matchedField || "misc_info") + '</span>' + tagsHtml + '</div>' +
             '<div style="margin-top:0.45rem;font-size:0.88rem;">' + esc(v.description || "(No caption saved)") + '</div>' +
             iframeHtml +
-            '<div class="fallback-box"><strong>Saved Fallback Record</strong> (preserved if creator deletes clip): Video ID <code>' + esc(v.videoId) + '</code> | Creator <code>' + esc(v.authorUsername) + '</code>' +
-            (v.voiceToText ? ' | Transcript: ' + esc(v.voiceToText.slice(0, 220)) : '') +
+            '<div class="fallback-box"><strong>Saved Deletion-Proof Record</strong>: Video ID <code>' + esc(v.videoId) + '</code> | Creator <code>' + esc(v.authorUsername) + '</code>' +
+            (v.voiceToText ? '<div style="margin-top:0.35rem;color:#e2e8f0;"><strong>Cached Transcript:</strong> ' + esc(v.voiceToText.slice(0, 320)) + '</div>' : '') +
             '<div style="margin-top:0.4rem;"><a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open Original TikTok</a> | <a href="#alert-contact" data-alert-url="' + esc(v.url) + '" data-alert-kw="' + esc(v.authorUsername || v.brandTag) + '">Get Live Alerts ($15)</a> | <a href="javascript:void(0)" onclick="document.getElementById(\'queryInput\').value=\'' + esc(v.videoId) + '\';buyPlan(\'single\')">Instant Proof ZIP ($2)</a></div></div></div>';
         }).join("");
       } catch (e) {
@@ -693,12 +723,17 @@ export default {
         {
           status: "ok",
           service: "brand-watch",
-          strict_filter: "Caution: Video flagged for unverified content ONLY",
+          strict_filter: "Caution: Video flagged for unverified content & May contain inaccurate information ONLY",
+          cron_schedule: "0 */6 * * *",
           merchant_base: MERCHANT_BASE,
           merchant_solana_ata: MERCHANT_SOLANA_ATA,
           b2b_contact_email: contactEmail,
           has_kv: Boolean(env?.FUNNEL_KV),
           has_stripe: Boolean(cleanSecret(env?.STRIPE_SECRET_KEY) && hasSigningSecretConfigured(env)),
+          has_apify: Boolean(cleanSecret(env?.APIFY_TOKEN)),
+          has_scrapecreators: Boolean(cleanSecret(env?.SCRAPECREATORS_API_KEY)),
+          has_ensembledata: Boolean(cleanSecret(env?.ENSEMBLEDATA_TOKEN)),
+          has_resend: Boolean(cleanSecret(env?.RESEND_API_KEY)),
           plans: BRAND_WATCH_PLANS,
         },
         200,
@@ -709,16 +744,25 @@ export default {
     if (path === "/api/scan" || path === "/api/feed") {
       if (req.method !== "GET" && req.method !== "POST") return jsonResp({ error: "Method not allowed" }, 405, cors);
       let q = url.searchParams.get("q") || url.searchParams.get("brand") || "";
+      let category = url.searchParams.get("category") || "all";
       if (req.method === "POST") {
         try {
           const body = await req.json();
           q = body.q || body.query || body.brand || q;
+          category = body.category || category;
         } catch {
           return jsonResp({ error: "Invalid JSON body" }, 400, cors);
         }
       }
-      const res = await runCautionOnlyScan(q, env?.FUNNEL_KV || null);
+      const res = await runCautionOnlyScan(q, env?.FUNNEL_KV || null, category);
       return jsonResp(res, 200, cors);
+    }
+
+    if (path === "/api/cron-run") {
+      if (req.method !== "POST") return jsonResp({ error: "POST required" }, 405, cors);
+      if (!isAuthorizedAdmin(req, env)) return jsonResp({ error: "Unauthorized" }, 401, cors);
+      const summary = await runScheduledCautionDiscovery(env, fetch);
+      return jsonResp(summary, 200, cors);
     }
 
     if (path === "/api/ingest-caution") {
@@ -802,8 +846,16 @@ export default {
         return handleAccountInspectionRequest(body, req, env, cors);
       }
       const cautionLabel = String(body?.cautionLabel || "").trim();
-      if (!/(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content/i.test(cautionLabel)) {
-        return jsonResp({ ok: false, error: "Only 'Caution: Video flagged for unverified content' videos are accepted." }, 422, cors);
+      if (!ANY_CAUTION_MISINFO_RE.test(cautionLabel)) {
+        return jsonResp(
+          {
+            ok: false,
+            error:
+              "Only official TikTok misinformation Caution videos ('Caution: Video flagged for unverified content' or 'Caution: May contain inaccurate information') are accepted.",
+          },
+          422,
+          cors,
+        );
       }
       try {
         const clip = await resolveTikTokOembed(body?.url, fetch);
@@ -946,5 +998,14 @@ export default {
     }
 
     return jsonResp({ error: "Not found" }, 404, cors);
+  },
+
+  async scheduled(_event, env, ctx) {
+    const task = runScheduledCautionDiscovery(env, fetch);
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(task);
+    } else {
+      await task;
+    }
   },
 };

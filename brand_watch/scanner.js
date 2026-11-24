@@ -9,6 +9,8 @@ import { REPO_CAUTION_VIDEOS } from "./seed_caution.js";
 
 const ALLOWED_TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com", "vt.tiktok.com", "vm.tiktok.com"]);
 const UNVERIFIED_CAUTION_RE = /(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content/i;
+const INACCURATE_CAUTION_RE = /(?:caution:\s*may\s+contain\s+inaccurate\s+information|check\s+your\s+sources\s+before\s+sharing|sharing\s+is\s+limited\s+to\s+one\s+chat\s+at\s+a\s+time)/i;
+export const ANY_CAUTION_MISINFO_RE = /(?:(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content|caution:\s*may\s+contain\s+inaccurate\s+information|check\s+your\s+sources\s+before\s+sharing|sharing\s+is\s+limited\s+to\s+one\s+chat\s+at\s+a\s+time)/i;
 
 export function validateTikTokVideoUrl(rawUrl) {
   const input = String(rawUrl || "").trim();
@@ -73,13 +75,74 @@ export const DEFAULT_MONITORED_ACCOUNTS = [
     handle: "maskedtruthmt",
     displayHandle: "@maskedtruthmt",
     profileUrl: "https://www.tiktok.com/@maskedtruthmt",
+    secUid: "MS4wLjABAAAA4e-S2p91SKsAejwZszUQxOb-YWR3zMqunn7mIVEqLFpi0DU7dduxfZ0Z52DPMWgr",
     status: "inspected",
     videosInspected: 59,
-    cautionFoundCount: 1,
+    cautionFoundCount: 7,
     brandTag: "Anthony Joshua / Viral Claims",
     source: "apify_aweme_profile_scan",
     reportedAt: "2026-11-23T18:10:00.000Z",
-    lastInspectedAt: "2026-11-23T19:49:18.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
+  },
+  {
+    handle: "zaikinternational",
+    displayHandle: "@zaikinternational",
+    profileUrl: "https://www.tiktok.com/@zaikinternational",
+    status: "inspected",
+    videosInspected: 1,
+    cautionFoundCount: 1,
+    brandTag: "Exposed / Check Sources Caution",
+    source: "apify_aweme_consolidated",
+    reportedAt: "2026-11-24T12:38:00.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
+  },
+  {
+    handle: "godwin_je",
+    displayHandle: "@godwin_je",
+    profileUrl: "https://www.tiktok.com/@godwin_je",
+    status: "inspected",
+    videosInspected: 1,
+    cautionFoundCount: 1,
+    brandTag: "Anthony Joshua Case Watch",
+    source: "apify_aweme_consolidated",
+    reportedAt: "2026-11-24T12:38:00.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
+  },
+  {
+    handle: "tragicallyromantic",
+    displayHandle: "@tragicallyromantic",
+    profileUrl: "https://www.tiktok.com/@tragicallyromantic",
+    status: "inspected",
+    videosInspected: 1,
+    cautionFoundCount: 1,
+    brandTag: "Emergency Alert System Hoax",
+    source: "apify_aweme_consolidated",
+    reportedAt: "2026-11-24T12:38:00.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
+  },
+  {
+    handle: "james_a_williams_",
+    displayHandle: "@james_a_williams_",
+    profileUrl: "https://www.tiktok.com/@james_a_williams_",
+    status: "inspected",
+    videosInspected: 1,
+    cautionFoundCount: 1,
+    brandTag: "Emergency Alert System Hoax",
+    source: "apify_aweme_consolidated",
+    reportedAt: "2026-11-24T12:38:00.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
+  },
+  {
+    handle: "renatalaria022",
+    displayHandle: "@renatalaria022",
+    profileUrl: "https://www.tiktok.com/@renatalaria022",
+    status: "inspected",
+    videosInspected: 1,
+    cautionFoundCount: 1,
+    brandTag: "Emergency Alert System Hoax",
+    source: "apify_aweme_consolidated",
+    reportedAt: "2026-11-24T12:38:00.000Z",
+    lastInspectedAt: "2026-11-24T12:38:00.000Z",
   },
   {
     handle: "maskedtruthnews",
@@ -180,16 +243,70 @@ function parseMiscInfoCaution(rawMisc) {
     }
   }
   if (!obj || typeof obj !== "object") return null;
-  const ktf = obj.ktf_info;
-  if (!ktf || typeof ktf !== "object") return null;
-  if (ktf.show_warning === false) return null;
-  const warnTemplate = String(ktf.warning_text || ktf.message_text_on_share || "").trim();
-  if (!UNVERIFIED_CAUTION_RE.test(warnTemplate)) return null;
-  const label = String(ktf.caution_label || "Caution:").trim();
-  const formatted = (warnTemplate.includes("%s") ? warnTemplate.replace("%s", label) : warnTemplate)
-    .replace(/\s+/g, " ")
-    .trim();
-  return formatted || "Caution: Video flagged for unverified content.";
+  const ktf = obj.ktf_info && typeof obj.ktf_info === "object" ? obj.ktf_info : null;
+  const tns = obj.tns_im_info && typeof obj.tns_im_info === "object" ? obj.tns_im_info : null;
+  const shareLimited = Boolean(
+    ktf && (ktf.label_category === 1 || /sharing\s+is\s+limited\s+to\s+one\s+chat/i.test(String(ktf.label_title || ""))),
+  );
+
+  // 1. Primary strict tag: "Caution: Video flagged for unverified content."
+  if (ktf && ktf.show_warning !== false) {
+    const warnTemplate = String(ktf.warning_text || ktf.message_text_on_share || "").trim();
+    if (UNVERIFIED_CAUTION_RE.test(warnTemplate)) {
+      const label = String(ktf.caution_label || "Caution:").trim();
+      const formatted = (warnTemplate.includes("%s") ? warnTemplate.replace("%s", label) : warnTemplate)
+        .replace(/\s+/g, " ")
+        .trim();
+      return {
+        text: formatted || "Caution: Video flagged for unverified content.",
+        matchedField: "misc_info.ktf_info",
+        cautionCategory: "unverified_content",
+        shareLimited,
+      };
+    }
+    // 2. Active KTF warning banner ("Check your sources before sharing")
+    if (ktf.show_warning === true && warnTemplate) {
+      const label = String(ktf.caution_label || "Caution:").trim();
+      const formatted = (warnTemplate.includes("%s") ? warnTemplate.replace("%s", label) : `${label} ${warnTemplate}`)
+        .replace(/\s+/g, " ")
+        .trim();
+      return {
+        text: formatted,
+        matchedField: "misc_info.ktf_info",
+        cautionCategory: "inaccurate_info",
+        shareLimited,
+      };
+    }
+  }
+
+  // 3. Sister TikTok misinformation Caution tag: tns_im_info ("Caution: May contain inaccurate information.")
+  if (tns) {
+    const tnsLabel = String(tns.caution_label || "").trim();
+    const tnsThumb = String(tns.thumbnail_label || "").trim();
+    if (/^caution$/i.test(tnsLabel) && /inaccurate\s+information/i.test(tnsThumb)) {
+      const suffix = shareLimited ? " (Sharing limited to 1 chat)" : "";
+      return {
+        text: `Caution: May contain inaccurate information.${suffix}`,
+        matchedField: shareLimited ? "misc_info.ktf_info+tns_im_info" : "misc_info.tns_im_info",
+        cautionCategory: "inaccurate_info",
+        shareLimited,
+      };
+    }
+  }
+  return null;
+}
+
+export function extractStitchDuetParentIds(rawItem) {
+  if (!rawItem || typeof rawItem !== "object") return [];
+  const root = unwrapAwemeRoot(rawItem);
+  const parents = new Set();
+  for (const key of ["duet_from_id", "stitch_from_id", "duetFromId", "stitchFromId", "original_item_id", "react_from_id"]) {
+    for (const src of [root, rawItem]) {
+      const v = String(src?.[key] || "").trim();
+      if (v && v !== "0" && /^\d{15,21}$/.test(v)) parents.add(v);
+    }
+  }
+  return Array.from(parents);
 }
 
 function unwrapAwemeRoot(rawItem) {
@@ -216,31 +333,37 @@ function collectCandidateWarningStrings(rawItem) {
   const out = [];
   const root = unwrapAwemeRoot(rawItem);
   const seen = new Set();
-  const pushText = (field, text) => {
+  const pushText = (field, text, extra = {}) => {
     const clean = String(text || "").trim();
     if (!clean) return;
     const key = `${field}:${clean}`;
     if (!seen.has(key)) {
       seen.add(key);
-      out.push({ field, text: clean });
+      out.push({ field, text: clean, ...extra });
     }
   };
   const scanNode = (field, val, depth = 0) => {
     if (!val || depth > 5) return;
     if (field === "misc_info") {
-      const ktfText = parseMiscInfoCaution(val);
-      if (ktfText) {
-        pushText("misc_info.ktf_info", ktfText);
+      const ktfHit = parseMiscInfoCaution(val);
+      if (ktfHit) {
+        pushText(ktfHit.matchedField, ktfHit.text, {
+          cautionCategory: ktfHit.cautionCategory,
+          shareLimited: ktfHit.shareLimited,
+        });
         return;
       }
       if (typeof val === "string" && val.trim().startsWith("{")) return;
-      if (typeof val === "object" && !Array.isArray(val) && val.ktf_info !== undefined) return;
+      if (typeof val === "object" && !Array.isArray(val) && (val.ktf_info !== undefined || val.tns_im_info !== undefined)) return;
     }
     if (typeof val === "string") {
       if (field === "cautionText" && val.trim().startsWith("{")) {
-        const ktfText = parseMiscInfoCaution(val);
-        if (ktfText) {
-          pushText("misc_info.ktf_info", ktfText);
+        const ktfHit = parseMiscInfoCaution(val);
+        if (ktfHit) {
+          pushText(ktfHit.matchedField, ktfHit.text, {
+            cautionCategory: ktfHit.cautionCategory,
+            shareLimited: ktfHit.shareLimited,
+          });
           return;
         }
       }
@@ -290,14 +413,29 @@ function extractContentDescFallback(root) {
 
 /**
  * Strictly extracts normalized Caution-flagged TikTok record ONLY if warning metadata
- * matches "Video flagged for unverified content". Returns null for clean/unrelated videos.
+ * matches TikTok's official misinformation Caution tags:
+ *   1) "Caution: Video flagged for unverified content." (cautionCategory: "unverified_content")
+ *   2) "Caution: May contain inaccurate information." / "Check your sources before sharing" /
+ *      "Sharing is limited to one chat at a time" (cautionCategory: "inaccurate_info")
+ * Returns null for clean videos, standard AI-generated labels, and generic injury disclaimers.
  */
 export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scraper_api") {
   if (!rawItem || typeof rawItem !== "object") return null;
   const root = unwrapAwemeRoot(rawItem);
   const candidates = collectCandidateWarningStrings(rawItem);
-  const hit = candidates.find((c) => UNVERIFIED_CAUTION_RE.test(c.text));
+  const hit =
+    candidates.find((c) => UNVERIFIED_CAUTION_RE.test(c.text)) ||
+    candidates.find((c) => ANY_CAUTION_MISINFO_RE.test(c.text));
   if (!hit) return null;
+
+  const cautionCategory =
+    hit.cautionCategory ||
+    (UNVERIFIED_CAUTION_RE.test(hit.text) ? "unverified_content" : "inaccurate_info");
+  const shareLimited = Boolean(
+    hit.shareLimited ||
+      root.shareLimited ||
+      /sharing\s+(?:is\s+)?limited\s+to\s+(?:one|1)\s+chat/i.test(hit.text),
+  );
 
   const videoId = String(root.id || root.aweme_id || root.video_id || root.videoId || "").trim();
   const rawCandidateUrl = String(root.webVideoUrl || root.url || root.share_url || "").trim();
@@ -338,10 +476,10 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
   const coverStr =
     typeof videoMeta.cover === "string"
       ? videoMeta.cover
-      : Array.isArray(videoMeta.cover?.url_list) && videoMeta.cover.url_list[0]
-        ? videoMeta.cover.url_list[0]
-        : Array.isArray(videoMeta.origin_cover?.url_list) && videoMeta.origin_cover.url_list[0]
-          ? videoMeta.origin_cover.url_list[0]
+      : Array.isArray(videoMeta.origin_cover?.url_list) && videoMeta.origin_cover.url_list[0]
+        ? videoMeta.origin_cover.url_list[0]
+        : Array.isArray(videoMeta.cover?.url_list) && videoMeta.cover.url_list[0]
+          ? videoMeta.cover.url_list[0]
           : "";
   const thumb = String(
     root.thumbnailUrl ||
@@ -351,6 +489,17 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
       authorMeta.avatar ||
       "",
   ).trim() || null;
+
+  const claInfos = videoMeta?.cla_info?.caption_infos || root?.cla_info?.caption_infos || videoMeta?.subtitleInfos || [];
+  const subtitleUrl =
+    String(
+      root.subtitleUrl ||
+        (Array.isArray(claInfos) && claInfos[0] ? claInfos[0].url || claInfos[0].Url || (claInfos[0].url_list || [])[0] : "") ||
+        "",
+    ).trim() || null;
+
+  const secUid = String(root.secUid || authorMeta.sec_uid || authorMeta.secUid || "").trim() || null;
+  const parentIds = extractStitchDuetParentIds(rawItem);
 
   const extractedId = videoId || (rawUrl.match(/\/video\/(\d+)/) || [])[1] || rawUrl.slice(-24);
   const resolvedAuthorName = String(
@@ -378,11 +527,16 @@ export function extractUnverifiedCautionRecord(rawItem, sourceProvider = "scrape
     authorUsername: authorHandle || String(authorMeta.nickName || authorMeta.nickname || "unknown"),
     authorName: resolvedAuthorName,
     authorUrl: rawUser ? `https://www.tiktok.com/@${rawUser}` : "",
+    secUid,
     description: desc,
     voiceToText: String(root.voice_to_text || root.voiceToText || root.transcript || "").trim().slice(0, 1200),
+    subtitleUrl,
     hashtags,
     thumbnailUrl: thumb,
     cautionText: hit.text,
+    cautionCategory,
+    shareLimited,
+    parentVideoIds: parentIds,
     matchedField: resolvedMatchedField,
     brandTag: String(root.brandTag || root.query || "").trim().slice(0, 120),
     capturedAt: String(root.capturedAt || root.createTimeISO || new Date().toISOString()),
@@ -443,7 +597,12 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
         );
         for (const item of loaded.filter(Boolean)) {
           if (!item?.id || seen.has(item.id)) continue;
-          if (!UNVERIFIED_CAUTION_RE.test(String(item.cautionText || ""))) continue;
+          if (!ANY_CAUTION_MISINFO_RE.test(String(item.cautionText || ""))) continue;
+          if (!item.cautionCategory) {
+            item.cautionCategory = UNVERIFIED_CAUTION_RE.test(String(item.cautionText || ""))
+              ? "unverified_content"
+              : "inaccurate_info";
+          }
           seen.add(item.id);
           entries.push(item);
         }
@@ -453,11 +612,23 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
     }
   }
   for (const repoItem of REPO_CAUTION_VIDEOS || []) {
-    if (repoItem?.id && !seen.has(repoItem.id) && UNVERIFIED_CAUTION_RE.test(String(repoItem.cautionText || ""))) {
+    if (repoItem?.id && !seen.has(repoItem.id) && ANY_CAUTION_MISINFO_RE.test(String(repoItem.cautionText || ""))) {
+      const normalized = {
+        ...repoItem,
+        cautionCategory:
+          repoItem.cautionCategory ||
+          (UNVERIFIED_CAUTION_RE.test(String(repoItem.cautionText || "")) ? "unverified_content" : "inaccurate_info"),
+      };
       seen.add(repoItem.id);
-      entries.push(repoItem);
+      entries.push(normalized);
     }
   }
+  // Sort primary "Flagged Unverified Content" clips first, then newest inaccurate/share-limited clips
+  entries.sort((a, b) => {
+    const rankA = a.cautionCategory === "unverified_content" ? 0 : a.shareLimited ? 1 : 2;
+    const rankB = b.cautionCategory === "unverified_content" ? 0 : b.shareLimited ? 1 : 2;
+    return rankA - rankB || String(b.capturedAt || "").localeCompare(String(a.capturedAt || ""));
+  });
   return entries.slice(0, limit);
 }
 
@@ -731,8 +902,11 @@ export function buildCautionTagCatalog(entries = []) {
   return { searchable_tags, autofill_suggestions };
 }
 
-export async function runCautionOnlyScan(rawQuery, kv = null) {
+export async function runCautionOnlyScan(rawQuery, kv = null, rawCategory = "all") {
   const query = String(rawQuery || "").trim().slice(0, 120);
+  const category = ["unverified_content", "inaccurate_info"].includes(String(rawCategory || "").toLowerCase())
+    ? String(rawCategory).toLowerCase()
+    : "all";
   const qLow = query.toLowerCase();
   const qBare = qLow.replace(/^[#@]+/, "");
   const allCaution = await loadCautionFeedEntries(kv, 100);
@@ -746,18 +920,32 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
       catalog.autofill_suggestions.push(acct.displayHandle);
     }
   }
+  const unverifiedCount = allCaution.filter((v) => v.cautionCategory === "unverified_content").length;
+  const inaccurateCount = allCaution.filter((v) => v.cautionCategory === "inaccurate_info").length;
+
+  const byCategory =
+    category === "all"
+      ? allCaution
+      : allCaution.filter((v) => v.cautionCategory === category);
+
   const filtered =
     !qLow || qLow === "tiktok"
-      ? allCaution
-      : allCaution.filter((v) => {
-          const hay = `${v.description || ""} ${v.voiceToText || ""} ${v.authorUsername || ""} ${v.authorName || ""} ${(v.hashtags || []).map((h) => `#${h} ${h}`).join(" ")} ${v.brandTag || ""}`.toLowerCase();
+      ? byCategory
+      : byCategory.filter((v) => {
+          const hay = `${v.description || ""} ${v.voiceToText || ""} ${v.authorUsername || ""} ${v.authorName || ""} ${(v.hashtags || []).map((h) => `#${h} ${h}`).join(" ")} ${v.brandTag || ""} ${v.cautionText || ""}`.toLowerCase();
           return hay.includes(qLow) || (qBare.length >= 2 && hay.includes(qBare));
         });
 
   return {
     ok: true,
-    strict_filter: "Caution: Video flagged for unverified content ONLY",
+    strict_filter: "Caution: Video flagged for unverified content & May contain inaccurate information ONLY",
     query: query || "all_flagged_videos",
+    category,
+    category_counts: {
+      all: allCaution.length,
+      unverified_content: unverifiedCount,
+      inaccurate_info: inaccurateCount,
+    },
     scanned_at: new Date().toISOString(),
     total_stored_caution_videos: allCaution.length,
     matched_count: filtered.length,
@@ -765,7 +953,7 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
     total_videos_inspected: totalVideosInspected,
     self_updating: {
       enabled: true,
-      schedule: "Every 12 hours (GitHub Actions Cron) + On-Demand @Handle Full-Profile Inspection",
+      schedule: "Cloudflare Cron (every 6h) + GitHub Actions Cron (every 12h) + On-Demand @Handle Trigger",
       ui_auto_refresh_seconds: 30,
       total_monitored_accounts: monitoredAccounts.length,
       total_videos_inspected: totalVideosInspected,
@@ -777,19 +965,336 @@ export async function runCautionOnlyScan(rawQuery, kv = null) {
   };
 }
 
+export async function fetchWebVttTranscript(subtitleUrl, fetchFn = fetch) {
+  if (!subtitleUrl || typeof subtitleUrl !== "string" || !/^https?:\/\//i.test(subtitleUrl)) return "";
+  try {
+    const res = await fetchFn(subtitleUrl, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return "";
+    const vtt = await res.text();
+    const lines = vtt
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && l !== "WEBVTT" && !/^\d+$/.test(l) && !/-->/.test(l));
+    return lines.join(" ").replace(/\s+/g, " ").trim().slice(0, 1200);
+  } catch {
+    return "";
+  }
+}
+
+const DEBUNK_SUFFIXES = ["scam", "fake", "hoax", "exposed", "warning"];
+
+export async function runScheduledCautionDiscovery(env = {}, fetchFn = fetch) {
+  const kv = env?.FUNNEL_KV || null;
+  const scrapeCreatorsKey = String(env?.SCRAPECREATORS_API_KEY || "").trim();
+  const ensembleToken = String(env?.ENSEMBLEDATA_TOKEN || "").trim();
+  const apifyToken = String(env?.APIFY_TOKEN || "").trim();
+  const resendKey = String(env?.RESEND_API_KEY || "").trim();
+  const webhookUrl = String(env?.B2B_WEBHOOK_URL || "").trim();
+
+  // 1. Load active leads, monitored repeat-offender accounts & queued stitch/duet parent IDs from KV
+  const leads = [];
+  if (kv) {
+    try {
+      const idx = JSON.parse((await kv.get("bw:leads:index")) || "[]");
+      for (const id of idx.slice(0, 12)) {
+        const raw = await kv.get(`bw:lead:item:${id}`);
+        if (raw) leads.push(JSON.parse(raw));
+      }
+    } catch {
+      // ignore
+    }
+  }
+  const allCaution = await loadCautionFeedEntries(kv, 60);
+  const accounts = await loadMonitoredAccounts(kv, allCaution, 30);
+  const repeatOffenders = accounts.filter((a) => Number(a.cautionFoundCount || 0) > 0).slice(0, 6);
+
+  // Self-learning query queue: combine Stitch/Duet debunk queries, learned Caution hashtags, and subscriber brand+debunk terms
+  const discoveryQueries = ["#stitch fake news", "#stitch debunk", "emergency alert system hoax", "anthony joshua not following the script"];
+  const seenQ = new Set(discoveryQueries.map((x) => x.toLowerCase()));
+  const pushQuery = (q) => {
+    const clean = String(q || "").trim();
+    if (clean.length >= 3 && !seenQ.has(clean.toLowerCase())) {
+      seenQ.add(clean.toLowerCase());
+      discoveryQueries.push(clean);
+    }
+  };
+  for (const lead of leads.slice(0, 4)) {
+    const kws = String(lead.keywords || "").split(/[,;\n]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+    if (kws[0]) pushQuery(`${kws[0]} ${DEBUNK_SUFFIXES[0]}`);
+  }
+  const learnedCatalog = buildCautionTagCatalog(allCaution);
+  for (const tagObj of (learnedCatalog.searchable_tags || []).filter((t) => t.type === "hashtag" && !["#fyp", "#foryou"].includes(t.tag.toLowerCase())).slice(0, 4)) {
+    pushQuery(tagObj.tag);
+  }
+
+  let queuedParentIds = [];
+  if (kv) {
+    try {
+      const parsedParents = JSON.parse((await kv.get("bw:parent_queue")) || "[]");
+      if (Array.isArray(parsedParents)) queuedParentIds = parsedParents.filter((x) => /^\d{15,22}$/.test(String(x))).slice(0, 4);
+    } catch {
+      queuedParentIds = [];
+    }
+  }
+
+  const rawItems = [];
+  let providerUsed = "none";
+
+  // 2. Poll ScrapeCreators (if configured), else EnsembleData (50 free units/day), else Apify (xtdata~tiktok-scraper)
+  if (scrapeCreatorsKey) {
+    providerUsed = "scrapecreators";
+    for (const q of discoveryQueries.slice(0, 4)) {
+      try {
+        const res = await fetchFn(
+          `https://api.scrapecreators.com/v1/tiktok/search/keyword?query=${encodeURIComponent(q)}`,
+          { headers: { "x-api-key": scrapeCreatorsKey, Accept: "application/json" }, signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.search_item_list || data?.data || data?.aweme_list || [];
+          if (Array.isArray(list)) rawItems.push(...list);
+        }
+      } catch {
+        // continue
+      }
+    }
+    for (const acct of repeatOffenders.slice(0, 3)) {
+      try {
+        const res = await fetchFn(
+          `https://api.scrapecreators.com/v3/tiktok/profile/videos?handle=${encodeURIComponent(acct.handle)}`,
+          { headers: { "x-api-key": scrapeCreatorsKey, Accept: "application/json" }, signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.aweme_list || data?.data || [];
+          if (Array.isArray(list)) rawItems.push(...list);
+        }
+      } catch {
+        // continue
+      }
+    }
+    for (const pid of queuedParentIds.slice(0, 3)) {
+      try {
+        const res = await fetchFn(
+          `https://api.scrapecreators.com/v2/tiktok/video?url=${encodeURIComponent(`https://www.tiktok.com/video/${pid}`)}`,
+          { headers: { "x-api-key": scrapeCreatorsKey, Accept: "application/json" }, signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const item = data?.aweme_detail || data?.data || data;
+          if (item && typeof item === "object") rawItems.push(item);
+        }
+      } catch {
+        // continue
+      }
+    }
+  } else if (ensembleToken) {
+    providerUsed = "ensembledata";
+    for (const q of discoveryQueries.slice(0, 3)) {
+      try {
+        const res = await fetchFn(
+          `https://ensembledata.com/apis/tt/keyword/search?name=${encodeURIComponent(q)}&period=1&sorting=0&token=${encodeURIComponent(ensembleToken)}`,
+          { signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.data?.data || data?.data?.aweme_list || data?.data || [];
+          if (Array.isArray(list)) rawItems.push(...list);
+        }
+      } catch {
+        // continue
+      }
+    }
+    for (const acct of repeatOffenders.slice(0, 2)) {
+      try {
+        const res = await fetchFn(
+          `https://ensembledata.com/apis/tt/user/posts?username=${encodeURIComponent(acct.handle)}&depth=1&token=${encodeURIComponent(ensembleToken)}`,
+          { signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.data?.data || data?.data?.aweme_list || data?.data || [];
+          if (Array.isArray(list)) rawItems.push(...list);
+        }
+      } catch {
+        // continue
+      }
+    }
+    for (const pid of queuedParentIds.slice(0, 2)) {
+      try {
+        const res = await fetchFn(
+          `https://ensembledata.com/apis/tt/post/info?url=${encodeURIComponent(`https://www.tiktok.com/video/${pid}`)}&token=${encodeURIComponent(ensembleToken)}`,
+          { signal: AbortSignal.timeout(12000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data?.data) ? data.data : data?.data ? [data.data] : [];
+          rawItems.push(...list);
+        }
+      } catch {
+        // continue
+      }
+    }
+  } else if (apifyToken) {
+    providerUsed = "apify";
+    try {
+      const res = await fetchFn(
+        `https://api.apify.com/v2/acts/xtdata~tiktok-scraper/runs?token=${encodeURIComponent(apifyToken)}&waitForFinish=25&memory=512&maxTotalChargeUsd=0.03`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "SEARCH",
+            region: "GB",
+            url: "",
+            keywords: discoveryQueries.slice(0, 4),
+            maxItems: 25,
+            isUnlimited: false,
+            sortType: 0,
+            publishTime: "ALL_TIME",
+          }),
+          signal: AbortSignal.timeout(30000),
+        },
+      );
+      if (res.ok) {
+        const runJson = await res.json();
+        const dsId = runJson?.data?.defaultDatasetId;
+        if (dsId) {
+          const dsRes = await fetchFn(
+            `https://api.apify.com/v2/datasets/${encodeURIComponent(dsId)}/items?token=${encodeURIComponent(apifyToken)}&clean=false&limit=30`,
+            { signal: AbortSignal.timeout(10000) },
+          );
+          if (dsRes.ok) {
+            const list = await dsRes.json();
+            if (Array.isArray(list)) rawItems.push(...list);
+          }
+        }
+      }
+    } catch {
+      // handled gracefully when balance is 0
+    }
+  }
+
+  // 3. Extract Caution records, capture Stitch/Duet parent trail IDs & cache WebVTT transcripts
+  const discoveredRecords = [];
+  const stitchParentIds = new Set();
+  for (const raw of rawItems) {
+    for (const pid of extractStitchDuetParentIds(raw)) stitchParentIds.add(pid);
+    const rec = extractUnverifiedCautionRecord(raw, `cf_cron_${providerUsed}`);
+    if (!rec) continue;
+    if (!rec.voiceToText && rec.subtitleUrl) {
+      rec.voiceToText = await fetchWebVttTranscript(rec.subtitleUrl, fetchFn);
+    }
+    discoveredRecords.push(rec);
+  }
+
+  if (kv && stitchParentIds.size > 0) {
+    try {
+      const prev = JSON.parse((await kv.get("bw:parent_queue")) || "[]");
+      const mergedParents = Array.from(new Set([...Array.from(stitchParentIds), ...prev])).slice(0, 100);
+      await kv.put("bw:parent_queue", JSON.stringify(mergedParents));
+    } catch {
+      // ignore
+    }
+  }
+
+  // 4. Persist newly discovered Caution clips to KV & fire direct Resend / Webhook alerts to matched leads
+  let alertsSent = 0;
+  if (kv && discoveredRecords.length > 0) {
+    try {
+      const existingIds = JSON.parse((await kv.get("bw:caution:index")) || "[]");
+      const existingSet = new Set(existingIds);
+      const newlyAdded = [];
+      for (const rec of discoveredRecords.slice(0, 12)) {
+        await kv.put(`bw:caution:item:${rec.id}`, JSON.stringify(rec), { expirationTtl: 180 * 86400 });
+        if (!existingSet.has(rec.id)) {
+          newlyAdded.push(rec);
+          existingSet.add(rec.id);
+        }
+      }
+      const nextIds = [...discoveredRecords.map((r) => r.id), ...existingIds.filter((id) => !discoveredRecords.some((r) => r.id === id))].slice(0, 200);
+      await kv.put("bw:caution:index", JSON.stringify(nextIds));
+
+      for (const rec of newlyAdded) {
+        const hay = `${rec.description} ${rec.voiceToText} ${rec.authorUsername} ${(rec.hashtags || []).join(" ")}`.toLowerCase();
+        for (const lead of leads) {
+          const terms = String(lead.keywords || "").split(/[,;\n]+/).map((t) => t.trim().toLowerCase()).filter((t) => t.length >= 2);
+          const hits = terms.filter((t) => hay.includes(t));
+          if (!hits.length) continue;
+          if (resendKey && lead.email) {
+            await fetchFn("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                from: String(env?.RESEND_FROM_EMAIL || "CautionWatch Live Alerts <onboarding@resend.dev>").trim(),
+                to: [lead.email],
+                subject: `[CautionWatch Live Alert] Flagged TikTok matching ${hits.join(", ")}`,
+                text: `CautionWatch detected a new TikTok Caution clip:\nLabel: ${rec.cautionText}\nCategory: ${rec.cautionCategory || "unverified_content"}\nCreator: ${rec.authorUsername}\nURL: ${rec.url}\nCaption: ${rec.description}\nTranscript: ${rec.voiceToText}\n`,
+              }),
+              signal: AbortSignal.timeout(5000),
+            }).catch(() => {});
+            alertsSent += 1;
+          }
+          const leadHookMatch = String(lead.notes || "").match(/https?:\/\/[^\s"'<>]+/i);
+          const targetWebhook = leadHookMatch ? leadHookMatch[0] : webhookUrl;
+          if (targetWebhook) {
+            await fetchFn(targetWebhook, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ event: "caution_live_alert", matched_terms: hits, lead_id: lead.lead_id, video: rec }),
+              signal: AbortSignal.timeout(5000),
+            }).catch(() => {});
+            alertsSent += 1;
+          }
+        }
+      }
+    } catch {
+      // ignore KV errors
+    }
+  }
+
+  return {
+    ok: true,
+    provider: providerUsed,
+    queries_checked: discoveryQueries.length,
+    raw_items_scanned: rawItems.length,
+    caution_found: discoveredRecords.length,
+    stitch_duet_parents_queued: stitchParentIds.size,
+    alerts_sent: alertsSent,
+    ran_at: new Date().toISOString(),
+  };
+}
+
 export function buildCautionDossier(targetBrand, tier, scanResult, contactNotes = "") {
   const brand = String(targetBrand || scanResult?.query || "Target Watch").trim().slice(0, 120);
   const videos = scanResult?.caution_videos || [];
   const csvEsc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const csvRows = [["video_id", "author_username", "caution_label", "matched_field", "description", "voice_to_text", "url", "thumbnail_url", "captured_at"]];
+  const csvRows = [
+    ["video_id", "author_username", "caution_category", "share_limited", "caution_label", "matched_field", "description", "voice_to_text", "url", "thumbnail_url", "captured_at"],
+  ];
   for (const v of videos) {
     csvRows.push(
-      [v.videoId, v.authorUsername, v.cautionText, v.matchedField, v.description, v.voiceToText, v.url, v.thumbnailUrl || "", v.capturedAt || ""].map(csvEsc),
+      [
+        v.videoId,
+        v.authorUsername,
+        v.cautionCategory || "unverified_content",
+        v.shareLimited ? "true" : "false",
+        v.cautionText,
+        v.matchedField,
+        v.description,
+        v.voiceToText,
+        v.url,
+        v.thumbnailUrl || "",
+        v.capturedAt || "",
+      ].map(csvEsc),
     );
   }
   const briefMd = [
     `# CautionWatch Evidence Dossier: ${brand}`,
-    `Filter Mode: STRICT — "Caution: Video flagged for unverified content" ONLY`,
+    `Filter Mode: STRICT — Official TikTok Misinformation Caution Tags ("Flagged for unverified content" & "May contain inaccurate information") ONLY`,
     `Generated: ${new Date().toISOString()}`,
     `Tier: ${tier}`,
     contactNotes ? `Notes: ${contactNotes}` : "",

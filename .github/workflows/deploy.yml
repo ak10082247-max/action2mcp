@@ -71,6 +71,11 @@ jobs:
           CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
           CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SCRAPECREATORS_API_KEY: ${{ secrets.SCRAPECREATORS_API_KEY }}
+          ENSEMBLEDATA_TOKEN: ${{ secrets.ENSEMBLEDATA_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          B2B_WEBHOOK_URL: ${{ secrets.B2B_WEBHOOK_URL }}
           GH_PAT: ${{ secrets.GH_PAT }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -96,6 +101,21 @@ jobs:
           if [ -n "${APIFY_TOKEN:-}" ]; then
             printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@4 secret put APIFY_TOKEN --config revenue_dashboard/wrangler.toml >/dev/null
             printf '%s' "$APIFY_TOKEN" | npx --yes wrangler@4 secret put APIFY_TOKEN --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${SCRAPECREATORS_API_KEY:-}" ]; then
+            printf '%s' "$SCRAPECREATORS_API_KEY" | npx --yes wrangler@4 secret put SCRAPECREATORS_API_KEY --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${ENSEMBLEDATA_TOKEN:-}" ]; then
+            printf '%s' "$ENSEMBLEDATA_TOKEN" | npx --yes wrangler@4 secret put ENSEMBLEDATA_TOKEN --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${RESEND_API_KEY:-}" ]; then
+            printf '%s' "$RESEND_API_KEY" | npx --yes wrangler@4 secret put RESEND_API_KEY --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${RESEND_FROM_EMAIL:-}" ]; then
+            printf '%s' "$RESEND_FROM_EMAIL" | npx --yes wrangler@4 secret put RESEND_FROM_EMAIL --config brand_watch/wrangler.toml >/dev/null
+          fi
+          if [ -n "${B2B_WEBHOOK_URL:-}" ]; then
+            printf '%s' "$B2B_WEBHOOK_URL" | npx --yes wrangler@4 secret put B2B_WEBHOOK_URL --config brand_watch/wrangler.toml >/dev/null
           fi
           if [ -n "${GH_PAT:-}" ]; then
             printf '%s' "$GH_PAT" | npx --yes wrangler@4 secret put GH_PAT --config brand_watch/wrangler.toml >/dev/null

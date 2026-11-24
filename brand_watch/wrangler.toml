@@ -10,3 +10,6 @@ ENVIRONMENT = "production"
 MERCHANT_BASE_ADDRESS = "0x80E0Ae84679b7f11bE171DaADd492FBECf628cd6"
 MERCHANT_SOLANA_ATA = "DD3A7jaXFeHcif9eYj6Vhomuxypat5Yxi8ow6wxz27yL"
 B2B_CONTACT_EMAIL = "armkhan18@gmail.com"
+
+[triggers]
+crons = ["0 */6 * * *"]

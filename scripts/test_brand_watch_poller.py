@@ -40,14 +40,69 @@ class CautionPollerTests(unittest.TestCase):
             "content_desc": '["THEY FLAGGED MY VIDEO FOR \\"unverified content\\""]',
             "misc_info": '{"tns_im_info":{"label_category":0}}',
         }))
+        # Standard AI-generated label (caution_label: null) MUST be rejected
+        self.assertIsNone(poller.is_unverified_caution_match({
+            "aweme_id": "106",
+            "misc_info": json.dumps({
+                "tns_im_info": {
+                    "caution_label": None,
+                    "label_category": 0,
+                    "thumbnail_label": "AI-generated",
+                }
+            }),
+        }))
+        # Sensitive content label MUST be rejected
+        self.assertIsNone(poller.is_unverified_caution_match({
+            "aweme_id": "107",
+            "misc_info": json.dumps({
+                "tns_im_info": {
+                    "caution_label": "Caution",
+                    "label_category": 0,
+                    "thumbnail_label": "May contain sensitive content",
+                }
+            }),
+        }))
+        # Official Category 2: "Caution: May contain inaccurate information." + share-limited label_category=1 MUST be accepted
+        inacc = poller.extract_caution_record({
+            "aweme_id": "7711009413452123395",
+            "share_url": "https://www.tiktok.com/@maskedtruthmt/video/7711009413452123395?_r=1",
+            "desc": "Breaking rumor clip #maskedtruth",
+            "author": {"unique_id": "maskedtruthmt", "sec_uid": "MS4wLjABAAAA_TEST_SECUID"},
+            "misc_info": json.dumps({
+                "ktf_info": {
+                    "show_warning": False,
+                    "label_category": 1,
+                    "caution_label": "Caution:",
+                    "warning_text": "%s Sharing is limited to one chat at a time.",
+                },
+                "tns_im_info": {
+                    "caution_label": "Caution",
+                    "thumbnail_label": "May contain inaccurate information",
+                },
+            }),
+            "video": {
+                "origin_cover": {"url_list": ["https://cdn.example/cover19.jpg"]},
+                "cla_info": {
+                    "caption_infos": [
+                        {"lang": "eng-US", "url": "https://vtt.example/cap.vtt"}
+                    ]
+                },
+            },
+        })
+        self.assertIsNotNone(inacc)
+        self.assertEqual(inacc["cautionCategory"], "inaccurate_info")
+        self.assertTrue(inacc["shareLimited"])
+        self.assertEqual(inacc["secUid"], "MS4wLjABAAAA_TEST_SECUID")
+        self.assertEqual(inacc["subtitleUrl"], "https://vtt.example/cap.vtt")
+        self.assertIn("inaccurate information", inacc["cautionText"].lower())
         nested = poller.is_unverified_caution_match({
             "id": "104",
             "anchors": [{"extraInfo": {"warning": "Caution: Video flagged for unverified content."}}],
         })
         self.assertIsNotNone(nested)
         profiles = poller.collect_discovery_profiles([{"keywords": "Brand, @watcher"}], [{"authorUsername": "@repeatflag"}], [], cap=15)
-        self.assertEqual(profiles[0], "maskedtruthnews")
         self.assertIn("maskedtruthmt", profiles)
+        self.assertIn("maskedtruthnews", profiles)
         self.assertIn("watcher", profiles)
         self.assertIn("repeatflag", profiles)
         aweme_info_wrapped = poller.extract_caution_record({

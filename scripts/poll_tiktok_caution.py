@@ -101,17 +101,30 @@ DEFAULT_DISCOVERY_QUERIES = [
     "#exposedtruth",
     "#deepfakeexposed",
     "#fakebreakingnews",
+    "#stitch fake news",
+    "#stitch debunk",
+    "november 17 emergency alert system",
+    "blackout tuesday emergency alert",
+    "anthony joshua case police evidence",
+    "secret audio leak protest plot",
+    "celebrity clones cover story",
 ]
 
 DEFAULT_SUSPECT_PROFILES = [
+    "maskedtruthmt",
+    "zaikinternational",
+    "godwin_je",
+    "tragicallyromantic",
+    "james_a_williams_",
+    "renatalaria022",
+    "cosmicteachings8",
+    "filspixel",
     "maskedtruthnews",
     "unmasked_truth101",
     "th3.mask3d.truth",
     "vfortruths",
     "masterysoulreality",
-    "we.are.changee",
     ".masked.truth",
-    "maskedtruthmt",
 ]
 
 WARNING_FIELDS = (
@@ -176,7 +189,43 @@ def _extract_root(raw_item: dict) -> dict:
     return raw_item
 
 
-def _parse_misc_info_caution(raw_misc) -> str | None:
+ANY_CAUTION_MISINFO_RE = re.compile(
+    r"(?:(?:caution:\s*)?(?:video\s+)?flagged\s+for\s+unverified\s+content|"
+    r"caution:\s*may\s+contain\s+inaccurate\s+information|"
+    r"check\s+your\s+sources\s+before\s+sharing|"
+    r"sharing\s+is\s+limited\s+to\s+one\s+chat\s+at\s+a\s+time)",
+    re.IGNORECASE,
+)
+
+
+def _fetch_webvtt_transcript(subtitle_url: str) -> str:
+    if not subtitle_url or not subtitle_url.startswith(("http://", "https://")):
+        return ""
+    try:
+        st, _, _, raw = http_fetch(
+            subtitle_url,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6,
+            verify_ssl=True,
+        )
+        if st >= 400 or not raw:
+            return ""
+        vtt = raw.decode("utf-8", "replace")
+        lines = [
+            ln.strip()
+            for ln in vtt.splitlines()
+            if ln.strip()
+            and ln.strip() != "WEBVTT"
+            and not ln.strip().isdigit()
+            and "-->" not in ln
+        ]
+        return re.sub(r"\s+", " ", " ".join(lines)).strip()[:1200]
+    except Exception:
+        return ""
+
+
+def _parse_misc_info_caution(raw_misc) -> tuple[str, str, str, bool] | None:
+    """Return (matched_field, caution_text, caution_category, share_limited) or None."""
     obj = raw_misc
     if isinstance(raw_misc, str):
         trimmed = raw_misc.strip()
@@ -188,18 +237,52 @@ def _parse_misc_info_caution(raw_misc) -> str | None:
             return None
     if not isinstance(obj, dict):
         return None
-    ktf = obj.get("ktf_info")
-    if not isinstance(ktf, dict):
-        return None
-    if ktf.get("show_warning") is False:
-        return None
-    warn_tmpl = str(ktf.get("warning_text") or ktf.get("message_text_on_share") or "").strip()
-    if not UNVERIFIED_CAUTION_RE.search(warn_tmpl):
-        return None
-    label = str(ktf.get("caution_label") or "Caution:").strip()
-    formatted = (warn_tmpl.replace("%s", label) if "%s" in warn_tmpl else warn_tmpl)
-    formatted = re.sub(r"\s+", " ", formatted).strip()
-    return formatted or "Caution: Video flagged for unverified content."
+    ktf = obj.get("ktf_info") if isinstance(obj.get("ktf_info"), dict) else None
+    tns = obj.get("tns_im_info") if isinstance(obj.get("tns_im_info"), dict) else None
+    share_limited = bool(
+        ktf
+        and (
+            ktf.get("label_category") == 1
+            or re.search(r"sharing\s+is\s+limited\s+to\s+one\s+chat", str(ktf.get("label_title") or ""), re.IGNORECASE)
+        )
+    )
+
+    if ktf and ktf.get("show_warning") is not False:
+        warn_tmpl = str(ktf.get("warning_text") or ktf.get("message_text_on_share") or "").strip()
+        if UNVERIFIED_CAUTION_RE.search(warn_tmpl):
+            label = str(ktf.get("caution_label") or "Caution:").strip()
+            formatted = warn_tmpl.replace("%s", label) if "%s" in warn_tmpl else warn_tmpl
+            formatted = re.sub(r"\s+", " ", formatted).strip()
+            return (
+                "misc_info.ktf_info",
+                formatted or "Caution: Video flagged for unverified content.",
+                "unverified_content",
+                share_limited,
+            )
+        if ktf.get("show_warning") is True and warn_tmpl:
+            label = str(ktf.get("caution_label") or "Caution:").strip()
+            formatted = warn_tmpl.replace("%s", label) if "%s" in warn_tmpl else f"{label} {warn_tmpl}"
+            formatted = re.sub(r"\s+", " ", formatted).strip()
+            return (
+                "misc_info.ktf_info",
+                formatted,
+                "inaccurate_info",
+                share_limited,
+            )
+
+    if tns:
+        tns_label = str(tns.get("caution_label") or "").strip()
+        tns_thumb = str(tns.get("thumbnail_label") or "").strip()
+        if tns_label.lower() == "caution" and re.search(r"inaccurate\s+information", tns_thumb, re.IGNORECASE):
+            suffix = " (Sharing limited to 1 chat)" if share_limited else ""
+            field = "misc_info.ktf_info+tns_im_info" if share_limited else "misc_info.tns_im_info"
+            return (
+                field,
+                f"Caution: May contain inaccurate information.{suffix}",
+                "inaccurate_info",
+                share_limited,
+            )
+    return None
 
 
 def _extract_content_desc_fallback(root: dict) -> str:
@@ -229,19 +312,19 @@ def _collect_warning_strings(raw_item: dict) -> list[tuple[str, str]]:
         if value is None or depth > 5:
             return
         if field == "misc_info":
-            ktf_text = _parse_misc_info_caution(value)
-            if ktf_text:
-                push_text("misc_info.ktf_info", ktf_text)
+            ktf_hit = _parse_misc_info_caution(value)
+            if ktf_hit:
+                push_text(ktf_hit[0], ktf_hit[1])
                 return
             if isinstance(value, str) and value.strip().startswith("{"):
                 return
-            if isinstance(value, dict) and "ktf_info" in value:
+            if isinstance(value, dict) and ("ktf_info" in value or "tns_im_info" in value):
                 return
         if isinstance(value, str):
             if field == "cautionText" and value.strip().startswith("{"):
-                ktf_text = _parse_misc_info_caution(value)
-                if ktf_text:
-                    push_text("misc_info.ktf_info", ktf_text)
+                ktf_hit = _parse_misc_info_caution(value)
+                if ktf_hit:
+                    push_text(ktf_hit[0], ktf_hit[1])
                     return
             push_text(field, value)
         elif isinstance(value, list):
@@ -269,11 +352,15 @@ def _collect_warning_strings(raw_item: dict) -> list[tuple[str, str]]:
 
 
 def is_unverified_caution_match(raw_item: dict) -> tuple[str, str] | None:
-    """Return (matched_field, caution_text) ONLY if raw_item carries the unverified Caution label."""
+    """Return (matched_field, caution_text) ONLY if raw_item carries an official TikTok misinformation Caution tag."""
     if not isinstance(raw_item, dict):
         return None
-    for field, text in _collect_warning_strings(raw_item):
+    candidates = _collect_warning_strings(raw_item)
+    for field, text in candidates:
         if UNVERIFIED_CAUTION_RE.search(text):
+            return field, text
+    for field, text in candidates:
+        if ANY_CAUTION_MISINFO_RE.search(text):
             return field, text
     return None
 
@@ -393,6 +480,39 @@ def extract_caution_record(
         or ""
     ).strip()[:1200]
 
+    cla_infos = (
+        (video_meta.get("cla_info") or {}).get("caption_infos")
+        if isinstance(video_meta.get("cla_info"), dict)
+        else (root.get("cla_info") or {}).get("caption_infos")
+        if isinstance(root.get("cla_info"), dict)
+        else video_meta.get("subtitleInfos")
+    ) or []
+    subtitle_url = str(root.get("subtitleUrl") or "").strip()
+    if not subtitle_url and isinstance(cla_infos, list) and cla_infos:
+        first_sub = cla_infos[0] if isinstance(cla_infos[0], dict) else {}
+        subtitle_url = str(
+            first_sub.get("url")
+            or first_sub.get("Url")
+            or ((first_sub.get("url_list") or [""])[0] if isinstance(first_sub.get("url_list"), list) else "")
+            or ""
+        ).strip()
+    if not voice and subtitle_url:
+        voice = _fetch_webvtt_transcript(subtitle_url)
+
+    sec_uid = str(
+        root.get("secUid")
+        or author_meta.get("sec_uid")
+        or author_meta.get("secUid")
+        or ""
+    ).strip() or None
+
+    caution_category = "unverified_content" if UNVERIFIED_CAUTION_RE.search(caution_text) else "inaccurate_info"
+    share_limited = bool(
+        root.get("shareLimited")
+        or re.search(r"sharing\s+(?:is\s+)?limited\s+to\s+(?:one|1)\s+chat", caution_text, re.IGNORECASE)
+        or "ktf_info+tns_im_info" in matched_field
+    )
+
     captured_at = str(
         root.get("capturedAt")
         or root.get("createTimeISO")
@@ -413,11 +533,15 @@ def extract_caution_record(
         "authorUsername": author_handle,
         "authorName": author_name,
         "authorUrl": f"https://www.tiktok.com/@{raw_user}" if raw_user else "",
+        "secUid": sec_uid,
         "description": desc,
         "voiceToText": voice,
+        "subtitleUrl": subtitle_url or None,
         "hashtags": hashtags,
         "thumbnailUrl": thumb,
         "cautionText": caution_text,
+        "cautionCategory": caution_category,
+        "shareLimited": share_limited,
         "matchedField": resolved_matched_field,
         "brandTag": str(root.get("brandTag") or root.get("query") or query_tag or "").strip()[:120],
         "capturedAt": captured_at,
@@ -430,7 +554,7 @@ def load_flagged_videos(path: str = FLAGGED_JSON_PATH) -> list[dict]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
             data = json.loads(fh.read())
-        return [x for x in data if isinstance(x, dict) and UNVERIFIED_CAUTION_RE.search(str(x.get("cautionText", "")))] if isinstance(data, list) else []
+        return [x for x in data if isinstance(x, dict) and ANY_CAUTION_MISINFO_RE.search(str(x.get("cautionText", "")))] if isinstance(data, list) else []
     except Exception:
         return []
 
@@ -444,14 +568,20 @@ def write_flagged_artifacts(
     os.makedirs(os.path.dirname(seed_js_path), exist_ok=True)
     strict_only = [
         r for r in records
-        if isinstance(r, dict) and UNVERIFIED_CAUTION_RE.search(str(r.get("cautionText", "")))
+        if isinstance(r, dict) and ANY_CAUTION_MISINFO_RE.search(str(r.get("cautionText", "")))
     ]
+    strict_only.sort(
+        key=lambda r: (
+            0 if r.get("cautionCategory") == "unverified_content" else (1 if r.get("shareLimited") else 2),
+            -(int(r.get("videoId")) if str(r.get("videoId") or "").isdigit() else 0),
+        )
+    )
     serialized = json.dumps(strict_only, indent=2, ensure_ascii=False)
     with open(json_path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(serialized + "\n")
     seed_banner = (
         "// Auto-generated by scripts/poll_tiktok_caution.py\n"
-        "// Strictly contains ONLY TikTok clips verified to carry 'Caution: Video flagged for unverified content'.\n"
+        "// Strictly contains ONLY TikTok clips verified to carry official Caution misinformation/unverified-content labels.\n"
         f"export const REPO_CAUTION_VIDEOS = {serialized};\n"
     )
     with open(seed_js_path, "w", encoding="utf-8", newline="\n") as fh:
@@ -464,8 +594,12 @@ def _normalize_existing_record(rec: dict) -> dict:
     if caution.strip().startswith("{"):
         parsed = _parse_misc_info_caution(caution)
         if parsed:
-            out["cautionText"] = parsed
-            out["matchedField"] = "misc_info.ktf_info"
+            out["matchedField"] = parsed[0]
+            out["cautionText"] = parsed[1]
+            out["cautionCategory"] = parsed[2]
+            out["shareLimited"] = parsed[3]
+    if not out.get("cautionCategory"):
+        out["cautionCategory"] = "unverified_content" if UNVERIFIED_CAUTION_RE.search(str(out.get("cautionText") or "")) else "inaccurate_info"
     u = str(out.get("url") or "")
     if re.match(r"^https?://[^/]*tiktok\.com/@[^/?#]+/video/\d+", u, re.IGNORECASE) and "?" in u:
         out["url"] = u.split("?")[0]
@@ -486,7 +620,7 @@ def merge_caution_records(existing: list[dict], incoming: list[dict], limit: int
     new_ids: list[str] = []
     for rec in incoming:
         vid = str(rec.get("id") or rec.get("videoId") or "").strip()
-        if not vid or not UNVERIFIED_CAUTION_RE.search(str(rec.get("cautionText", ""))):
+        if not vid or not ANY_CAUTION_MISINFO_RE.search(str(rec.get("cautionText", ""))):
             continue
         if vid not in by_id:
             added.append(rec)
@@ -563,6 +697,45 @@ def collect_discovery_queries(leads: list[dict], extra_queries: list[str] | None
         for q in DEFAULT_DISCOVERY_QUERIES:
             add_q(q)
     return queries[:cap]
+
+
+def poll_scrapecreators(queries: list[str], profiles: list[str] | None = None, max_items: int = 30) -> list[tuple[str, dict]]:
+    key = (os.environ.get("SCRAPECREATORS_API_KEY") or "").strip()
+    if not key:
+        return []
+    headers = {"x-api-key": key, "Accept": "application/json"}
+    results: list[tuple[str, dict]] = []
+    for query in queries[:5]:
+        if len(results) >= max_items:
+            break
+        q_clean = query.lstrip("#") if query.startswith("#") else query
+        endpoint = f"https://api.scrapecreators.com/v1/tiktok/search/keyword?query={urllib.parse.quote(q_clean)}"
+        try:
+            payload = http_get_json(endpoint, headers=headers, timeout=18)
+            raw_list = payload.get("search_item_list") or payload.get("aweme_list") or payload.get("data") or []
+            for item in (raw_list or []):
+                if isinstance(item, dict):
+                    results.append((f"scrapecreators:{query}", item))
+                    if len(results) >= max_items:
+                        break
+        except Exception:
+            continue
+    for handle in (profiles or [])[:4]:
+        if len(results) >= max_items:
+            break
+        clean_h = handle.lstrip("@")
+        endpoint = f"https://api.scrapecreators.com/v3/tiktok/profile/videos?handle={urllib.parse.quote(clean_h)}"
+        try:
+            payload = http_get_json(endpoint, headers=headers, timeout=18)
+            raw_list = payload.get("aweme_list") or payload.get("data") or []
+            for item in (raw_list or []):
+                if isinstance(item, dict):
+                    results.append((f"scrapecreators:@{clean_h}", item))
+                    if len(results) >= max_items:
+                        break
+        except Exception:
+            continue
+    return results
 
 
 def poll_ensembledata(queries: list[str], max_items: int = 20) -> list[tuple[str, dict]]:
@@ -730,16 +903,17 @@ def collect_discovery_profiles(
     for fh in (factcheck_handles or []):
         if fh.lower() != "politifactenespanol":
             add_p(fh)
-    for p in DEFAULT_SUSPECT_PROFILES:
-        add_p(p)
-    for acct in (reported_accounts or []):
-        add_p(str(acct.get("handle") or acct.get("displayHandle") or ""))
+    # Prioritize subscribed lead @handles and verified repeat-offender Caution creators before static defaults
     for lead in leads:
         for chunk in re.split(r"[,;\n\s]+", str(lead.get("keywords") or "")):
             if chunk.strip().startswith("@"):
                 add_p(chunk.strip())
     for item in (existing_flagged or []):
         add_p(str(item.get("authorUsername") or ""))
+    for p in DEFAULT_SUSPECT_PROFILES:
+        add_p(p)
+    for acct in (reported_accounts or []):
+        add_p(str(acct.get("handle") or acct.get("displayHandle") or ""))
     return profiles[:cap]
 
 
@@ -1429,19 +1603,30 @@ def verify_caution_via_emulator_ocr(video_urls: list[str], max_checks: int = 12)
                 os.remove(png_path)
             except OSError:
                 pass
-            if UNVERIFIED_CAUTION_RE.search(ocr_txt):
+            if ANY_CAUTION_MISINFO_RE.search(ocr_txt):
+                is_unv = bool(UNVERIFIED_CAUTION_RE.search(ocr_txt))
                 verified.append((
                     "emulator_ocr",
                     {
                         "id": vid,
                         "webVideoUrl": f"https://www.tiktok.com/@{handle}/video/{vid}",
                         "authorMeta": {"name": handle, "nickName": handle},
-                        "misc_info": json.dumps({
-                            "ktf_info": {
-                                "Caution": "Caution:",
-                                "warn_text": "Video flagged for unverified content.",
+                        "misc_info": json.dumps(
+                            {
+                                "ktf_info": {
+                                    "show_warning": True,
+                                    "caution_label": "Caution:",
+                                    "warning_text": "%s Video flagged for unverified content.",
+                                }
                             }
-                        }),
+                            if is_unv
+                            else {
+                                "tns_im_info": {
+                                    "caution_label": "Caution",
+                                    "thumbnail_label": "May contain inaccurate information",
+                                }
+                            }
+                        ),
                     },
                 ))
         except Exception:
@@ -1755,7 +1940,7 @@ def main(argv: list[str] | None = None) -> int:
     load_workspace_env(REPO_ROOT)
     parser = argparse.ArgumentParser(description="CautionWatch strict TikTok unverified-content poller.")
     parser.add_argument("--live", action="store_true", help="Actually call external scraper APIs & send subscriber alerts.")
-    parser.add_argument("--provider", choices=("auto", "ensembledata", "rapidapi", "apify"), default="auto")
+    parser.add_argument("--provider", choices=("auto", "scrapecreators", "ensembledata", "rapidapi", "apify"), default="auto")
     parser.add_argument("--apify-actor", default="novi~tiktok-scraper-ultimate")
     parser.add_argument("--max-items", type=int, default=40, help="Hard cap on fetched raw items per run.")
     parser.add_argument("--query", action="append", default=[], help="Extra keyword or #hashtag query.")
@@ -1806,8 +1991,10 @@ def main(argv: list[str] | None = None) -> int:
             raw_items = [("local_json", x) for x in loaded if isinstance(x, dict)]
     elif args.live or args.consolidate_only:
         prov = args.provider
-        if not args.consolidate_only and prov in ("auto", "ensembledata") and os.environ.get("ENSEMBLEDATA_TOKEN"):
-            raw_items.extend(poll_ensembledata(queries, max_items=args.max_items))
+        if not args.consolidate_only and prov in ("auto", "scrapecreators") and os.environ.get("SCRAPECREATORS_API_KEY"):
+            raw_items.extend(poll_scrapecreators(queries, profiles=profiles, max_items=args.max_items))
+        if not args.consolidate_only and len(raw_items) < args.max_items and prov in ("auto", "ensembledata") and os.environ.get("ENSEMBLEDATA_TOKEN"):
+            raw_items.extend(poll_ensembledata(queries, max_items=args.max_items - len(raw_items)))
         if not args.consolidate_only and len(raw_items) < args.max_items and prov in ("auto", "rapidapi") and os.environ.get("RAPIDAPI_KEY"):
             raw_items.extend(poll_rapidapi(queries, max_items=args.max_items - len(raw_items)))
         if (args.consolidate_only or len(raw_items) < args.max_items) and prov in ("auto", "apify") and os.environ.get("APIFY_TOKEN"):

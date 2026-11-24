@@ -11,7 +11,7 @@ import { computeStopLossVerdict } from "./edge_helpers.js";
 import siteRescueWorker from "./site_rescue/worker.js";
 import ecomFixWorker from "./ecom_fix/worker.js";
 import brandWatchWorker from "./brand_watch/worker.js";
-import { validateTikTokVideoUrl, extractUnverifiedCautionRecord } from "./brand_watch/scanner.js";
+import { validateTikTokVideoUrl, extractUnverifiedCautionRecord, extractStitchDuetParentIds, ANY_CAUTION_MISINFO_RE } from "./brand_watch/scanner.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 function createMemoryKv() {
@@ -1267,11 +1267,12 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     assert.match(homeHtml, /Contact for Live Alerts \(Businesses &amp; Individuals\)/);
 
     const healthJson = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/health"), BW_ENV)).json();
-    assert.equal(healthJson.strict_filter, "Caution: Video flagged for unverified content ONLY");
+    assert.equal(healthJson.strict_filter, "Caution: Video flagged for unverified content & May contain inaccurate information ONLY");
+    assert.equal(healthJson.cron_schedule, "0 */6 * * *");
     const baseFeed = await (await brandWatchWorker.fetch(new Request("https://brand-watch.ak10082247.workers.dev/api/feed"), BW_ENV)).json();
     const baseCount = baseFeed.total_stored_caution_videos;
 
-    // 2. Authenticated Caution Ingestion strictly drops clean/unrelated clips
+    // 2. Authenticated Caution Ingestion strictly drops clean/AI/sensitive clips and accepts BOTH official Caution tags
     const unauthIngest = await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/ingest-caution", {
         method: "POST",
@@ -1292,11 +1293,26 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
             { id: "1001", webVideoUrl: "https://www.tiktok.com/@clean/video/1001", warnInfo: [] },
             { id: "1002", webVideoUrl: "https://www.tiktok.com/@ai/video/1002", warnInfo: [{ text: "Contains AI-generated media" }] },
             {
+              aweme_id: "1003",
+              share_url: "https://www.tiktok.com/@sens/video/1003",
+              misc_info: JSON.stringify({ tns_im_info: { caution_label: "Caution", thumbnail_label: "May contain sensitive content" } }),
+            },
+            {
               id: "7709208502949940999",
               webVideoUrl: "https://www.tiktok.com/@rumorclip/video/7709208502949940999",
               authorMeta: { name: "rumorclip" },
               text: "Unverified Anthony Joshua clip #maskedtruth",
               labelTop: "Caution: Video flagged for unverified content.",
+            },
+            {
+              aweme_id: "7709208502949940888",
+              share_url: "https://www.tiktok.com/@rumorclip/video/7709208502949940888",
+              author: { unique_id: "rumorclip", sec_uid: "MS4wLjABAAAA_SEC_TEST" },
+              desc: "Inaccurate rumor about Anthony Joshua #maskedtruth",
+              misc_info: JSON.stringify({
+                ktf_info: { show_warning: false, label_category: 1, label_title: "Sharing is limited to one chat at a time" },
+                tns_im_info: { caution_label: "Caution", thumbnail_label: "May contain inaccurate information" },
+              }),
             },
           ],
         }),
@@ -1304,8 +1320,12 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
       BW_ENV,
     )).json();
     assert.equal(ingestRes.ok, true);
-    assert.equal(ingestRes.accepted, 1);
-    assert.equal(ingestRes.rejected, 2);
+    assert.equal(ingestRes.accepted, 2);
+    assert.equal(ingestRes.rejected, 3);
+    const inaccItem = ingestRes.items.find((x) => x.videoId === "7709208502949940888");
+    assert.equal(inaccItem.cautionCategory, "inaccurate_info");
+    assert.equal(inaccItem.shareLimited, true);
+    assert.equal(inaccItem.secUid, "MS4wLjABAAAA_SEC_TEST");
 
     // 3. Report rejects non-Caution labels with 422, accepts Caution clip via oEmbed verification
     const badReport = await brandWatchWorker.fetch(
@@ -1338,23 +1358,65 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     assert.equal(repRes.persisted, true);
     assert.equal(repRes.entry.authorUsername, "@maskedtruthmt");
 
-    // 4. Scan & Feed endpoints return ONLY verified Caution videos
+    // 4. Scan & Feed endpoints return ONLY verified Caution videos + support Category Filtering
     const scanRes = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=Anthony%20Joshua"),
       BW_ENV,
     )).json();
     assert.equal(scanRes.ok, true);
-    assert.equal(scanRes.strict_filter, "Caution: Video flagged for unverified content ONLY");
-    assert.ok(scanRes.matched_count >= 2);
+    assert.equal(scanRes.strict_filter, "Caution: Video flagged for unverified content & May contain inaccurate information ONLY");
+    assert.ok(scanRes.matched_count >= 3);
     assert.ok(scanRes.caution_videos.some((v) => v.videoId === "7709208502949940999"));
+    assert.ok(scanRes.caution_videos.some((v) => v.videoId === "7709208502949940888"));
     assert.ok(scanRes.caution_videos.some((v) => v.videoId === "7709208502949940500"));
-    assert.ok(scanRes.caution_videos.every((v) => /flagged\s+for\s+unverified\s+content/i.test(v.cautionText)));
+    assert.ok(scanRes.caution_videos.every((v) => ANY_CAUTION_MISINFO_RE.test(v.cautionText)));
+
+    const unverifiedOnly = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=Anthony%20Joshua&category=unverified_content"),
+      BW_ENV,
+    )).json();
+    assert.equal(unverifiedOnly.category, "unverified_content");
+    assert.ok(unverifiedOnly.caution_videos.length >= 2);
+    assert.ok(unverifiedOnly.caution_videos.every((v) => v.cautionCategory === "unverified_content"));
+
+    const inaccurateOnly = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/scan?q=Anthony%20Joshua&category=inaccurate_info"),
+      BW_ENV,
+    )).json();
+    assert.equal(inaccurateOnly.category, "inaccurate_info");
+    assert.ok(inaccurateOnly.caution_videos.some((v) => v.videoId === "7709208502949940888"));
+    assert.ok(inaccurateOnly.caution_videos.every((v) => v.cautionCategory === "inaccurate_info"));
+
+    // Stitch/Duet parent trail extraction check
+    const parents = extractStitchDuetParentIds({
+      duet_from_id: "7700000000000001111",
+      stitch_from_id: "7700000000000002222",
+      desc: "#stitch with @someone",
+    });
+    assert.deepEqual(parents.sort(), ["7700000000000001111", "7700000000000002222"]);
+
+    // Cron trigger route rejects unauthorized requests and succeeds when authorized
+    const unauthCron = await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/cron-run", { method: "POST" }),
+      BW_ENV,
+    );
+    assert.equal(unauthCron.status, 401);
+    const authCron = await (await brandWatchWorker.fetch(
+      new Request("https://brand-watch.ak10082247.workers.dev/api/cron-run", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${ADMIN_TOK}` },
+      }),
+      BW_ENV,
+    )).json();
+    assert.equal(authCron.ok, true);
+    assert.equal(authCron.provider, "none");
 
     const feedRes = await (await brandWatchWorker.fetch(
       new Request("https://brand-watch.ak10082247.workers.dev/api/feed"),
       BW_ENV,
     )).json();
-    assert.equal(feedRes.total_stored_caution_videos, baseCount + 2);
+    assert.equal(feedRes.total_stored_caution_videos, baseCount + 3);
+    assert.ok(feedRes.category_counts && feedRes.category_counts.all === feedRes.total_stored_caution_videos);
     assert.ok(Array.isArray(feedRes.searchable_tags) && feedRes.searchable_tags.length > 0);
     assert.ok(Array.isArray(feedRes.autofill_suggestions) && feedRes.autofill_suggestions.includes("@maskedtruthmt"));
 
