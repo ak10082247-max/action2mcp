@@ -385,9 +385,15 @@
       "sent_date": "2026-11-24T01:56:54.137985+00:00"
     }
   ],
-  "updated_at": "2026-11-24T01:56:59.827985+00:00",
+  "updated_at": "2026-11-24T03:00:18.103960+00:00",
   "bounced_emails": [
+    "contact@info.com",
+    "contact@supportpakistan.co.uk",
+    "info@nlrugs.com",
+    "info@petshopluna.com.co",
+    "mail@karolinatoys.ru",
     "marketing@ruceru.com",
+    "paintings@upperpin.com",
     "xxx@xxx.xxx"
   ],
   "replied_emails": [
@@ -397,7 +403,14 @@
   "paid_sales": 0,
   "daily_cap": 20,
   "stop_loss_cap": 200,
-  "paused_reason": "",
+  "paused_reason": "PAUSED_HIGH_BOUNCE",
   "bounce_reset_at": "2026-11-20T12:15:00+00:00",
-  "post_fix_bounced_emails": []
+  "post_fix_bounced_emails": [
+    "contact@info.com",
+    "contact@supportpakistan.co.uk",
+    "info@nlrugs.com",
+    "info@petshopluna.com.co",
+    "mail@karolinatoys.ru",
+    "paintings@upperpin.com"
+  ]
 }

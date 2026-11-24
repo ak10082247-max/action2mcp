@@ -166,8 +166,11 @@
   ],
   "bounced_emails": [
     "hello@5kassi.com",
+    "hello@crookedyouth.co",
     "info@imaginewebsolution.com",
-    "kirbyinusre@aol.com"
+    "info@mymonsterlab.com.my",
+    "kirbyinusre@aol.com",
+    "support@shopipoint.com"
   ],
   "replied_emails": [],
   "paid_sales": 0,
@@ -607,11 +610,15 @@
       "sent_date": "2026-11-24T02:20:04.271485+00:00"
     }
   ],
-  "updated_at": "2026-11-24T02:20:04.271565+00:00",
+  "updated_at": "2026-11-24T03:00:18.950066+00:00",
   "post_fix_bounced_emails": [
     "hello@5kassi.com",
+    "hello@crookedyouth.co",
     "info@imaginewebsolution.com",
-    "kirbyinusre@aol.com"
+    "info@mymonsterlab.com.my",
+    "kirbyinusre@aol.com",
+    "support@shopipoint.com"
   ],
-  "cc_page": 3
+  "cc_page": 3,
+  "paused_reason": "PAUSED_HIGH_BOUNCE"
 }
