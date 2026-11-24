@@ -1,5 +1,5 @@
 {
-  "cursor": 2,
+  "cursor": 16,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -18,7 +18,12 @@
     "riverdalehealthcare.com",
     "central-orthodontics.co.uk",
     "completedentalbearwood.co.uk",
-    "scottarmsdentalpractice.com"
+    "scottarmsdentalpractice.com",
+    "baronscourtvet.co.uk",
+    "chelseaveterinarysurgery.co.uk",
+    "peckhamvets.co.uk",
+    "abingdonvets.co.uk",
+    "greatchapelst.org.uk"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -38,7 +43,12 @@
     "ashgatereception@riverdalehealthcare.com",
     "centralortho@hotmail.com",
     "dental.v08166@nhs.net",
-    "info@scottarmsdentalpractice.com"
+    "info@scottarmsdentalpractice.com",
+    "primahengkiki@gmail.com",
+    "reception@chelseaveterinarysurgery.co.uk",
+    "reception@peckhamvets.co.uk",
+    "reception@abingdonvets.co.uk",
+    "clccg.gcs@nhs.net"
   ],
   "history": [
     {
@@ -107,22 +117,30 @@
     {
       "domain": "mjpsolicitors.co.uk",
       "email": "justice@mjpsolicitors.co.uk",
-      "sent_date": "2026-11-21T21:07:17.630295+00:00"
+      "sent_date": "2026-11-21T21:07:17.630295+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T00:49:56.041265+00:00"
     },
     {
       "domain": "drphilbe.com",
       "email": "dr@drphilbe.com",
-      "sent_date": "2026-11-21T21:07:23.326907+00:00"
+      "sent_date": "2026-11-21T21:07:23.326907+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T00:49:56.041265+00:00"
     },
     {
       "domain": "plasticsurgeon.co.nz",
       "email": "julianlofts@plasticsurgeon.co.nz",
-      "sent_date": "2026-11-21T21:07:29.033126+00:00"
+      "sent_date": "2026-11-21T21:07:29.033126+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T00:49:56.041265+00:00"
     },
     {
       "domain": "benjamin-opticians.co.uk",
       "email": "info@benjamin-opticians.co.uk",
-      "sent_date": "2026-11-21T21:07:35.301822+00:00"
+      "sent_date": "2026-11-21T21:07:35.301822+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T00:49:56.041265+00:00"
     },
     {
       "domain": "kensington-dentist.com",
@@ -148,9 +166,34 @@
       "domain": "scottarmsdentalpractice.com",
       "email": "info@scottarmsdentalpractice.com",
       "sent_date": "2026-11-23T16:03:14.321694+00:00"
+    },
+    {
+      "domain": "baronscourtvet.co.uk",
+      "email": "primahengkiki@gmail.com",
+      "sent_date": "2026-11-24T00:49:26.533234+00:00"
+    },
+    {
+      "domain": "chelseaveterinarysurgery.co.uk",
+      "email": "reception@chelseaveterinarysurgery.co.uk",
+      "sent_date": "2026-11-24T00:49:32.623052+00:00"
+    },
+    {
+      "domain": "peckhamvets.co.uk",
+      "email": "reception@peckhamvets.co.uk",
+      "sent_date": "2026-11-24T00:49:38.899930+00:00"
+    },
+    {
+      "domain": "abingdonvets.co.uk",
+      "email": "reception@abingdonvets.co.uk",
+      "sent_date": "2026-11-24T00:49:44.960073+00:00"
+    },
+    {
+      "domain": "greatchapelst.org.uk",
+      "email": "clccg.gcs@nhs.net",
+      "sent_date": "2026-11-24T00:49:51.040385+00:00"
     }
   ],
-  "updated_at": "2026-11-23T09:00:40.852210+00:00",
+  "updated_at": "2026-11-24T00:50:12.755302+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
