@@ -47,7 +47,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          for cfg in site_rescue/wrangler.toml ecom_fix/wrangler.toml brand_watch/wrangler.toml art50_scan/wrangler.toml revenue_dashboard/wrangler.toml; do
+          for cfg in site_rescue/wrangler.toml ecom_fix/wrangler.toml brand_watch/wrangler.toml art50_scan/wrangler.toml london_previews/wrangler.toml revenue_dashboard/wrangler.toml; do
             ok=0
             for attempt in 1 2 3; do
               if npx --yes wrangler@4 deploy --config "$cfg"; then
@@ -82,7 +82,7 @@ jobs:
           DASHBOARD_INGEST_TOKEN: ${{ secrets.DASHBOARD_INGEST_TOKEN }}
           MONTHLY_FIXED_COST_USD: ${{ secrets.MONTHLY_FIXED_COST_USD }}
         run: |
-          for cfg in wrangler.toml site_rescue/wrangler.toml ecom_fix/wrangler.toml brand_watch/wrangler.toml art50_scan/wrangler.toml revenue_dashboard/wrangler.toml; do
+          for cfg in wrangler.toml site_rescue/wrangler.toml ecom_fix/wrangler.toml brand_watch/wrangler.toml art50_scan/wrangler.toml london_previews/wrangler.toml revenue_dashboard/wrangler.toml; do
             if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
               printf '%s' "$STRIPE_SECRET_KEY" | npx --yes wrangler@4 secret put STRIPE_SECRET_KEY --config "$cfg" >/dev/null
             fi

@@ -1,0 +1,9 @@
+name = "london-previews"
+main = "worker.js"
+compatibility_date = "2024-11-11"
+account_id = "399816be9d4332789f68c30dfb87f390"
+workers_dev = true
+
+[vars]
+SERVICE_NAME = "london-previews"
+ENVIRONMENT = "production"

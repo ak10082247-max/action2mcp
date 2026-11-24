@@ -15,6 +15,7 @@ import brandWatchWorker from "./brand_watch/worker.js";
 import { validateTikTokVideoUrl, extractUnverifiedCautionRecord, extractStitchDuetParentIds, ANY_CAUTION_MISINFO_RE } from "./brand_watch/scanner.js";
 import art50ScanWorker from "./art50_scan/worker.js";
 import { inspectBinaryMedia } from "./art50_scan/c2pa_engine.js";
+import londonPreviewsWorker from "./london_previews/worker.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 function createMemoryKv() {
@@ -1708,6 +1709,91 @@ test("Art50Scan: EU AI Act Article 50 live CDN C2PA audit, binary parser, $15/$3
       A50_ENV,
     )).json();
     assert.equal(leadsAuth.count, 1);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("LondonPreviews: all 5 bespoke sites render <25KB valid JS, GBP £199 Stripe checkout & paid clean download", async () => {
+  const origFetch = globalThis.fetch;
+  const ENV = { STRIPE_SECRET_KEY: "sk_test_london_199" };
+
+  globalThis.fetch = async (url, init) => {
+    const u = String(url);
+    if (u === "https://api.stripe.com/v1/checkout/sessions") {
+      const body = decodeURIComponent(String(init?.body || ""));
+      assert.ok(body.includes("[currency]=gbp"));
+      assert.ok(body.includes("[unit_amount]=19900"));
+      return new Response(
+        JSON.stringify({ id: "cs_test_lon_199", url: "https://checkout.stripe.com/c/pay/cs_test_lon_199" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions/cs_test_lon_paid")) {
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_lon_paid",
+          payment_status: "paid",
+          status: "complete",
+          amount_total: 19900,
+          currency: "gbp",
+          customer_details: { email: "wesley@washologymv.co.uk" },
+          metadata: { slug: "washology" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    throw new Error(`Unexpected fetch in LondonPreviews test: ${u}`);
+  };
+
+  try {
+    const homeRes = await londonPreviewsWorker.fetch(new Request("https://london-previews.ak10082247.workers.dev/"), ENV);
+    assert.equal(homeRes.status, 200);
+    assert.equal(homeRes.headers.get("X-Frame-Options"), "DENY");
+
+    const slugs = ["at-electric", "washology", "thermwise", "wish-wash", "visuals-detailing"];
+    for (const slug of slugs) {
+      const res = await londonPreviewsWorker.fetch(new Request(`https://london-previews.ak10082247.workers.dev/${slug}`), ENV);
+      assert.equal(res.status, 200, `Expected 200 for /${slug}`);
+      const html = await res.text();
+      assert.ok(html.length < 26000, `Expected <26KB HTML for ${slug}, got ${html.length}`);
+      assert.ok(html.includes('id="previewBanner"'), `Expected preview banner on ${slug}`);
+      const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+      assert.ok(scriptMatch, `Expected inline script on ${slug}`);
+      assert.doesNotThrow(() => new vm.Script(scriptMatch[1]), `Inline JS parse failed on ${slug}`);
+
+      const cleanRes = await londonPreviewsWorker.fetch(
+        new Request(`https://london-previews.ak10082247.workers.dev/${slug}?clean=1`),
+        ENV,
+      );
+      const cleanHtml = await cleanRes.text();
+      assert.ok(!cleanHtml.includes('id="previewBanner"'), `Expected ?clean=1 to strip banner on ${slug}`);
+    }
+
+    const ckRes = await londonPreviewsWorker.fetch(
+      new Request("https://london-previews.ak10082247.workers.dev/api/checkout?slug=washology&format=json"),
+      ENV,
+    );
+    assert.equal(ckRes.status, 200);
+    const ck = await ckRes.json();
+    assert.equal(ck.id, "cs_test_lon_199");
+    assert.equal(ck.amount_pence, 19900);
+    assert.equal(ck.currency, "gbp");
+
+    const unpaidDl = await londonPreviewsWorker.fetch(
+      new Request("https://london-previews.ak10082247.workers.dev/api/download?slug=washology&session_id=bad"),
+      ENV,
+    );
+    assert.equal(unpaidDl.status, 402);
+
+    const paidDl = await londonPreviewsWorker.fetch(
+      new Request("https://london-previews.ak10082247.workers.dev/api/download?slug=washology&session_id=cs_test_lon_paid"),
+      ENV,
+    );
+    assert.equal(paidDl.status, 200);
+    const dlHtml = await paidDl.text();
+    assert.ok(dlHtml.includes("Washology"));
+    assert.ok(!dlHtml.includes('id="previewBanner"'));
   } finally {
     globalThis.fetch = origFetch;
   }
