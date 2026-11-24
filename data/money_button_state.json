@@ -1,6 +1,6 @@
 {
-  "local_cursor": 120,
-  "cc_page": 12,
+  "local_cursor": 134,
+  "cc_page": 20,
   "contacted_domains": [
     "therowdental.com",
     "duncanandtoddgroup.com",
@@ -26,7 +26,8 @@
     "austinurbanvet.com",
     "hayleycakesandcookies.com",
     "victorymed.com",
-    "denttoronto.com"
+    "denttoronto.com",
+    "insideoutpatio.ca"
   ],
   "contacted_emails": [
     "info@therowdental.com",
@@ -53,7 +54,8 @@
     "info@austinurbanvet.com",
     "orders@hayleycakesandcookies.com",
     "info@victorymed.com",
-    "dentleslieville@outlook.com"
+    "dentleslieville@outlook.com",
+    "web@insideoutpatio.ca"
   ],
   "bounced_emails": [],
   "replied_emails": [
@@ -289,8 +291,18 @@
       "kind": "CLICK_HANDLER_JS_CRASH",
       "ad_pixels": [],
       "sent_date": "2026-11-23T07:58:11.557480+00:00"
+    },
+    {
+      "domain": "insideoutpatio.ca",
+      "email": "web@insideoutpatio.ca",
+      "kind": "CART_ADD_API_FAILED",
+      "ad_pixels": [
+        "Meta Pixel (fbq)",
+        "Google Ads Tag (AW)"
+      ],
+      "sent_date": "2026-11-24T00:08:13.188830+00:00"
     }
   ],
-  "updated_at": "2026-11-23T07:58:11.557535+00:00",
+  "updated_at": "2026-11-24T00:08:13.188956+00:00",
   "post_fix_bounced_emails": []
 }
