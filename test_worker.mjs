@@ -13,6 +13,8 @@ import siteRescueWorker from "./site_rescue/worker.js";
 import ecomFixWorker from "./ecom_fix/worker.js";
 import brandWatchWorker from "./brand_watch/worker.js";
 import { validateTikTokVideoUrl, extractUnverifiedCautionRecord, extractStitchDuetParentIds, ANY_CAUTION_MISINFO_RE } from "./brand_watch/scanner.js";
+import art50ScanWorker from "./art50_scan/worker.js";
+import { inspectBinaryMedia } from "./art50_scan/c2pa_engine.js";
 import revenueDashboardWorker from "./revenue_dashboard/worker.js";
 
 function createMemoryKv() {
@@ -1530,6 +1532,182 @@ test("CautionWatch strictly filters unverified-content Caution videos, ingests, 
     const zipBuf = Buffer.from(await zipRes.arrayBuffer());
     assert.equal(zipBuf[0], 0x50);
     assert.equal(zipBuf[1], 0x4b);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Art50Scan: EU AI Act Article 50 live CDN C2PA audit, binary parser, $15/$39 Stripe ZIP, restore, x402 402 & GEO files", async () => {
+  const kv = createMemoryKv();
+  const ADMIN_TOK = "art50_admin_secret_test";
+  const A50_ENV = {
+    ...FULL_ENV,
+    FUNNEL_KV: kv,
+    DASHBOARD_INGEST_TOKEN: ADMIN_TOK,
+  };
+
+  // Build real synthetic binary fixtures (JPEG APP11 C2PA + PNG tEXt ComfyUI)
+  const enc = (s) => Uint8Array.from(Buffer.from(s, "latin1"));
+  const c2paPayload = enc("JP  jumb c2pa.manifest c2pa.actions c2pa.ai-disclosure trainedAlgorithmicMedia OpenAI Truepic");
+  const c2paSegLen = c2paPayload.length + 2;
+  const c2paJpeg = new Uint8Array(2 + 4 + c2paPayload.length + 2);
+  c2paJpeg[0] = 0xff; c2paJpeg[1] = 0xd8;
+  c2paJpeg[2] = 0xff; c2paJpeg[3] = 0xeb;
+  c2paJpeg[4] = (c2paSegLen >> 8) & 0xff; c2paJpeg[5] = c2paSegLen & 0xff;
+  c2paJpeg.set(c2paPayload, 6);
+  c2paJpeg[c2paJpeg.length - 2] = 0xff; c2paJpeg[c2paJpeg.length - 1] = 0xd9;
+
+  const strippedJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+
+  const pngSig = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const promptData = enc("prompt\0" + JSON.stringify({ model: "flux1-dev", software: "ComfyUI", prompt: "neon cyberpunk storefront" }));
+  const makeChunk = (t, d) => {
+    const out = new Uint8Array(12 + d.length);
+    out[0] = (d.length >>> 24) & 0xff; out[1] = (d.length >>> 16) & 0xff; out[2] = (d.length >>> 8) & 0xff; out[3] = d.length & 0xff;
+    out.set(enc(t), 4); out.set(d, 8); return out;
+  };
+  const cText = makeChunk("tEXt", promptData);
+  const cEnd = makeChunk("IEND", new Uint8Array(0));
+  const comfyPng = new Uint8Array(pngSig.length + cText.length + cEnd.length);
+  comfyPng.set(pngSig, 0); comfyPng.set(cText, pngSig.length); comfyPng.set(cEnd, pngSig.length + cText.length);
+
+  // 1. Direct binary inspector unit assertions
+  const parsedC2pa = await inspectBinaryMedia(c2paJpeg, { filename: "openai-hero.jpg" });
+  assert.equal(parsedC2pa.format, "JPEG");
+  assert.equal(parsedC2pa.c2paPresent, true);
+  assert.ok(parsedC2pa.c2paAssertions.includes("c2pa.actions"));
+  assert.ok(parsedC2pa.digitalSourceTypes.includes("trainedAlgorithmicMedia"));
+  assert.ok(parsedC2pa.signerIssuers.includes("OpenAI"));
+
+  const parsedComfy = await inspectBinaryMedia(comfyPng, { filename: "leaked.png" });
+  assert.equal(parsedComfy.format, "PNG");
+  assert.equal(parsedComfy.leakedPrompts.length, 1);
+  assert.match(parsedComfy.leakedPrompts[0].snippet, /flux1-dev/);
+
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (urlInput) => {
+    const u = String(urlInput);
+    if (u === "https://demo-eu-saas.example/" || u === "https://demo-eu-saas.example") {
+      return new Response(
+        '<html><head><meta property="og:image" content="https://demo-eu-saas.example/_next/image?url=%2Fhero.jpg&w=1200" /></head><body><img src="/assets/leaked.png" /></body></html>',
+        { status: 200, headers: { "Content-Type": "text/html", "x-vercel-cache": "HIT" } },
+      );
+    }
+    if (u.includes("/_next/image")) {
+      return new Response(strippedJpeg, {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg", "cf-polished": "origSize=90000" },
+      });
+    }
+    if (u.endsWith("/assets/leaked.png")) {
+      return new Response(comfyPng, { status: 200, headers: { "Content-Type": "image/png" } });
+    }
+    if (u === "https://api.stripe.com/v1/checkout/sessions") {
+      return new Response(JSON.stringify({ id: "cs_test_a50_1", url: "https://checkout.stripe.com/pay/cs_test_a50_1", payment_status: "unpaid" }), { status: 200 });
+    }
+    if (u === "https://api.stripe.com/v1/checkout/sessions/cs_test_a50_1") {
+      return new Response(
+        JSON.stringify({ id: "cs_test_a50_1", payment_status: "paid", amount_total: 1500, metadata: { tier: "audit", target_domain: "demo-eu-saas.example" } }),
+        { status: 200 },
+      );
+    }
+    if (u.startsWith("https://api.stripe.com/v1/checkout/sessions?")) {
+      return new Response(
+        JSON.stringify({ data: [{ id: "cs_test_a50_1", payment_status: "paid", metadata: { tier: "pro", target_domain: "demo-eu-saas.example" } }] }),
+        { status: 200 },
+      );
+    }
+    return new Response("Not Found", { status: 404 });
+  };
+
+  try {
+    // 2. Landing HTML + inline <script> vm.Script parse check + SEO/GEO static endpoints
+    const homeRes = await art50ScanWorker.fetch(new Request("https://art50-scan.ak10082247.workers.dev/"), A50_ENV);
+    assert.equal(homeRes.status, 200);
+    const homeHtml = await homeRes.text();
+    assert.match(homeHtml, /EU AI Act Article 50/);
+    assert.match(homeHtml, /"@type":"FAQPage"/);
+    const scripts = [...homeHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    assert.equal(scripts.length, 1);
+    assert.doesNotThrow(() => new vm.Script(scripts[0][1]), "Art50Scan inline <script> must parse cleanly");
+
+    for (const p of ["/health", "/robots.txt", "/sitemap.xml", "/llms.txt", "/manifest.json", "/.well-known/x402.json"]) {
+      const r = await art50ScanWorker.fetch(new Request(`https://art50-scan.ak10082247.workers.dev${p}`), A50_ENV);
+      assert.equal(r.status, 200, `${p} must return 200`);
+    }
+
+    // 3. SSRF block on private host + Live CDN survival scan
+    const ssrfRes = await art50ScanWorker.fetch(new Request("https://art50-scan.ak10082247.workers.dev/api/scan?url=http://127.0.0.1"), A50_ENV);
+    assert.equal(ssrfRes.status, 403);
+
+    const scanRes = await (await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/scan?url=https://demo-eu-saas.example"),
+      A50_ENV,
+    )).json();
+    assert.equal(scanRes.ok, true);
+    assert.equal(scanRes.assets_scanned, 2);
+    assert.equal(scanRes.assets_with_c2pa, 0);
+    assert.equal(scanRes.assets_stripped_by_cdn, 1);
+    assert.equal(scanRes.assets_with_leaked_prompts, 1);
+    assert.ok(scanRes.readiness_score < 50);
+
+    // 4. x402 V2 402 challenge on /api/verify-c2pa
+    const unpaidApi = await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/verify-c2pa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://demo-eu-saas.example" }),
+      }),
+      A50_ENV,
+    );
+    assert.equal(unpaidApi.status, 402);
+    assert.ok(unpaidApi.headers.get("PAYMENT-REQUIRED"));
+
+    // 5. Stripe $15 Checkout + Verified ZIP Download + Email Restore Purchase
+    const ck = await (await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/checkout?tier=audit&domain=demo-eu-saas.example&format=json"),
+      A50_ENV,
+    )).json();
+    assert.equal(ck.id, "cs_test_a50_1");
+    assert.equal(ck.amount_cents, 1500);
+
+    const restoreRes = await (await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer_email: "cto@demo-eu-saas.example" }),
+      }),
+      A50_ENV,
+    )).json();
+    assert.equal(restoreRes.ok, true);
+    assert.match(restoreRes.licenseKey, /^ART50-[0-9A-F]{12}$/);
+    assert.ok(restoreRes.downloadUrl.includes("/api/download?token="));
+
+    const zipRes = await art50ScanWorker.fetch(new Request(restoreRes.downloadUrl), A50_ENV);
+    assert.equal(zipRes.status, 200);
+    assert.equal(zipRes.headers.get("Content-Type"), "application/zip");
+    const zipText = Buffer.from(await zipRes.arrayBuffer()).toString("latin1");
+    assert.ok(zipText.includes("article50-compliance-audit.json"));
+    assert.ok(zipText.includes("cdn-c2pa-preservation-configs.md"));
+    assert.ok(zipText.includes("art50-c2pa-gate.yml"));
+
+    // 6. B2B Lead capture + auth-gated inbox
+    const leadRes = await (await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: "Demo EU SaaS", email: "cto@demo-eu-saas.example", domain: "demo-eu-saas.example" }),
+      }),
+      A50_ENV,
+    )).json();
+    assert.equal(leadRes.ok, true);
+    assert.match(leadRes.lead_id, /^A50-[0-9A-F]{8}$/);
+
+    const leadsAuth = await (await art50ScanWorker.fetch(
+      new Request("https://art50-scan.ak10082247.workers.dev/api/leads", { headers: { Authorization: `Bearer ${ADMIN_TOK}` } }),
+      A50_ENV,
+    )).json();
+    assert.equal(leadsAuth.count, 1);
   } finally {
     globalThis.fetch = origFetch;
   }
