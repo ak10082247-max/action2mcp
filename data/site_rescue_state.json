@@ -1,5 +1,5 @@
 {
-  "cursor": 16,
+  "cursor": 30,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -23,7 +23,8 @@
     "chelseaveterinarysurgery.co.uk",
     "peckhamvets.co.uk",
     "abingdonvets.co.uk",
-    "greatchapelst.org.uk"
+    "greatchapelst.org.uk",
+    "marktangri.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -48,7 +49,8 @@
     "reception@chelseaveterinarysurgery.co.uk",
     "reception@peckhamvets.co.uk",
     "reception@abingdonvets.co.uk",
-    "clccg.gcs@nhs.net"
+    "clccg.gcs@nhs.net",
+    "reception@marktangri.com"
   ],
   "history": [
     {
@@ -145,7 +147,9 @@
     {
       "domain": "kensington-dentist.com",
       "email": "kensingtondentists@gmail.com",
-      "sent_date": "2026-11-21T21:07:41.260228+00:00"
+      "sent_date": "2026-11-21T21:07:41.260228+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T10:54:33.354117+00:00"
     },
     {
       "domain": "riverdalehealthcare.com",
@@ -191,9 +195,14 @@
       "domain": "greatchapelst.org.uk",
       "email": "clccg.gcs@nhs.net",
       "sent_date": "2026-11-24T00:49:51.040385+00:00"
+    },
+    {
+      "domain": "marktangri.com",
+      "email": "reception@marktangri.com",
+      "sent_date": "2026-11-24T10:54:28.353341+00:00"
     }
   ],
-  "updated_at": "2026-11-24T00:50:12.755302+00:00",
+  "updated_at": "2026-11-24T10:54:34.228535+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
