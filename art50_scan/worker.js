@@ -238,8 +238,8 @@ function renderLanding(origin, contactEmail) {
   const deadline = getArticle50DeadlineInfo();
   const daysLine =
     deadline.daysUntilLegacyDeadline > 0
-      ? `EU AI Act Article 50 grace period ends Dec 2, 2026 (${deadline.daysUntilLegacyDeadline} days away).`
-      : "EU AI Act Article 50 full enforcement is now active.";
+      ? `EU AI Act Art. 50 is live now (since Aug 2, 2026) · Pre-Aug legacy grace period (Art. 111(4)) ends Dec 2 (${deadline.daysUntilLegacyDeadline} days).`
+      : "EU AI Act Article 50 full enforcement is active (Art. 113 & Art. 111(4)).";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1260,7 +1260,12 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
     if (path === "/" || path === "/index.html") {
-      return htmlResp(renderLanding(url.origin, contactEmail), 200, cors);
+      return htmlResp(renderLanding(url.origin, contactEmail), 200, cors, {
+        "X-Frame-Options": "DENY",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Content-Security-Policy": "frame-ancestors 'none'",
+      });
     }
 
     if (path === "/health" || path === "/ping") {
