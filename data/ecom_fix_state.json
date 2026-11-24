@@ -1,5 +1,5 @@
 {
-  "cc_page": 15,
+  "cc_page": 23,
   "contacted_domains": [
     "greybandit.com",
     "greyhorsewholesale.myshopify.com",
@@ -33,7 +33,23 @@
     "colesrefrigeration.com.au",
     "manicabikes.com",
     "mickymart.com",
-    "sklepwojcik.pl"
+    "sklepwojcik.pl",
+    "einfach-heil-bar.de",
+    "healthy-future.co.uk",
+    "encuentrodelser.com.ar",
+    "millim-store.de",
+    "bikebox.ch",
+    "abbsalud.com.ar",
+    "socksbar.ch",
+    "pizzaofenbau.ch",
+    "villageticket.com",
+    "upperpin.com",
+    "krafteamagnets.com",
+    "wholesalesend.com",
+    "supportpakistan.co.uk",
+    "fedex-finance.com",
+    "peradekoratifyapi.com",
+    "nlrugs.com"
   ],
   "contacted_emails": [
     "help@greybandit.com",
@@ -68,7 +84,23 @@
     "coles@colesrefrigeration.com.au",
     "sales@manicabikes.com",
     "mk.intercool@gmail.com",
-    "info@firmawojcik.pl"
+    "info@firmawojcik.pl",
+    "info@einfach-heil-bar.de",
+    "info@healthy-future.co.uk",
+    "encuentrodelserproducciones@gmail.com",
+    "contact@info.com",
+    "info@bikebox.ch",
+    "info@abbsalud.com.ar",
+    "socksbar@yahoo.com",
+    "info@bruegger-holzofen.ch",
+    "prem@xtracut.com",
+    "paintings@upperpin.com",
+    "krafteadesignz@gmail.com",
+    "support@wholesalesend.com",
+    "contact@supportpakistan.co.uk",
+    "fedex@fedsec.in",
+    "perayapi@gmail.com",
+    "info@nlrugs.com"
   ],
   "history": [
     {
@@ -213,7 +245,9 @@
     {
       "domain": "reach17.co.nz",
       "email": "reachnzltd@gmail.com",
-      "sent_date": "2026-11-21T21:08:22.835509+00:00"
+      "sent_date": "2026-11-21T21:08:22.835509+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-24T01:56:59.138943+00:00"
     },
     {
       "domain": "petshopluna.com.co",
@@ -269,9 +303,89 @@
       "domain": "sklepwojcik.pl",
       "email": "info@firmawojcik.pl",
       "sent_date": "2026-11-23T15:52:49.865867+00:00"
+    },
+    {
+      "domain": "einfach-heil-bar.de",
+      "email": "info@einfach-heil-bar.de",
+      "sent_date": "2026-11-24T01:55:28.501632+00:00"
+    },
+    {
+      "domain": "healthy-future.co.uk",
+      "email": "info@healthy-future.co.uk",
+      "sent_date": "2026-11-24T01:55:34.233794+00:00"
+    },
+    {
+      "domain": "encuentrodelser.com.ar",
+      "email": "encuentrodelserproducciones@gmail.com",
+      "sent_date": "2026-11-24T01:55:39.925577+00:00"
+    },
+    {
+      "domain": "millim-store.de",
+      "email": "contact@info.com",
+      "sent_date": "2026-11-24T01:55:45.852736+00:00"
+    },
+    {
+      "domain": "bikebox.ch",
+      "email": "info@bikebox.ch",
+      "sent_date": "2026-11-24T01:55:51.527275+00:00"
+    },
+    {
+      "domain": "abbsalud.com.ar",
+      "email": "info@abbsalud.com.ar",
+      "sent_date": "2026-11-24T01:55:57.240284+00:00"
+    },
+    {
+      "domain": "socksbar.ch",
+      "email": "socksbar@yahoo.com",
+      "sent_date": "2026-11-24T01:56:02.923141+00:00"
+    },
+    {
+      "domain": "pizzaofenbau.ch",
+      "email": "info@bruegger-holzofen.ch",
+      "sent_date": "2026-11-24T01:56:08.589288+00:00"
+    },
+    {
+      "domain": "villageticket.com",
+      "email": "prem@xtracut.com",
+      "sent_date": "2026-11-24T01:56:14.285369+00:00"
+    },
+    {
+      "domain": "upperpin.com",
+      "email": "paintings@upperpin.com",
+      "sent_date": "2026-11-24T01:56:20.020977+00:00"
+    },
+    {
+      "domain": "krafteamagnets.com",
+      "email": "krafteadesignz@gmail.com",
+      "sent_date": "2026-11-24T01:56:25.687921+00:00"
+    },
+    {
+      "domain": "wholesalesend.com",
+      "email": "support@wholesalesend.com",
+      "sent_date": "2026-11-24T01:56:31.380653+00:00"
+    },
+    {
+      "domain": "supportpakistan.co.uk",
+      "email": "contact@supportpakistan.co.uk",
+      "sent_date": "2026-11-24T01:56:37.035830+00:00"
+    },
+    {
+      "domain": "fedex-finance.com",
+      "email": "fedex@fedsec.in",
+      "sent_date": "2026-11-24T01:56:42.758995+00:00"
+    },
+    {
+      "domain": "peradekoratifyapi.com",
+      "email": "perayapi@gmail.com",
+      "sent_date": "2026-11-24T01:56:48.436498+00:00"
+    },
+    {
+      "domain": "nlrugs.com",
+      "email": "info@nlrugs.com",
+      "sent_date": "2026-11-24T01:56:54.137985+00:00"
     }
   ],
-  "updated_at": "2026-11-23T11:18:59.281401+00:00",
+  "updated_at": "2026-11-24T01:56:59.827985+00:00",
   "bounced_emails": [
     "marketing@ruceru.com",
     "xxx@xxx.xxx"
