@@ -1756,8 +1756,13 @@ test("LondonPreviews: all 5 bespoke sites render <25KB valid JS, GBP £199 Strip
       const res = await londonPreviewsWorker.fetch(new Request(`https://london-previews.ak10082247.workers.dev/${slug}`), ENV);
       assert.equal(res.status, 200, `Expected 200 for /${slug}`);
       const html = await res.text();
-      assert.ok(html.length < 26000, `Expected <26KB HTML for ${slug}, got ${html.length}`);
+      assert.ok(html.length < 65000, `Expected <65KB HTML for ${slug}, got ${html.length}`);
       assert.ok(html.includes('id="previewBanner"'), `Expected preview banner on ${slug}`);
+      assert.ok(html.includes('id="c3dRing"'), `Expected 3D carousel on ${slug}`);
+      assert.ok(html.includes('id="arcStage"'), `Expected fanned arc showcase on ${slug}`);
+      assert.ok(html.includes('id="portalShell"'), `Expected clip-path portal on ${slug}`);
+      assert.ok(html.includes('id="ribbonTrack"'), `Expected kinetic ribbon on ${slug}`);
+      assert.ok(html.includes(`/assets/${slug}-hero.jpg`), `Expected bespoke hero photo on ${slug}`);
       const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
       assert.ok(scriptMatch, `Expected inline script on ${slug}`);
       assert.doesNotThrow(() => new vm.Script(scriptMatch[1]), `Inline JS parse failed on ${slug}`);

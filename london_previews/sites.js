@@ -1,9 +1,15 @@
 /**
- * Bespoke, human-crafted, blazing-fast (<25KB, <0.1s) local London business
- * website previews. Each business uses its own authentic visual palette,
- * typography, real verified business facts, real areas/accreditations, and
- * an interactive WhatsApp/email quote estimator. Zero generic AI-slop templates.
+ * London Fast Sites — v2 Bespoke Interactive Architecture
+ * Built applying high-craft motion & editorial design principles:
+ *  1) 100vh Daylight/Architectural Hero with draggable 3D Concave Showcase Carousel + glass detail sheet
+ *  2) Scroll-choreographed split-tone headline with inline photo pill + upward-curving fanned service arc
+ *  3) Scroll-expanding rounded clip-path portal into the interactive 30s WhatsApp/Email quote builder
+ *  4) Obsidian kinetic horizontal manifesto ribbon + spring-pop verified review/credential cards
+ *  - Bespoke 1080p London editorial photography per business (/assets/<slug>-hero.jpg & -detail.jpg)
+ *  - Zero generic dark-purple AI-slop templates; <0.2s edge load; 100% mobile-responsive + reduced-motion safe
  */
+
+export const ASSET_ORIGIN = "https://london-previews.ak10082247.workers.dev";
 
 export function escapeHtml(str) {
   return String(str ?? "")
@@ -18,6 +24,7 @@ export const LONDON_SITES = {
   "at-electric": {
     slug: "at-electric",
     name: "AT Electric Contractors Ltd",
+    wordmark: "AT Electric.",
     shortName: "AT Electric",
     domain: "atelectric.co.uk",
     currentSpeed: "GoDaddy template (© 2022, typos, no quote form)",
@@ -26,69 +33,76 @@ export const LONDON_SITES = {
     waDigits: "447590056206",
     email: "info@atelectric.co.uk",
     area: "North West & Central London",
-    badge: "NICEIC Approved Contractor · Reg 616575000",
+    statusTop: "Accepting London Jobs",
+    statusSub: "NICEIC Reg #616575000",
+    locationSub: "NW & Central London",
+    heroImg: "/assets/at-electric-hero.jpg",
+    detailImg: "/assets/at-electric-detail.jpg",
+    eyebrow: "NICEIC APPROVED · TRUSTMARK · JIB & ECS",
+    heroLine1: "Qualified London",
+    heroLine2: "Electricians",
+    heroQuoteLead: "Direct NICEIC-approved contractors helping London homeowners, landlords, and shop owners ",
+    heroQuoteBold: "wire, test, and certify safely",
+    heroQuoteTail: " — with zero call-centre middlemen.",
+    signatureText: "AT Electric · Reg 616575000",
     theme: {
-      bg: "#faf9f5",
-      surface: "#ffffff",
-      surfaceAlt: "#f2efe8",
-      ink: "#14191f",
-      muted: "#535c68",
-      border: "#dfd9cd",
-      heroBg: "#14191f",
-      heroInk: "#faf9f5",
-      heroMuted: "#c5cbd3",
+      heroGrad: "linear-gradient(180deg, #dce6f2 0%, #eef2f7 56%, #f8f6f1 100%)",
+      heroInk: "#0b1221",
+      heroMuted: "#475569",
+      heroBorder: "rgba(11,18,33,0.12)",
+      ctaBg: "#0b1221",
+      ctaInk: "#ffffff",
       accent: "#d97706",
-      accentInk: "#ffffff",
       accentSoft: "#fef3c7",
       accentSoftInk: "#92400e",
-      headFont: "Georgia, 'Times New Roman', serif",
-      bodyFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      radius: "6px",
+      portalBg: "linear-gradient(155deg, #0f172a 0%, #1e293b 55%, #172033 100%)",
+      portalAccent: "#f59e0b",
+      ribbonAccent: "#fbbf24",
     },
-    eyebrow: "NICEIC Approved · TrustMark · JIB & ECS Registered",
-    headline: "Qualified domestic & commercial electricians across North West and Central London.",
-    subhead:
-      "EICR landlord certificates, fault finding, three-phase installations, lighting, and emergency call-outs for homes, offices, and retail units — directly from our own NICEIC-approved team.",
-    trustStrip: [
-      { k: "NICEIC Reg", v: "616575000" },
-      { k: "Accreditation", v: "TrustMark & JIB/ECS" },
-      { k: "Coverage", v: "NW & Central London" },
-      { k: "Sectors", v: "Homes, Retail & Offices" },
+    splitHeadline: [
+      { muted: "From", strong: "fault check", pill: true, muted2: "to", strong2: "NICEIC sign-off" },
+      { strong: "wired", muted: "for", strong2: "London homes & shops" },
     ],
-    servicesTitle: "Electrical Services",
-    servicesLead: "Every job tested, certified, and carried out by fully qualified electricians — no call-centre middlemen.",
+    splitSub: "Every inspection, consumer unit upgrade, and commercial fit-out tested and certified directly by our own qualified team.",
+    portalCornerLeft: "Zero agency middlemen",
+    portalCornerRight: "Direct electrician quotes in 30 seconds",
+    ribbonText: "NICEIC #616575000 ✦ TRUSTMARK ✦ THREE-PHASE & EICR ✦ NW & CENTRAL LONDON ✦",
     services: [
       {
         tag: "Compliance",
         title: "Landlord EICR Certificates",
         price: "Fast Turnaround",
-        desc: "Electrical Installation Condition Reports for residential landlords, HMOs, and commercial premises with clear remedial quotes if required.",
-        bullets: ["Full circuit & earth-fault testing", "Digital NICEIC certificate issued", "Remedial repairs handled directly"],
+        img: "hero",
+        desc: "Thorough Electrical Installation Condition Reports for landlords, HMOs, and commercial properties with clear remedial quotes if anything needs attention.",
+        bullets: ["Full circuit & earth-fault testing", "Digital NICEIC certificate issued fast", "Remedial repairs handled directly"],
       },
       {
         tag: "Domestic",
-        title: "Home Wiring, Lighting & Consumer Units",
-        price: "Free Written Quote",
-        desc: "Safe fuse board upgrades (18th Edition), rewiring, indoor/outdoor lighting design, sockets, and domestic fault finding across NW & Central London.",
-        bullets: ["Domestic Installer registered", "Clean, tidy workmanship", "Part P compliant sign-off"],
+        title: "Consumer Units & Home Wiring",
+        price: "18th Edition",
+        img: "detail",
+        desc: "Safe fuse board upgrades, architectural lighting, brushed-brass switches, sockets, and complete domestic rewires across North West & Central London.",
+        bullets: ["Domestic Installer & Part P compliant", "Clean, respectful Victorian flat work", "Free written quote upfront"],
       },
       {
         tag: "Commercial",
-        title: "Offices, Retail Units & Three-Phase",
-        price: "Out-of-Hours Available",
-        desc: "Three-phase power installations, commercial distribution boards, shop-fit lighting, and ongoing maintenance for London businesses.",
-        bullets: ["Three-phase installation & testing", "Retail & office electrical fit-outs", "Minimal trading disruption"],
+        title: "Offices, Retail & Three-Phase",
+        price: "Out-of-Hours Ready",
+        img: "hero",
+        desc: "Three-phase installations, commercial distribution boards, shop-fit lighting, and ongoing maintenance planned around your trading hours.",
+        bullets: ["Three-phase installation & testing", "Retail unit & office electrical fit-outs", "Minimal disruption to trading"],
       },
       {
         tag: "Urgent",
-        title: "Fault Finding & Emergency Call-Outs",
-        price: "Rapid Local Dispatch",
-        desc: "Tripping RCDs, dead circuits, burning smells, or sudden power loss diagnosed methodically and repaired safely.",
-        bullets: ["Direct electrician response", "Transparent upfront pricing", "North West & Central London"],
+        title: "Fault Finding & Call-Outs",
+        price: "Rapid Local Team",
+        img: "detail",
+        desc: "Tripping RCDs, dead circuits, or sudden power faults traced systematically and resolved safely without guesswork.",
+        bullets: ["Direct qualified electrician response", "Transparent pricing before work starts", "North West & Central London"],
       },
     ],
-    quoteTitle: "Get a Fast Electrical or EICR Quote",
-    quoteLead: "Pick your job type and postcode below — opens a pre-filled WhatsApp or email straight to our engineer.",
+    quoteTitle: "Get a 30-Second Electrical or EICR Quote",
+    quoteLead: "Pick your job type and London postcode — pre-fills a direct WhatsApp or email straight to our engineer.",
     quoteJobs: [
       "Landlord EICR Certificate",
       "Fault Finding / Tripping Fuse Board",
@@ -100,30 +114,33 @@ export const LONDON_SITES = {
     quoteSecondaryLabel: "Property Type",
     quoteSecondaryOptions: ["Flat / House (Domestic)", "Landlord / Rental Property", "Shop / Retail Unit", "Office / Commercial Site"],
     areas: ["Camden", "Kilburn", "Hampstead", "West Hampstead", "Willesden", "Wembley", "Hendon", "Finchley", "Paddington", "Marylebone", "Soho", "Westminster"],
-    reviewsTitle: "Credentials & Peace of Mind",
     reviews: [
       {
+        sticker: "NICEIC #616575000",
         author: "NICEIC Approved Contractor",
-        meta: "Registration #616575000",
-        quote: "Assessed to the highest industry standards covering both domestic and commercial electrical installations across London.",
+        meta: "Domestic & Commercial Assessed",
+        quote: "Independently assessed to the highest UK electrical safety standards covering both domestic homes and commercial installations.",
       },
       {
-        author: "TrustMark Government-Endorsed",
+        sticker: "TRUSTMARK",
+        author: "Government-Endorsed Quality",
         meta: "Registered Competent Person",
-        quote: "Verified technical competence, trading practices, and customer protection on every domestic installation and certificate.",
+        quote: "Verified technical competence, fair trading practices, and full Part P compliance on every certificate and upgrade.",
       },
       {
-        author: "JIB & ECS Certified Engineers",
-        meta: "Direct Local Contractors",
-        quote: "You deal directly with qualified North West London electricians from initial quote through to final testing and certification.",
+        sticker: "JIB & ECS",
+        author: "Direct Local Contractors",
+        meta: "North West & Central London",
+        quote: "Deal straight with qualified London electricians from initial quote through to final circuit testing and certification.",
       },
     ],
-    footerNote: "© 2026 AT Electric Contractors Ltd · NICEIC Approved Contractor (616575000) · North West & Central London",
+    footerNote: "© 2026 AT Electric Contractors Ltd · NICEIC Approved Contractor #616575000 · 07590 056206 · info@atelectric.co.uk",
   },
 
   "washology": {
     slug: "washology",
     name: "Washology Mobile Detailing",
+    wordmark: "Washology.",
     shortName: "Washology",
     domain: "washologymv.co.uk",
     currentSpeed: "21.5s Wix load (1.64 MB, no WhatsApp or quote builder)",
@@ -132,69 +149,76 @@ export const LONDON_SITES = {
     waDigits: "447388725375",
     email: "Wesley@washologymv.co.uk",
     area: "North London & Surrounding Areas",
-    badge: "North London's Highly Rated Mobile Detailer",
+    statusTop: "Booking Mobile Slots",
+    statusSub: "Home or Workplace",
+    locationSub: "North London, UK",
+    heroImg: "/assets/washology-hero.jpg",
+    detailImg: "/assets/washology-detail.jpg",
+    eyebrow: "MOBILE VALETING & DETAILING · NORTH LONDON",
+    heroLine1: "Mirror Gloss,",
+    heroLine2: "At Your Door",
+    heroQuoteLead: "North London's highly rated mobile detailer helping busy drivers achieve ",
+    heroQuoteBold: "showroom paintwork and deep cabin resets",
+    heroQuoteTail: " right on their own driveway.",
+    signatureText: "Wesley — Washology",
     theme: {
-      bg: "#f7f6f2",
-      surface: "#ffffff",
-      surfaceAlt: "#efede6",
-      ink: "#121417",
-      muted: "#525860",
-      border: "#e2dfd6",
-      heroBg: "#111316",
-      heroInk: "#f8f7f4",
-      heroMuted: "#b9bec7",
-      accent: "#b58b45",
-      accentInk: "#ffffff",
-      accentSoft: "#f6efe1",
-      accentSoftInk: "#7c5c22",
-      headFont: "Georgia, 'Times New Roman', serif",
-      bodyFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      radius: "8px",
+      heroGrad: "linear-gradient(180deg, #cddff5 0%, #e5eef8 55%, #f7f6f2 100%)",
+      heroInk: "#0c1017",
+      heroMuted: "#4b5563",
+      heroBorder: "rgba(12,16,23,0.12)",
+      ctaBg: "#0c1017",
+      ctaInk: "#ffffff",
+      accent: "#9f7836",
+      accentSoft: "#f5eddc",
+      accentSoftInk: "#71521d",
+      portalBg: "linear-gradient(155deg, #101318 0%, #1d222b 55%, #12151b 100%)",
+      portalAccent: "#d4af6a",
+      ribbonAccent: "#d4af6a",
     },
-    eyebrow: "Mobile Valeting & Detailing · Home or Workplace · North London",
-    headline: "Showroom car care brought straight to your driveway or workplace.",
-    subhead:
-      "From a crisp 30-minute deep refresh to meticulous 4–5 hour paint correction and ceramic coating — delivered across North London using finest-grade, eco-conscious products.",
-    trustStrip: [
-      { k: "Service", v: "100% Mobile to You" },
-      { k: "Sessions", v: "30 Min to 5 Hours" },
-      { k: "Products", v: "Finest Grade & Eco" },
-      { k: "Base", v: "North London & Beyond" },
+    splitHeadline: [
+      { muted: "From", strong: "driveway", pill: true, muted2: "to", strong2: "mirror gloss" },
+      { strong: "crafted", muted: "by", strong2: "hand in North London" },
     ],
-    servicesTitle: "Valeting & Detailing Packages",
-    servicesLead: "Choose the level of care your vehicle needs — from regular upkeep to full multi-stage gloss restoration.",
+    splitSub: "From a crisp 30-minute refresh to meticulous 5-hour multi-stage paint correction and ceramic coating — using finest-grade, eco-conscious products.",
+    portalCornerLeft: "30 min to 5 hour bespoke care",
+    portalCornerRight: "Direct WhatsApp booking with Wesley",
+    ribbonText: "DEEP CLEANS ✦ PAINT CORRECTION ✦ CERAMIC COATINGS ✦ NORTH LONDON ✦ 5.0 ★ RATED ✦",
     services: [
       {
         tag: "Most Popular",
         title: "Mobile Deep Clean",
         price: "Home or Workplace",
-        desc: "Thorough exterior safe wash and meticulous interior reset designed to bring daily drivers back to crisp, fresh condition.",
-        bullets: ["Safe multi-stage exterior wash", "Full cabin vacuum, trim & glass care", "Zero waiting or garage drop-offs"],
+        img: "hero",
+        desc: "Thorough safe exterior wash and complete interior reset bringing daily drivers back to crisp, spotless condition without leaving your driveway.",
+        bullets: ["Safe scratch-free multi-stage wash", "Full cabin vacuum, trim & glass finish", "30-minute refresh to full deep clean"],
       },
       {
         tag: "Gloss Boost",
         title: "Paint Enhancement",
         price: "Single-Stage Polish",
-        desc: "Machine refinement that removes light wash marring and haze, restoring deep clarity and crisp reflections before protection.",
-        bullets: ["Full decontamination & clay bar", "Single-stage machine gloss polish", "Durable hydrophobic sealant"],
+        img: "detail",
+        desc: "Machine refinement that removes light haze and wash marring, restoring rich depth and crisp reflections before locking in protection.",
+        bullets: ["Full paint decontamination & clay bar", "Single-stage machine gloss polish", "Hydrophobic sealant protection"],
       },
       {
         tag: "Restoration",
         title: "Multi-Stage Paint Correction",
         price: "Swirl & Defect Removal",
-        desc: "Precision multi-stage machine compounding and finishing to level swirl marks, oxidation, and deeper paint defects.",
-        bullets: ["Dedicated multi-hour machine work", "Safe paint depth assessment", "Prepared for ceramic protection"],
+        img: "hero",
+        desc: "Meticulous multi-hour machine compounding and jewelling to safely level swirl marks, oxidation, and deeper clear-coat defects.",
+        bullets: ["Multi-hour precision machine work", "Safe paint depth assessment", "Showroom-ready finish for ceramic"],
       },
       {
         tag: "Protection",
         title: "Ceramic Coating",
-        price: "Long-Term Shield",
-        desc: "Professional-grade ceramic protection locking in deep gloss while repelling road grime, UV fade, and rain for easy maintenance washes.",
-        bullets: ["High-grade ceramic chemistry", "Extreme water beading & gloss", "Protects paintwork year-round"],
+        price: "Hydrophobic Shield",
+        img: "detail",
+        desc: "Finest-grade ceramic protection delivering tight water beading, intense gloss, and year-round resistance to London road film and UV.",
+        bullets: ["Tight crystal hydrophobic beading", "Easier, safer maintenance washes", "Applied cleanly at your property"],
       },
     ],
-    quoteTitle: "Book or Price Your Mobile Detail in 30 Seconds",
-    quoteLead: "Select your package and vehicle size — sends a clean pre-filled WhatsApp message straight to Wesley on 07388 725375.",
+    quoteTitle: "Book Your North London Detail in 30 Seconds",
+    quoteLead: "Pick your package and vehicle size — opens a clean pre-filled WhatsApp straight to Wesley on 07388 725375.",
     quoteJobs: [
       "Mobile Deep Clean",
       "Paint Enhancement",
@@ -205,21 +229,23 @@ export const LONDON_SITES = {
     quoteSecondaryLabel: "Vehicle Size",
     quoteSecondaryOptions: ["Small / Hatchback", "Saloon / Coupe / Estate", "SUV / 4x4 / MPV", "Performance / Prestige"],
     areas: ["Barnet", "Finchley", "Enfield", "Muswell Hill", "Crouch End", "Highgate", "Hampstead", "Southgate", "Totteridge", "Mill Hill", "Islington", "Hertfordshire Borders"],
-    reviewsTitle: "What North London Drivers Say",
     reviews: [
       {
+        sticker: "5.0 ★ VERIFIED",
         author: "Sarah P.",
-        meta: "Verified Client · 5.0 ★",
+        meta: "North London Client",
         quote: "Wesley was friendly and efficient and washed it like it was his own car, with attention and detail. Highly recommend Washology for a thorough and quality car wash!",
       },
       {
+        sticker: "5.0 ★ VERIFIED",
         author: "Zoe F.",
-        meta: "Verified Client · 5.0 ★",
+        meta: "North London Client",
         quote: "Washology truly exceeded my expectations — their customer service was exceptional, from streamlined communication to accommodating my schedule.",
       },
       {
+        sticker: "5.0 ★ VERIFIED",
         author: "Stephan H.",
-        meta: "Verified Client · 5.0 ★",
+        meta: "North London Client",
         quote: "Excellent service. Arrived bang on time and did a fantastic job. I used to think that I kept my car clean but Wesley has put me to shame... I'll definitely use Washology in future.",
       },
     ],
@@ -229,6 +255,7 @@ export const LONDON_SITES = {
   "thermwise": {
     slug: "thermwise",
     name: "Thermwise Limited",
+    wordmark: "Thermwise.",
     shortName: "Thermwise",
     domain: "thermwise.co.uk",
     currentSpeed: "8.8s Wix load (1.85 MB, no WhatsApp or callback form)",
@@ -236,70 +263,77 @@ export const LONDON_SITES = {
     phoneTel: "+442039620533",
     waDigits: "",
     email: "info@thermwise.co.uk",
-    area: "North, West & Central London + Hertfordshire",
-    badge: "Gas Safe Registered #597272 · 24/7 Engineers",
+    area: "North, West & Central London + Herts",
+    statusTop: "Engineers On Standby 24/7",
+    statusSub: "Gas Safe Reg #597272",
+    locationSub: "N, W & Central London",
+    heroImg: "/assets/thermwise-hero.jpg",
+    detailImg: "/assets/thermwise-detail.jpg",
+    eyebrow: "24/7 PLUMBING, BOILERS & GAS · FAMILY-RUN",
+    heroLine1: "At Your Door",
+    heroLine2: "Within The Hour",
+    heroQuoteLead: "A family-run London heating and plumbing team with 8,000+ completed jobs — ",
+    heroQuoteBold: "our own Gas Safe engineers, never middlemen",
+    heroQuoteTail: ", backed by a 12-month guarantee.",
+    signatureText: "Thermwise · Gas Safe #597272",
     theme: {
-      bg: "#fdfbf7",
-      surface: "#ffffff",
-      surfaceAlt: "#f3efe7",
-      ink: "#102133",
-      muted: "#4d5d6e",
-      border: "#ddd6c9",
-      heroBg: "#0f2942",
-      heroInk: "#fdfbf7",
-      heroMuted: "#c4d4e3",
+      heroGrad: "linear-gradient(180deg, #d7e8fa 0%, #ecf2f9 55%, #fcfaf5 100%)",
+      heroInk: "#0d2137",
+      heroMuted: "#475a6e",
+      heroBorder: "rgba(13,33,55,0.12)",
+      ctaBg: "#c94a27",
+      ctaInk: "#ffffff",
       accent: "#c94a27",
-      accentInk: "#ffffff",
       accentSoft: "#fdece7",
       accentSoftInk: "#932f14",
-      headFont: "Georgia, 'Times New Roman', serif",
-      bodyFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      radius: "6px",
+      portalBg: "linear-gradient(155deg, #0b1f33 0%, #13314f 55%, #0d233a 100%)",
+      portalAccent: "#f26a44",
+      ribbonAccent: "#f59e0b",
     },
-    eyebrow: "24/7 Emergency Plumbing, Boilers & Gas · Family-Run · No Middlemen",
-    headline: "London's heating & plumbing engineers, at your door within the hour.",
-    subhead:
-      "Boiler breakdowns, fixed-price boiler installations, gas safety certificates, leaks, and heating repairs across North, West & Central London — handled strictly by our own Gas Safe engineers.",
-    trustStrip: [
-      { k: "Gas Safe Reg", v: "#597272" },
-      { k: "Track Record", v: "8,000+ Jobs Done" },
-      { k: "Experience", v: "7+ Years Family-Run" },
-      { k: "Warranty", v: "12-Month Guarantee" },
+    splitHeadline: [
+      { muted: "From", strong: "cold boiler", pill: true, muted2: "to", strong2: "warm home" },
+      { strong: "fixed", muted: "by", strong2: "our own engineers" },
     ],
-    servicesTitle: "One Local Team for Your Whole Home",
-    servicesLead: "Unlike agencies that pass your job to whoever is free, Thermwise sends our own engineers from diagnosis to sign-off.",
+    splitSub: "Over 7 years serving North, West & Central London. From a 2 AM boiler breakdown to a fixed-price new installation, one local team handles it start to finish.",
+    portalCornerLeft: "Gas Safe #597272 · 12-month guarantee",
+    portalCornerRight: "24/7 emergency dispatch on 020 3962 0533",
+    ribbonText: "GAS SAFE #597272 ✦ 8,000+ LONDON JOBS ✦ 24/7 EMERGENCY ✦ 12-MONTH GUARANTEE ✦",
     services: [
       {
         tag: "24/7 Emergency",
-        title: "Emergency Boiler Breakdown & Repair",
+        title: "Boiler Breakdown & Repair",
         price: "Within the Hour",
+        img: "hero",
         desc: "No heating, no hot water, fault codes, or pressure drops diagnosed fast day or night across North, West & Central London.",
-        bullets: ["24/7 emergency callout engineers", "All major boiler brands serviced", "12-month workmanship guarantee"],
+        bullets: ["24/7 emergency engineers on call", "All major boiler brands repaired", "12-month workmanship guarantee"],
       },
       {
         tag: "Fixed Price",
         title: "New Boiler Installations",
-        price: "Fixed Quote Upfront",
-        desc: "Honest fixed-price boiler replacements sized properly for your home, installed neatly with full Gas Safe registration.",
-        bullets: ["Clear upfront fixed quotation", "Old unit removed & flushed", "Gas Safe #597272 notified"],
+        price: "Upfront Fixed Quote",
+        img: "detail",
+        desc: "Honest fixed-price boiler replacements properly sized for London homes, installed neatly with full Gas Safe notification.",
+        bullets: ["Clear fixed quote with zero surprises", "System flush & neat copper pipework", "Gas Safe #597272 certified"],
       },
       {
         tag: "Gas Safe",
-        title: "Gas Leaks, Cookers & CP12 Certificates",
-        price: "Homeowners & Landlords",
-        desc: "Urgent gas leak tracing, hob and cooker installations, and annual Landlord Gas Safety Certificates.",
-        bullets: ["Emergency gas leak response", "Landlord CP12 inspections", "Gas Safe registered engineers"],
+        title: "Gas Leaks, Hobs & CP12",
+        price: "Home & Landlord",
+        img: "hero",
+        desc: "Urgent gas leak tracing, cooker and hob installations, and annual Landlord Gas Safety Certificates.",
+        bullets: ["Rapid gas leak investigation", "Landlord CP12 certificates", "Registered Gas Safe engineers"],
       },
       {
         tag: "Plumbing & Heating",
-        title: "Leaks, Pipes, Radiators & Blockages",
+        title: "Leaks, Radiators & Drainage",
         price: "Same-Day Service",
-        desc: "Burst pipes, dripping taps, toilets, cold radiators, hot water cylinders, drainage blockages, and domestic electrics.",
-        bullets: ["Fast leak isolation & repair", "Radiator balancing & valves", "Clean, respectful home engineers"],
+        img: "detail",
+        desc: "Burst pipes, dripping taps, toilets, cold radiators, hot water cylinders, blockages, and domestic electrical fixes.",
+        bullets: ["Fast leak isolation & repair", "Radiator balancing & valves", "Clean, tidy family-run team"],
       },
     ],
     quoteTitle: "Request an Emergency Engineer or Fixed Boiler Quote",
-    quoteLead: "Need someone urgently? Tap to call 020 3962 0533 now — or send your issue & postcode below for a priority callback.",
+    quoteLead: "Need help right now? Tap to call 020 3962 0533 — or build a priority callback request below in 30 seconds.",
     quoteJobs: [
       "24/7 Boiler Breakdown (No Heat / Hot Water)",
       "Urgent Water Leak / Burst Pipe",
@@ -311,22 +345,24 @@ export const LONDON_SITES = {
     quoteSecondaryLabel: "How Urgent Is This?",
     quoteSecondaryOptions: ["Emergency — Need Engineer Today", "Within 24–48 Hours", "This Week (Flexible)", "Just Looking for a Fixed Quote"],
     areas: ["Barnet", "Brent", "Camden", "Ealing", "Hammersmith", "Harrow", "Hillingdon", "Islington", "Westminster", "Kensington", "Watford", "Hertfordshire"],
-    reviewsTitle: "Why 8,000+ London Homes Choose Thermwise",
     reviews: [
       {
-        author: "4.3 ★ on Google",
-        meta: "Hundreds of London Customers",
-        quote: "Backed by hundreds of verified London homeowner and landlord reviews across North, West, and Central London.",
+        sticker: "4.3 ★ GOOGLE",
+        author: "Hundreds of London Homes",
+        meta: "8,000+ Jobs Completed",
+        quote: "Trusted across North, West & Central London for fast emergency callouts, tidy boiler installs, and straightforward honest pricing.",
       },
       {
-        author: "Our Own Engineers — Zero Middlemen",
-        meta: "Family-Run for 7+ Years",
-        quote: "When you call Thermwise, you speak directly to our family-run dispatch team — never a national call centre subcontracting your home.",
+        sticker: "FAMILY-RUN",
+        author: "Our Own Engineers Only",
+        meta: "7+ Years in Business",
+        quote: "Unlike national agencies that pass your job to whoever is free, Thermwise sends our own vetted engineers from start to finish.",
       },
       {
-        author: "12-Month Guarantee on Workmanship",
-        meta: "Gas Safe Registered #597272",
-        quote: "Every boiler repair, installation, and plumbing fix is backed by our written 12-month guarantee for complete peace of mind.",
+        sticker: "12-MONTH WARRANTY",
+        author: "Gas Safe Registered #597272",
+        meta: "Guaranteed Workmanship",
+        quote: "Every boiler repair, gas safety check, and heating installation comes with our written 12-month workmanship guarantee.",
       },
     ],
     footerNote: "© 2026 Thermwise Limited · Gas Safe Registered #597272 · 020 3962 0533 · info@thermwise.co.uk",
@@ -335,6 +371,7 @@ export const LONDON_SITES = {
   "wish-wash": {
     slug: "wish-wash",
     name: "Wish Wash Valeting & Detailing",
+    wordmark: "Wish Wash.",
     shortName: "Wish Wash",
     domain: "wish-wash.co.uk",
     currentSpeed: "4.8s Wix load (1.33 MB, no inline booking form)",
@@ -343,69 +380,76 @@ export const LONDON_SITES = {
     waDigits: "447763453883",
     email: "info@wish-wash.co.uk",
     area: "London — Home or Office Driveway",
-    badge: "12+ Years Experience · Own Water & Power",
+    statusTop: "Mobile Van Ready",
+    statusSub: "Own Water & Power",
+    locationSub: "London, UK",
+    heroImg: "/assets/wish-wash-hero.jpg",
+    detailImg: "/assets/wish-wash-detail.jpg",
+    eyebrow: "12+ YEARS MOBILE VALETING · TRANSPARENT FROM £43",
+    heroLine1: "Showroom Clean,",
+    heroLine2: "Zero Hassle",
+    heroQuoteLead: "Over 12 years bringing fully self-contained mobile valeting to London doorsteps — ",
+    heroQuoteBold: "own water, own power, clear prices from £43",
+    heroQuoteTail: ", zero mess left behind.",
+    signatureText: "Wish Wash · 12+ Years",
     theme: {
-      bg: "#f5f8fb",
-      surface: "#ffffff",
-      surfaceAlt: "#eaf1f7",
-      ink: "#0f2236",
-      muted: "#4f6478",
-      border: "#d5e0ea",
-      heroBg: "#0d3457",
-      heroInk: "#ffffff",
-      heroMuted: "#bdd3e8",
+      heroGrad: "linear-gradient(180deg, #3b96f3 0%, #86c7fb 56%, #e4f3ff 100%)",
+      heroInk: "#091d34",
+      heroMuted: "#1f3e5f",
+      heroBorder: "rgba(9,29,52,0.14)",
+      ctaBg: "#091d34",
+      ctaInk: "#ffffff",
       accent: "#0d9488",
-      accentInk: "#ffffff",
       accentSoft: "#ccfbf1",
       accentSoftInk: "#115e59",
-      headFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      bodyFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      radius: "10px",
+      portalBg: "linear-gradient(155deg, #0b2d4d 0%, #0e4a73 55%, #092640 100%)",
+      portalAccent: "#2dd4bf",
+      ribbonAccent: "#38bdf8",
     },
-    eyebrow: "12+ Years Mobile Valeting · Own Water & Power Supply · London",
-    headline: "Showroom mobile car valeting & detailing at your doorstep.",
-    subhead:
-      "We come straight to your home or office fully equipped with our own water and power supply — transparent package pricing from £43 with zero hassle and zero mess.",
-    trustStrip: [
-      { k: "Experience", v: "12+ Years" },
-      { k: "Setup Needed", v: "None (Own Water & Power)" },
-      { k: "Pricing", v: "Clear From £43" },
-      { k: "Location", v: "Home or Office" },
+    splitHeadline: [
+      { muted: "From", strong: "road grime", pill: true, muted2: "to", strong2: "showroom fresh" },
+      { strong: "washed", muted: "on", strong2: "your own driveway" },
     ],
-    servicesTitle: "Transparent Valeting & Detailing Packages",
-    servicesLead: "No guesswork — pick the exact package you want below and tap to book your preferred date on WhatsApp.",
+    splitSub: "Clear upfront packages from £43 to £80 with pH-neutral snow foam, 3-bucket safe wash, Ultragloss SiO2 protection, and deep cabin care.",
+    portalCornerLeft: "Own water & power onboard",
+    portalCornerRight: "Tap a package · Book on WhatsApp in 20s",
+    ribbonText: "EXTERIOR £43–£49 ✦ MINI VALET PLUS £59–£69 ✦ DETAIL SiO2 £70–£80 ✦ 12+ YEARS LONDON ✦",
     services: [
       {
         tag: "Essential",
         title: "Exterior Wash & Protect",
         price: "£43 – £49",
-        desc: "Safe hand wash and protective wax finish ideal for regular upkeep without risking drive-through scratches.",
-        bullets: ["Pre-wash rinse & wheel wash", "Microfibre mitt hand wash & soft towel dry", "Protective wax, glass clean & tyre dressing"],
+        img: "hero",
+        desc: "Safe hand wash and protective wax finish designed for spotless regular upkeep without risking drive-through scratches.",
+        bullets: ["Pre-wash rinse & dedicated wheel wash", "Microfibre mitt hand wash & soft towel dry", "Wax protection, glass clean & tyre dressing"],
       },
       {
         tag: "Most Popular",
         title: "Mini Valet Plus",
         price: "£59 – £69",
-        desc: "Complete exterior wash & wax paired with a thorough cabin reset covering carpets, seats, boot, and dashboard.",
-        bullets: ["Full Exterior Wash & Protect included", "Deep interior vacuum (mats, carpets, seats, boot)", "Dashboard, plastics & interior windows cleaned"],
+        img: "detail",
+        desc: "Complete Exterior Wash & Protect paired with a deep interior reset covering mats, carpets, seats, boot, and dashboard.",
+        bullets: ["Full Exterior Wash & Protect included", "Deep interior vacuum (mats, seats & boot)", "Dashboard, plastics & inside windows"],
       },
       {
         tag: "Showroom Gloss",
         title: "Detail Exterior (SiO2)",
         price: "£70 – £80",
-        desc: "Enthusiast-grade safe wash featuring snow foam, 3-bucket method, and Ultragloss SiO2 ceramic-infused exterior protection.",
-        bullets: ["Deep pre-wash rinse & pH-neutral snow foam", "3-bucket hand wash + wheel protection", "Ultragloss SiO2 glass/paint + ceramic tyre shine"],
+        img: "hero",
+        desc: "Enthusiast-grade safe wash with pH-neutral snow foam, 3-bucket method, Ultragloss SiO2 coating, and ceramic tyre shine.",
+        bullets: ["Deep pre-wash & pH-neutral snow foam bath", "3-bucket hand wash + wheel protection", "Ultragloss SiO2 glass/paint + ceramic tyres"],
       },
       {
-        tag: "Deep Restoration",
-        title: "Upholstery & Machine Polishing",
+        tag: "Restoration",
+        title: "Upholstery & Machine Polish",
         price: "Custom Quote",
-        desc: "Deep seat/carpet stain extraction, odour removal, and machine polishing tailored to your vehicle's paint condition.",
-        bullets: ["Hot-water interior upholstery extraction", "Machine gloss enhancement", "Own onboard power & water"],
+        img: "detail",
+        desc: "Deep seat and carpet stain extraction, interior refreshment, and machine polishing tailored to your vehicle.",
+        bullets: ["Deep fabric & leather cabin care", "Machine gloss enhancement", "Zero tap or plug needed from you"],
       },
     ],
     quoteTitle: "Book Your Mobile Valet Slot in 20 Seconds",
-    quoteLead: "Choose your package and car size below — opens a pre-filled WhatsApp message directly to +44 7763 453883.",
+    quoteLead: "Pick your package and vehicle size below — opens a ready-to-send WhatsApp directly to +44 7763 453883.",
     quoteJobs: [
       "Exterior Wash & Protect (£43–£49)",
       "Mini Valet Plus (£59–£69)",
@@ -416,22 +460,24 @@ export const LONDON_SITES = {
     quoteSecondaryLabel: "Vehicle Size",
     quoteSecondaryOptions: ["Small / Standard Car", "Saloon / Estate", "Large SUV / 4x4 / 7-Seater", "Van / Commercial"],
     areas: ["Central London", "West London", "North London", "South London", "East London", "Home Driveways", "Office Car Parks"],
-    reviewsTitle: "Customer Feedback",
     reviews: [
       {
+        sticker: "5.0 ★ LONG-TERM CLIENT",
         author: "S. Ottmann",
-        meta: "Verified Long-Term Customer · 5.0 ★",
-        quote: "Simple to book — I've had many a car cleaned, this was exceptional. The standard is higher than I've ever seen, my car is brand new again. I cannot recommend this company enough, I will now remain a long term customer.",
+        meta: "Verified London Customer",
+        quote: "Simple to book — I've had many a car cleaned, this was exceptional. The standard is higher than I've ever seen, my car is brand new again. I will now remain a long term customer.",
       },
       {
-        author: "12+ Years Hands-On Experience",
-        meta: "Premium Selected Products",
-        quote: "Over a decade refining safe wash methods and selecting paint-safe chemistry so your vehicle gets genuine showroom results every visit.",
+        sticker: "12+ YEARS",
+        author: "Decades of Safe Craft",
+        meta: "Selected Premium Chemistry",
+        quote: "Over 12 years perfecting safe wash techniques and selecting paint-safe SiO2 products for genuine showroom results every visit.",
       },
       {
-        author: "100% Self-Contained Van",
-        meta: "Own Water & Electricity",
-        quote: "Park at home or work and carry on with your day — we bring our own water tank and power supply with zero mess left behind.",
+        sticker: "100% SELF-CONTAINED",
+        author: "Own Water & Power Supply",
+        meta: "Home or Office Convenience",
+        quote: "Carry on with your workday or weekend — our mobile van arrives fully equipped with onboard water and electricity.",
       },
     ],
     footerNote: "© 2026 Wish Wash Valeting & Detailing · London · +44 7763 453883 · info@wish-wash.co.uk",
@@ -440,6 +486,7 @@ export const LONDON_SITES = {
   "visuals-detailing": {
     slug: "visuals-detailing",
     name: "Visuals Valeting & Detailing",
+    wordmark: "Visuals.",
     shortName: "Visuals Detailing",
     domain: "visualsdetailing.co.uk",
     currentSpeed: "5.8–13.2s Wix load (1.30 MB, no quote calculator)",
@@ -447,70 +494,77 @@ export const LONDON_SITES = {
     phoneTel: "+447859743762",
     waDigits: "447859743762",
     email: "visualsdetailing@gmail.com",
-    area: "London, Surrey & 5 Surrounding Counties",
-    badge: "5.0 ★ Rated · Mobile From £35 · Own Power & Water",
+    area: "London, Surrey & Home Counties",
+    statusTop: "5.0 ★ Driveway Detailing",
+    statusSub: "Valets From £35 · 7 Areas",
+    locationSub: "London & Surrey",
+    heroImg: "/assets/visuals-detailing-hero.jpg",
+    detailImg: "/assets/visuals-detailing-detail.jpg",
+    eyebrow: "5.0 ★ RATED · OWN POWER & WATER · 7 COUNTIES",
+    heroLine1: "Showroom Finish,",
+    heroLine2: "On Your Drive",
+    heroQuoteLead: "From £35 maintenance valets to Stage 2 paint correction and wheels-off ceramic coatings — ",
+    heroQuoteBold: "nothing to set up and nowhere to drive",
+    heroQuoteTail: " across London, Surrey & the Home Counties.",
+    signatureText: "Visuals · 5.0 ★ Rated",
     theme: {
-      bg: "#f4f1ea",
-      surface: "#ffffff",
-      surfaceAlt: "#eae4d7",
-      ink: "#15231c",
-      muted: "#4d5c54",
-      border: "#d8d0c0",
-      heroBg: "#17382b",
-      heroInk: "#f7f4ec",
-      heroMuted: "#c2d4ca",
+      heroGrad: "linear-gradient(180deg, #dde7df 0%, #edf1ea 56%, #f6f2ea 100%)",
+      heroInk: "#13261d",
+      heroMuted: "#475c51",
+      heroBorder: "rgba(19,38,29,0.12)",
+      ctaBg: "#17382b",
+      ctaInk: "#f7f4ec",
       accent: "#9c7a3c",
-      accentInk: "#ffffff",
       accentSoft: "#f3ebd9",
       accentSoftInk: "#6d5322",
-      headFont: "Georgia, 'Times New Roman', serif",
-      bodyFont: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-      radius: "6px",
+      portalBg: "linear-gradient(155deg, #10291f 0%, #1b4332 55%, #122d22 100%)",
+      portalAccent: "#d4b06a",
+      ribbonAccent: "#d4b06a",
     },
-    eyebrow: "5.0 ★ Mobile Car Detailing · Own Power & Water · London & Surrey",
-    headline: "Showroom finish delivered directly to your driveway.",
-    subhead:
-      "Valets from £35, Stage 1 & Stage 2 paint correction, and wheels-off ceramic coating across London, Surrey, and the Home Counties — we bring our own power and water, so there's nothing to set up and nowhere to drive.",
-    trustStrip: [
-      { k: "Rating", v: "5.0 ★ Customer Rated" },
-      { k: "Valets From", v: "£35 at Your Door" },
-      { k: "Equipment", v: "Own Power & Water" },
-      { k: "Coverage", v: "7 Areas Covered" },
+    splitHeadline: [
+      { muted: "From", strong: "dull paint", pill: true, muted2: "to", strong2: "concours depth" },
+      { strong: "finished", muted: "at", strong2: "your front door" },
     ],
-    servicesTitle: "Three Ways We Look After Your Car",
-    servicesLead: "Every visit is tailored around your vehicle and carried out cleanly on your own driveway or workplace.",
+    splitSub: "Own onboard power and water across 7 counties — bringing multi-stage paint correction, wheels-off ceramic coatings, and £35+ maintenance valets straight to your driveway.",
+    portalCornerLeft: "Own power & water · Zero garage visits",
+    portalCornerRight: "Instant WhatsApp driveway quote across 7 counties",
+    ribbonText: "5.0 ★ RATED ✦ VALETS FROM £35 ✦ STAGE 1 & 2 CORRECTION ✦ WHEELS-OFF CERAMIC ✦ LONDON & SURREY ✦",
     services: [
       {
         tag: "From £35",
-        title: "Everyday Care & Maintenance Valets",
+        title: "Everyday Care & Valets",
         price: "From £35",
-        desc: "Regular maintenance washes through to full interior deep cleans — keeping daily drivers spotless without leaving home.",
-        bullets: ["Safe snow foam & hand wash", "Full interior deep clean options", "Own power & water onboard"],
+        img: "hero",
+        desc: "Safe driveway maintenance washes through to full interior deep cleans — keeping daily cars effortlessly sharp at home or work.",
+        bullets: ["Safe snow foam & scratch-free wash", "Full interior deep clean options", "Own power & water onboard"],
       },
       {
-        tag: "Protection & Finish",
-        title: "Paint Enhancement & Ceramic Coating",
-        price: "Wheels-Off Options",
-        desc: "Machine paint enhancement, wheels-off ceramic coating, and dedicated leather protection using pro-grade chemistry.",
-        bullets: ["Wheels-off ceramic coating", "Interior leather protection", "Deep hydrophobic gloss"],
+        tag: "Protection",
+        title: "Wheels-Off Ceramic & Leather",
+        price: "Pro Chemistry",
+        img: "detail",
+        desc: "Paint enhancement, wheels-off ceramic coating, and dedicated leather protection using the same pro chemistry as our restorations.",
+        bullets: ["Wheels-off alloy & caliper ceramic", "Interior leather & trim protection", "Deep hydrophobic gloss"],
       },
       {
         tag: "Restoration",
-        title: "Stage 1 & Stage 2 Paint Correction",
-        price: "Tailored Quote",
-        desc: "Multi-stage machine correction removing swirls, dullness, and surface defects to restore crisp mirror depth.",
-        bullets: ["Stage 1 single-step refinement", "Stage 2 deeper defect correction", "Ideal pre-sale or new-car prep"],
+        title: "Stage 1 & 2 Paint Correction",
+        price: "Mirror Gloss",
+        img: "hero",
+        desc: "Precision single-stage enhancement or deeper Stage 2 machine correction levelling swirls, hazing, and surface blemishes.",
+        bullets: ["Stage 1 gloss refinement", "Stage 2 deeper defect removal", "Ideal for new-car or pre-sale prep"],
       },
       {
-        tag: "Add-Ons",
-        title: "Targeted Detailing Upgrades",
+        tag: "Tailored Add-Ons",
+        title: "Bespoke Detailing Upgrades",
         price: "Mix & Match",
-        desc: "Combine glass rain-repellent coatings, engine bay dressing, pet hair removal, or fabric protection with any booking.",
-        bullets: ["Custom add-on menu", "Multi-car household discounts", "Flexible driveway scheduling"],
+        img: "detail",
+        desc: "Add glass rain-repellent coating, engine bay dressing, pet hair removal, or fabric protection to any driveway visit.",
+        bullets: ["Tailored add-on options", "Multi-car household slots", "7 areas across London & Home Counties"],
       },
     ],
     quoteTitle: "Get Your Instant Driveway Quote",
-    quoteLead: "Pick your package and county below — pre-fills a direct WhatsApp message to +44 7859 743762 with zero back-and-forth.",
+    quoteLead: "Choose your package and county below — opens a pre-filled WhatsApp straight to +44 7859 743762.",
     quoteJobs: [
       "Maintenance Wash / Everyday Valet (from £35)",
       "Full Interior & Exterior Deep Clean",
@@ -518,37 +572,105 @@ export const LONDON_SITES = {
       "Stage 2 Multi-Stage Paint Correction",
       "Wheels-Off Ceramic Coating & Leather Protection",
     ],
-    quoteSecondaryLabel: "Your Location",
+    quoteSecondaryLabel: "Your County / Area",
     quoteSecondaryOptions: ["London / Hounslow", "Surrey", "Berkshire", "Buckinghamshire", "Hampshire / Hertfordshire"],
     areas: ["London", "Hounslow", "Surrey", "Berkshire", "Buckinghamshire", "Hampshire", "Hertfordshire"],
-    reviewsTitle: "Built Around Convenience & Craft",
     reviews: [
       {
-        author: "5.0 ★ Rated Across London & Surrey",
-        meta: "Verified Driveway Detailing",
-        quote: "Consistent 5-star feedback from everyday commuters and prestige car owners across all 7 coverage areas.",
+        sticker: "5.0 ★ RATED",
+        author: "London & Surrey Drivers",
+        meta: "7 Areas Covered",
+        quote: "Consistently 5-star rated from weekly driveway maintenance washes through to full multi-stage paint restorations.",
       },
       {
-        author: "Zero Garage Hassle",
-        meta: "Own Power & Water Supply",
-        quote: "We never ask for your tap or extension lead — our fully equipped mobile unit arrives ready to deliver showroom results on your driveway.",
+        sticker: "NO GARAGE NEEDED",
+        author: "Own Power & Water Onboard",
+        meta: "100% Self-Contained",
+        quote: "We never ask for your tap or extension lead — everything needed for a showroom finish arrives cleanly on your driveway.",
       },
       {
-        author: "Pro-Grade Correction & Coating Chemistry",
-        meta: "Stage 1, Stage 2 & Wheels-Off Ceramic",
-        quote: "The same pro-grade polishing compounds and ceramic coatings trusted on multi-stage restorations, applied right at your door.",
+        sticker: "CONCOURS CRAFT",
+        author: "Stage 1, Stage 2 & Wheels-Off",
+        meta: "Pro-Grade Ceramic Systems",
+        quote: "True machine paint correction and wheels-off ceramic protection carried out patiently right outside your front door.",
       },
     ],
     footerNote: "© 2026 Visuals Valeting & Detailing · London & Surrey · +44 7859 743762 · visualsdetailing@gmail.com",
   },
 };
 
-export function renderClientSiteHtml(site, { clean = false } = {}) {
+export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGIN } = {}) {
   const t = site.theme;
+  const heroPhoto = `${origin}${site.heroImg}`;
+  const detailPhoto = `${origin}${site.detailImg}`;
   const waHref = site.waDigits
     ? `https://wa.me/${site.waDigits}?text=${encodeURIComponent(`Hi ${site.shortName}, I'd like a quick quote please.`)}`
     : `mailto:${encodeURIComponent(site.email)}?subject=${encodeURIComponent(`Quote Request — ${site.shortName}`)}`;
   const primaryContactLabel = site.waDigits ? "WhatsApp Quote" : "Request Callback";
+
+  // Build 6 rich interactive showcase cards for BOTH the 3D concave hero cylinder AND the fanned scroll arc
+  const carouselCards = [
+    {
+      id: 0,
+      kind: "photo",
+      img: heroPhoto,
+      tag: site.services[0].tag,
+      title: site.services[0].title,
+      price: site.services[0].price,
+      desc: site.services[0].desc,
+      bullets: site.services[0].bullets,
+    },
+    {
+      id: 1,
+      kind: "photo",
+      img: detailPhoto,
+      tag: site.services[1].tag,
+      title: site.services[1].title,
+      price: site.services[1].price,
+      desc: site.services[1].desc,
+      bullets: site.services[1].bullets,
+    },
+    {
+      id: 2,
+      kind: "photo",
+      img: heroPhoto,
+      tag: site.services[2].tag,
+      title: site.services[2].title,
+      price: site.services[2].price,
+      desc: site.services[2].desc,
+      bullets: site.services[2].bullets,
+    },
+    {
+      id: 3,
+      kind: "photo",
+      img: detailPhoto,
+      tag: site.services[3].tag,
+      title: site.services[3].title,
+      price: site.services[3].price,
+      desc: site.services[3].desc,
+      bullets: site.services[3].bullets,
+    },
+    {
+      id: 4,
+      kind: "photo",
+      img: heroPhoto,
+      tag: site.reviews[0].sticker,
+      title: site.reviews[0].author,
+      price: site.reviews[0].meta,
+      desc: site.reviews[0].quote,
+      bullets: [`Serving ${site.area}`, `Direct contact: ${site.phoneDisplay}`, "Zero call-centre middlemen"],
+    },
+    {
+      id: 5,
+      kind: "photo",
+      img: detailPhoto,
+      tag: site.statusTop,
+      title: `${site.shortName} Direct`,
+      price: site.statusSub,
+      desc: site.splitSub,
+      bullets: site.areas.slice(0, 3).map((a) => `Covering ${a} & surrounds`),
+    },
+  ];
 
   const previewBar = clean
     ? ""
@@ -556,7 +678,7 @@ export function renderClientSiteHtml(site, { clean = false } = {}) {
   <div class="pv-inner">
     <div class="pv-copy">
       <span class="pv-pill">LIVE PREVIEW</span>
-      <span>Built for <strong>${escapeHtml(site.name)}</strong> · Loads in <strong>&lt;0.1s</strong> (replaces ${escapeHtml(site.currentSpeed)}) · <strong>£199 one-time</strong>, £0/mo hosting, 100% text/email handover.</span>
+      <span>Built for <strong>${escapeHtml(site.name)}</strong> · Replaces ${escapeHtml(site.currentSpeed)} · <strong>£199 one-time</strong> (£0/mo hosting, 100% text/email handover).</span>
     </div>
     <div class="pv-actions">
       <button type="button" class="pv-buy" data-action="claim-site" data-slug="${escapeHtml(site.slug)}">Claim &amp; Go Live — £199</button>
@@ -565,41 +687,52 @@ export function renderClientSiteHtml(site, { clean = false } = {}) {
   </div>
 </div>`;
 
-  const servicesHtml = site.services
+  const c3dCardsHtml = carouselCards
     .map(
-      (s) => `<article class="svc-card">
-      <div class="svc-top">
-        <span class="svc-tag">${escapeHtml(s.tag)}</span>
-        <span class="svc-price">${escapeHtml(s.price)}</span>
+      (c, i) => `<button type="button" class="c3d-card" data-idx="${i}" data-action="open-card" aria-label="Inspect ${escapeHtml(c.title)}">
+      <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.title)}" loading="eager" decoding="async">
+      <div class="c3d-scrim"></div>
+      <div class="c3d-top">
+        <span class="c3d-tag">${escapeHtml(c.tag)}</span>
+        <span class="c3d-price">${escapeHtml(c.price)}</span>
       </div>
-      <h3>${escapeHtml(s.title)}</h3>
-      <p>${escapeHtml(s.desc)}</p>
-      <ul>${s.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}</ul>
-      <button type="button" class="svc-pick" data-action="pick-service" data-service="${escapeHtml(s.title)}">Select for Quick Quote →</button>
+      <div class="c3d-foot">
+        <strong>${escapeHtml(c.title)}</strong>
+        <span>Tap to inspect ↗</span>
+      </div>
+    </button>`
+    )
+    .join("");
+
+  const arcCardsHtml = carouselCards
+    .map(
+      (c, i) => `<button type="button" class="arc-card" data-arc-idx="${i}" data-idx="${i}" data-action="open-card" aria-label="Open ${escapeHtml(c.title)}">
+      <div class="arc-media">
+        <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.title)}" loading="lazy" decoding="async">
+        <span class="arc-badge">${escapeHtml(c.tag)}</span>
+      </div>
+      <div class="arc-body">
+        <div class="arc-row"><strong>${escapeHtml(c.title)}</strong><span>${escapeHtml(c.price)}</span></div>
+        <p>${escapeHtml(c.desc.slice(0, 92))}…</p>
+      </div>
+    </button>`
+    )
+    .join("");
+
+  const s1 = site.splitHeadline[0];
+  const s2 = site.splitHeadline[1];
+
+  const reviewsHtml = site.reviews
+    .map(
+      (r, idx) => `<article class="obs-card" data-pop style="--tilt:${idx === 0 ? "-2deg" : idx === 1 ? "1.6deg" : "-1.2deg"}">
+      <span class="obs-sticker">${escapeHtml(r.sticker)}</span>
+      <p class="obs-quote">“${escapeHtml(r.quote)}”</p>
+      <div class="obs-author"><strong>${escapeHtml(r.author)}</strong><span>${escapeHtml(r.meta)}</span></div>
     </article>`
     )
     .join("");
 
-  const trustHtml = site.trustStrip
-    .map(
-      (item) => `<div class="trust-cell">
-      <div class="trust-k">${escapeHtml(item.k)}</div>
-      <div class="trust-v">${escapeHtml(item.v)}</div>
-    </div>`
-    )
-    .join("");
-
-  const reviewsHtml = site.reviews
-    .map(
-      (r) => `<blockquote class="rev-card">
-      <p>“${escapeHtml(r.quote)}”</p>
-      <footer><strong>${escapeHtml(r.author)}</strong><span>${escapeHtml(r.meta)}</span></footer>
-    </blockquote>`
-    )
-    .join("");
-
-  const areasHtml = site.areas.map((a) => `<span class="area-chip">${escapeHtml(a)}</span>`).join("");
-
+  const areasHtml = site.areas.map((a) => `<span class="area-pill">${escapeHtml(a)}</span>`).join("");
   const jobOptionsHtml = site.quoteJobs.map((j) => `<option value="${escapeHtml(j)}">${escapeHtml(j)}</option>`).join("");
   const secOptionsHtml = site.quoteSecondaryOptions.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("");
 
@@ -609,348 +742,703 @@ export function renderClientSiteHtml(site, { clean = false } = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(site.name)} | ${escapeHtml(site.area)}</title>
-<meta name="description" content="${escapeHtml(site.subhead)}">
+<meta name="description" content="${escapeHtml(site.splitSub)}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: ${t.bg};
-    --surface: ${t.surface};
-    --surface-alt: ${t.surfaceAlt};
-    --ink: ${t.ink};
-    --muted: ${t.muted};
-    --border: ${t.border};
-    --hero-bg: ${t.heroBg};
+    --hero-grad: ${t.heroGrad};
     --hero-ink: ${t.heroInk};
     --hero-muted: ${t.heroMuted};
+    --hero-border: ${t.heroBorder};
+    --cta-bg: ${t.ctaBg};
+    --cta-ink: ${t.ctaInk};
     --accent: ${t.accent};
-    --accent-ink: ${t.accentInk};
     --accent-soft: ${t.accentSoft};
     --accent-soft-ink: ${t.accentSoftInk};
-    --radius: ${t.radius};
+    --portal-bg: ${t.portalBg};
+    --portal-accent: ${t.portalAccent};
+    --ribbon-accent: ${t.ribbonAccent};
+    --ink: #0b1221;
+    --muted: #64748b;
+    --line: #e2e8f0;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    background: var(--bg);
+    background: #ffffff;
     color: var(--ink);
-    font-family: ${t.bodyFont};
-    line-height: 1.55;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    padding-bottom: 68px;
+    overflow-x: hidden;
   }
-  h1, h2, h3 { font-family: ${t.headFont}; line-height: 1.18; margin: 0; letter-spacing: -0.015em; }
   a { color: inherit; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  button { font-family: inherit; }
 
+  /* Preview handover strip */
   .pv-bar {
-    position: sticky; top: 0; z-index: 90;
-    background: #111827; color: #f9fafb; border-bottom: 2px solid #f59e0b;
-    font-size: 13px; line-height: 1.4;
+    position: sticky; top: 0; z-index: 120;
+    background: #0b101b; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.14);
+    font-size: 12.5px; line-height: 1.38;
   }
   .pv-inner {
-    max-width: 1120px; margin: 0 auto; padding: 10px 16px;
+    max-width: 1240px; margin: 0 auto; padding: 9px 18px;
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
   }
   .pv-copy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .pv-pill {
-    background: #f59e0b; color: #111827; font-weight: 800; font-size: 10px;
-    letter-spacing: 0.08em; padding: 3px 7px; border-radius: 4px;
+    background: #f59e0b; color: #0b101b; font-weight: 800; font-size: 10px;
+    letter-spacing: 0.08em; padding: 3px 7px; border-radius: 999px;
   }
   .pv-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .pv-buy {
-    background: #10b981; color: #052e16; border: 0; border-radius: 5px;
-    padding: 7px 13px; font-weight: 800; font-size: 13px; cursor: pointer;
+    background: #10b981; color: #052e16; border: 0; border-radius: 999px;
+    padding: 7px 14px; font-weight: 800; font-size: 12.5px; cursor: pointer;
+    transition: transform .15s ease, filter .15s ease;
   }
-  .pv-buy:hover { filter: brightness(1.06); }
+  .pv-buy:hover { transform: translateY(-1px); filter: brightness(1.06); }
   .pv-close {
-    background: transparent; color: #d1d5db; border: 1px solid #4b5563;
-    border-radius: 5px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+    background: transparent; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 999px; padding: 5px 11px; font-size: 12px; cursor: pointer;
   }
 
-  .nav {
-    background: var(--hero-bg); color: var(--hero-ink);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .nav-inner {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 14px; padding: 16px 20px; max-width: 1080px; margin: 0 auto;
-  }
-  .brand { font-family: ${t.headFont}; font-weight: 700; font-size: 19px; text-decoration: none; }
-  .brand small { display: block; font-family: ${t.bodyFont}; font-size: 11px; color: var(--hero-muted); font-weight: 500; margin-top: 2px; }
-  .nav-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
-  .nav-links a { text-decoration: none; color: var(--hero-muted); }
-  .nav-links a:hover { color: var(--hero-ink); }
-  .nav-cta {
-    background: var(--accent); color: var(--accent-ink) !important;
-    padding: 9px 15px; border-radius: var(--radius); font-weight: 700; white-space: nowrap;
-  }
-
+  /* SECTION 1: 100vh ARCHITECTURAL HERO + 3D CONCAVE CAROUSEL */
   .hero {
-    background: var(--hero-bg); color: var(--hero-ink);
-    padding: 54px 0 48px;
+    position: relative;
+    min-height: 94vh;
+    background: var(--hero-grad);
+    color: var(--hero-ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    padding-bottom: 34px;
   }
-  .hero-grid { display: grid; grid-template-columns: 1.35fr 0.85fr; gap: 36px; align-items: start; }
+  .topbar {
+    position: relative; z-index: 30;
+    max-width: 1280px; width: 100%; margin: 0 auto;
+    padding: 24px 32px 0;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 16px;
+  }
+  .wordmark {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 28px; line-height: 1; text-decoration: none; letter-spacing: -0.01em;
+    justify-self: start;
+  }
+  .meta-cols {
+    display: flex; gap: 28px; align-items: flex-start;
+    font-size: 12px; line-height: 1.35;
+  }
+  .meta-col .m-k { display: flex; align-items: center; gap: 6px; color: var(--hero-muted); font-weight: 500; }
+  .meta-col .m-v { font-weight: 700; color: var(--hero-ink); margin-top: 2px; }
+  .dot-live {
+    width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16,185,129,0.22); display: inline-block;
+  }
+  .vnav {
+    justify-self: end; display: flex; flex-direction: column; align-items: flex-end;
+    gap: 3px; font-size: 13px; font-weight: 600;
+  }
+  .vnav a {
+    text-decoration: none; color: var(--hero-ink); opacity: 0.78;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .vnav a:hover { opacity: 1; transform: translateX(-2px); }
+
+  /* 3D Concave Cylinder Stage */
+  .stage-wrap {
+    position: relative; z-index: 20;
+    width: 100%; height: 390px;
+    display: flex; align-items: center; justify-content: center;
+    perspective: 1350px;
+    margin: 12px 0 4px;
+    cursor: grab;
+    user-select: none;
+    touch-action: pan-y;
+  }
+  .stage-wrap.dragging { cursor: grabbing; }
+  .c3d-ring {
+    position: relative;
+    width: 310px; height: 224px;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .c3d-card {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    padding: 0; border: 1px solid rgba(255,255,255,0.55); border-radius: 18px;
+    overflow: hidden; background: #0f172a; color: #ffffff;
+    box-shadow: 0 24px 52px rgba(11,18,33,0.18), 0 4px 14px rgba(11,18,33,0.08);
+    cursor: pointer; text-align: left; backface-visibility: hidden;
+    transition: border-color .2s ease;
+  }
+  .c3d-card:hover { border-color: #ffffff; }
+  .c3d-card img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transition: transform .5s cubic-bezier(.22,1,.36,1);
+  }
+  .c3d-card:hover img { transform: scale(1.05); }
+  .c3d-scrim {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(8,12,20,0.45) 0%, rgba(8,12,20,0.08) 45%, rgba(8,12,20,0.82) 100%);
+  }
+  .c3d-top {
+    position: relative; z-index: 2; padding: 13px 14px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .c3d-tag {
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.3); color: #ffffff;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 4px 9px; border-radius: 999px;
+  }
+  .c3d-price {
+    background: rgba(11,18,33,0.72); color: #ffffff;
+    font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px;
+  }
+  .c3d-foot {
+    position: absolute; left: 14px; right: 14px; bottom: 13px; z-index: 2;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .c3d-foot strong { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; line-height: 1.15; }
+  .c3d-foot span { font-size: 11.5px; color: rgba(255,255,255,0.8); }
+  .drag-hint {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--hero-muted); background: rgba(255,255,255,0.58); backdrop-filter: blur(8px);
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--hero-border);
+    pointer-events: none;
+  }
+
+  /* Hero Bottom Corners */
+  .hero-bottom {
+    position: relative; z-index: 30;
+    max-width: 1280px; width: 100%; margin: 0 auto;
+    padding: 0 32px;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 28px;
+  }
+  .hero-left { max-width: 580px; }
   .eyebrow {
-    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--hero-ink);
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
-    padding: 5px 11px; border-radius: 999px; margin-bottom: 18px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--hero-muted); margin-bottom: 10px;
   }
-  .hero h1 { font-size: clamp(30px, 4.4vw, 46px); margin-bottom: 16px; }
-  .hero-sub { font-size: 17px; color: var(--hero-muted); max-width: 600px; margin: 0 0 26px; }
-  .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn-primary {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    background: var(--accent); color: var(--accent-ink); text-decoration: none;
-    padding: 13px 22px; border-radius: var(--radius); font-weight: 700; font-size: 15px; border: 0; cursor: pointer;
+  .hero-h1 {
+    font-family: 'Syne', system-ui, sans-serif;
+    font-size: clamp(2.35rem, 5.1vw, 4.35rem);
+    font-weight: 700; line-height: 1.01; letter-spacing: -0.03em; margin: 0 0 22px;
   }
-  .btn-primary:hover { filter: brightness(1.06); }
-  .btn-ghost {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    background: rgba(255,255,255,0.08); color: var(--hero-ink); text-decoration: none;
-    padding: 13px 20px; border-radius: var(--radius); font-weight: 600; font-size: 15px;
-    border: 1px solid rgba(255,255,255,0.22);
+  .hero-ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .pill-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--cta-bg); color: var(--cta-ink); text-decoration: none;
+    padding: 8px 8px 8px 20px; border-radius: 999px; font-weight: 700; font-size: 14.5px;
+    border: 0; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease;
+    box-shadow: 0 10px 24px rgba(11,18,33,0.16);
   }
-  .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+  .pill-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(11,18,33,0.22); }
+  .pill-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.16); display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .pill-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.65); backdrop-filter: blur(8px);
+    color: var(--hero-ink); text-decoration: none;
+    padding: 12px 18px; border-radius: 999px; font-weight: 700; font-size: 14px;
+    border: 1px solid var(--hero-border);
+  }
+  .pill-ghost:hover { background: rgba(255,255,255,0.92); }
+  .hero-right { max-width: 310px; text-align: right; }
+  .hero-quote {
+    margin: 0 0 12px; font-size: 14.5px; line-height: 1.5; color: var(--hero-muted);
+  }
+  .hero-quote strong { color: var(--hero-ink); font-weight: 700; }
+  .sig {
+    font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
+    font-size: 22px; color: var(--hero-ink); opacity: 0.85;
+  }
 
-  .hero-card {
+  /* SECTION 2: STUDIO WHITE SPLIT-TONE HEADLINE + FANNED ARC CHOREOGRAPHY */
+  .choreo-sec {
+    position: relative;
+    background: #ffffff;
+    min-height: 155vh;
+  }
+  .choreo-sticky {
+    position: sticky; top: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+    padding: 84px 24px 28px;
+    overflow: hidden;
+  }
+  .split-head-wrap {
+    max-width: 920px; text-align: center;
+    transition: opacity .35s ease, filter .35s ease, transform .35s ease;
+  }
+  .split-h2 {
+    font-family: 'Syne', system-ui, sans-serif;
+    font-size: clamp(1.95rem, 4.3vw, 3.65rem);
+    font-weight: 700; line-height: 1.14; letter-spacing: -0.03em; margin: 0 0 18px;
+  }
+  .split-h2 .m { color: #94a3b8; font-weight: 600; }
+  .split-h2 .s { color: #0b1221; }
+  .inline-pill-img {
+    display: inline-block; vertical-align: -0.18em;
+    width: clamp(54px, 6.2vw, 84px); height: clamp(36px, 4.2vw, 54px);
+    object-fit: cover; border-radius: 12px; margin: 0 6px;
+    box-shadow: 0 10px 24px rgba(11,18,33,0.16);
+    border: 2px solid #ffffff; transform: rotate(-3deg);
+    transition: transform .3s ease;
+  }
+  .split-head-wrap:hover .inline-pill-img { transform: rotate(2deg) scale(1.06); }
+  .split-sub {
+    max-width: 560px; margin: 0 auto 24px;
+    font-size: 15px; color: #64748b; line-height: 1.6;
+  }
+  .dark-pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #0b1221; color: #ffffff; text-decoration: none;
+    padding: 13px 24px; border-radius: 999px; font-weight: 700; font-size: 14.5px;
+    box-shadow: 0 12px 26px rgba(11,18,33,0.16);
+    transition: transform .18s ease;
+  }
+  .dark-pill:hover { transform: translateY(-2px); }
+
+  /* Fanned Upward-Curving Bottom Arc (Coastal Cards pattern) */
+  .arc-stage {
+    position: relative; width: 100%; max-width: 1280px; height: 295px;
+    margin-top: 28px;
+  }
+  .arc-card {
+    position: absolute; left: 50%; bottom: 10px;
+    width: 245px; padding: 0; border-radius: 18px; overflow: hidden;
+    background: #ffffff; border: 1px solid #e2e8f0; color: #0b1221;
+    box-shadow: 0 20px 46px rgba(15,23,42,0.11);
+    text-align: left; cursor: pointer;
+    transform-origin: center 140%;
+    will-change: transform;
+    transition: box-shadow .25s ease, border-color .25s ease;
+  }
+  .arc-card:hover {
+    z-index: 25 !important;
+    border-color: #0b1221;
+    box-shadow: 0 28px 60px rgba(15,23,42,0.22);
+  }
+  .arc-media { position: relative; height: 132px; overflow: hidden; background: #0f172a; }
+  .arc-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .arc-badge {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(11,18,33,0.78); backdrop-filter: blur(6px); color: #ffffff;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 4px 8px; border-radius: 999px;
+  }
+  .arc-body { padding: 13px 14px 15px; }
+  .arc-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+  .arc-row strong { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; line-height: 1.2; }
+  .arc-row span { font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .arc-body p { margin: 0; font-size: 12px; color: #64748b; line-height: 1.4; }
+
+  /* SECTION 3: SCROLL-EXPANDING CLIP-PATH PORTAL + INTERACTIVE 30S QUOTE STUDIO */
+  .portal-outer {
+    background: #ffffff;
+    padding: 20px 0 0;
+  }
+  .portal-shell {
+    background: var(--portal-bg);
+    color: #ffffff;
+    padding: 84px 24px 92px;
+    clip-path: inset(0% 3% 0% 3% round 32px);
+    transition: clip-path .15s linear;
+    will-change: clip-path;
+  }
+  .portal-inner { max-width: 1100px; margin: 0 auto; }
+  .portal-corners {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    margin-bottom: 34px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: rgba(255,255,255,0.72); font-weight: 700;
+  }
+  .portal-corners span {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .portal-corners .star { color: var(--portal-accent); }
+  .portal-head { max-width: 680px; margin: 0 auto 38px; text-align: center; }
+  .portal-head h2 {
+    font-family: 'Syne', sans-serif; font-size: clamp(1.9rem, 3.8vw, 3rem);
+    line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 12px;
+  }
+  .portal-head p { margin: 0; color: rgba(255,255,255,0.76); font-size: 16px; }
+
+  .quote-deck {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.16);
+    backdrop-filter: blur(16px);
+    border-radius: 24px;
+    padding: 30px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    box-shadow: 0 32px 72px rgba(0,0,0,0.34);
+    transform-style: preserve-3d;
+    transition: transform .25s ease-out;
+  }
+  .q-field { margin-bottom: 14px; }
+  .q-field label {
+    display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: rgba(255,255,255,0.78); margin-bottom: 6px;
+  }
+  .q-field input, .q-field select, .q-field textarea {
+    width: 100%; padding: 12px 14px; font: inherit; font-size: 15px;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+    background: rgba(9,13,22,0.58); color: #ffffff;
+  }
+  .q-field select option { background: #0f172a; color: #ffffff; }
+  .q-field textarea { min-height: 76px; resize: vertical; }
+  .q-card {
+    background: #ffffff; color: #0b1221; border-radius: 18px; padding: 24px;
+    display: flex; flex-direction: column;
+  }
+  .q-card h3 { font-family: 'Syne', sans-serif; font-size: 19px; margin: 0 0 6px; }
+  .q-card .q-sub { font-size: 13.5px; color: #64748b; margin: 0 0 14px; }
+  .q-msg {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 14px; font-size: 13.5px; white-space: pre-wrap; color: #0b1221;
+    margin-bottom: 18px; flex: 1;
+  }
+  .q-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .q-wa {
+    flex: 1; min-width: 170px; text-align: center; text-decoration: none;
+    background: #0b1221; color: #ffffff; padding: 13px 18px; border-radius: 999px;
+    font-weight: 700; font-size: 14.5px; transition: transform .15s ease;
+  }
+  .q-wa:hover { transform: translateY(-1px); }
+  .q-mail {
+    text-align: center; text-decoration: none;
+    background: #f1f5f9; color: #0b1221; border: 1px solid #cbd5e1;
+    padding: 13px 18px; border-radius: 999px; font-weight: 700; font-size: 14px;
+  }
+
+  /* SECTION 4: OBSIDIAN KINETIC RIBBON + SPRING-POP REVIEW STICKERS + FOOTER */
+  .obsidian {
+    background: #06080d;
+    color: #f8fafc;
+    padding: 78px 0 92px;
+    overflow: hidden;
+  }
+  .ribbon-wrap {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 22px 0;
+    margin-bottom: 64px;
+    overflow: hidden;
+  }
+  .ribbon-track {
+    display: flex; gap: 36px; white-space: nowrap;
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.2rem, 6.2vw, 4.9rem);
+    font-weight: 800; letter-spacing: -0.02em;
+    color: #ffffff;
+    will-change: transform;
+  }
+  .ribbon-track span.hl { color: var(--ribbon-accent); }
+  .obs-inner { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .obs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 54px; }
+  .obs-card {
+    position: relative;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 26px 24px;
+    display: flex; flex-direction: column;
+    opacity: 0; transform: translateY(28px) scale(0.95) rotate(var(--tilt));
+    transition: opacity .65s cubic-bezier(0.34, 1.56, 0.64, 1), transform .65s cubic-bezier(0.34, 1.56, 0.64, 1), border-color .2s ease;
+  }
+  .obs-card.in { opacity: 1; transform: translateY(0) scale(1) rotate(var(--tilt)); }
+  .obs-card:hover { transform: translateY(-5px) scale(1.01) rotate(0deg); border-color: rgba(255,255,255,0.34); }
+  .obs-sticker {
+    align-self: flex-start;
+    background: var(--ribbon-accent); color: #06080d;
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 11px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .obs-quote { margin: 0 0 20px; font-size: 15px; line-height: 1.58; color: rgba(248,250,252,0.88); }
+  .obs-author { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; }
+  .obs-author strong { display: block; font-size: 14.5px; color: #ffffff; }
+  .obs-author span { font-size: 12.5px; color: #94a3b8; }
+
+  .areas-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 42px; }
+  .area-pill {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
-    border-radius: var(--radius); padding: 22px;
+    color: #e2e8f0; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
   }
-  .hero-card h2 { font-size: 18px; margin-bottom: 10px; color: var(--hero-ink); }
-  .hero-card p { margin: 0 0 14px; font-size: 14px; color: var(--hero-muted); }
-  .direct-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.12); font-size: 14px;
+  .final-cta {
+    text-align: center; padding: 40px 24px 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
   }
-  .direct-row span { color: var(--hero-muted); }
-  .direct-row strong, .direct-row a { color: var(--hero-ink); font-weight: 700; text-decoration: none; }
-
-  .trust-strip { background: var(--surface); border-bottom: 1px solid var(--border); }
-  .trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
-  .trust-cell { padding: 18px 16px; border-right: 1px solid var(--border); }
-  .trust-cell:last-child { border-right: 0; }
-  .trust-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
-  .trust-v { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 3px; }
-
-  section.block { padding: 56px 0; }
-  section.alt { background: var(--surface-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .sec-head { max-width: 680px; margin-bottom: 28px; }
-  .sec-head h2 { font-size: clamp(24px, 3.2vw, 34px); margin-bottom: 8px; }
-  .sec-head p { margin: 0; color: var(--muted); font-size: 16px; }
-
-  .svc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-  .svc-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 24px; display: flex; flex-direction: column;
+  .final-cta h3 {
+    font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(2rem, 4.5vw, 3.3rem);
+    font-weight: 400; margin: 0 0 18px;
   }
-  .svc-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
-  .svc-tag {
+  .final-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 34px; }
+  .btn-light {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #ffffff; color: #06080d; text-decoration: none;
+    padding: 13px 24px; border-radius: 999px; font-weight: 700; font-size: 14.5px;
+  }
+  .btn-dark-out {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: #ffffff; border: 1px solid rgba(255,255,255,0.28);
+    text-decoration: none; padding: 13px 22px; border-radius: 999px; font-weight: 600; font-size: 14.5px;
+  }
+  .foot-copy { font-size: 12.5px; color: #64748b; }
+
+  /* Frosted Glass Service Detail Sheet Modal */
+  .sheet-backdrop {
+    position: fixed; inset: 0; z-index: 150;
+    background: rgba(6,8,13,0.62); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .sheet-backdrop.open { display: flex; }
+  .sheet-box {
+    max-width: 560px; width: 100%; background: #ffffff; color: #0b1221;
+    border-radius: 22px; overflow: hidden; box-shadow: 0 36px 84px rgba(0,0,0,0.42);
+    animation: sheetIn .28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes sheetIn { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+  .sheet-media { position: relative; height: 220px; background: #0f172a; }
+  .sheet-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sheet-x {
+    position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%;
+    border: 0; background: rgba(11,18,33,0.76); color: #ffffff; font-size: 18px; cursor: pointer;
+  }
+  .sheet-body { padding: 24px 26px 26px; }
+  .sheet-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .sheet-tag {
     background: var(--accent-soft); color: var(--accent-soft-ink);
-    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-    padding: 4px 9px; border-radius: 4px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 4px 10px; border-radius: 999px;
   }
-  .svc-price { font-size: 14px; font-weight: 800; color: var(--ink); }
-  .svc-card h3 { font-size: 20px; margin-bottom: 8px; }
-  .svc-card p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
-  .svc-card ul { margin: 0 0 18px; padding-left: 18px; color: var(--ink); font-size: 14px; }
-  .svc-card li { margin-bottom: 5px; }
-  .svc-pick {
-    margin-top: auto; align-self: flex-start;
-    background: transparent; color: var(--ink); border: 1px solid var(--border);
-    padding: 8px 13px; border-radius: var(--radius); font-size: 13.5px; font-weight: 700; cursor: pointer;
-  }
-  .svc-pick:hover { border-color: var(--ink); background: var(--surface-alt); }
-
-  .quote-box {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;
-  }
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
-  .field input, .field select, .field textarea {
-    width: 100%; padding: 11px 12px; font: inherit; font-size: 15px;
-    border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--ink);
-  }
-  .field textarea { min-height: 76px; resize: vertical; }
-  .quote-summary {
-    background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 22px;
-  }
-  .quote-summary h3 { font-size: 19px; margin-bottom: 8px; }
-  .quote-summary p { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
-  .msg-preview {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 13px; font-size: 13.5px; white-space: pre-wrap; color: var(--ink); margin-bottom: 16px;
-  }
-  .quote-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-  .btn-outline {
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--surface); color: var(--ink); border: 1px solid var(--ink);
-    padding: 12px 18px; border-radius: var(--radius); font-weight: 700; font-size: 14px; text-decoration: none; cursor: pointer;
+  .sheet-price { font-size: 14px; font-weight: 800; color: #0b1221; }
+  .sheet-body h3 { font-family: 'Syne', sans-serif; font-size: 24px; margin: 0 0 10px; }
+  .sheet-body p { margin: 0 0 14px; font-size: 14.5px; color: #475569; }
+  .sheet-body ul { margin: 0 0 20px; padding-left: 18px; font-size: 14px; color: #0b1221; }
+  .sheet-body li { margin-bottom: 5px; }
+  .sheet-cta {
+    width: 100%; background: #0b1221; color: #ffffff; border: 0; border-radius: 999px;
+    padding: 13px 20px; font-weight: 700; font-size: 15px; cursor: pointer;
   }
 
-  .rev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  .rev-card {
-    margin: 0; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column;
+  /* Mobile Sticky Bar */
+  .sticky-mob {
+    position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 100;
+    background: rgba(11,18,33,0.92); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.16); border-radius: 999px;
+    padding: 6px; display: none; gap: 6px; box-shadow: 0 16px 36px rgba(0,0,0,0.32);
   }
-  .rev-card p { margin: 0 0 16px; font-size: 14.5px; color: var(--ink); }
-  .rev-card footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; }
-  .rev-card footer strong { display: block; font-size: 14px; }
-  .rev-card footer span { font-size: 12.5px; color: var(--muted); }
+  .sticky-mob a {
+    flex: 1; text-align: center; text-decoration: none; font-weight: 700; font-size: 13.5px;
+    padding: 10px 12px; border-radius: 999px;
+  }
+  .sm-call { color: #ffffff; background: rgba(255,255,255,0.1); }
+  .sm-quote { color: #06080d; background: #ffffff; }
 
-  .areas-list { display: flex; flex-wrap: wrap; gap: 8px; }
-  .area-chip {
-    background: var(--surface); border: 1px solid var(--border);
-    padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+  @media (max-width: 900px) {
+    .topbar { grid-template-columns: 1fr auto; padding: 18px 20px 0; }
+    .meta-cols { display: none; }
+    .hero-bottom { flex-direction: column; align-items: flex-start; padding: 0 20px; gap: 18px; }
+    .hero-right { text-align: left; max-width: 100%; }
+    .stage-wrap { height: 310px; }
+    .c3d-ring { width: 250px; height: 184px; }
+    .choreo-sec { min-height: auto; }
+    .choreo-sticky { position: static; min-height: auto; padding: 64px 18px 52px; }
+    .arc-stage {
+      height: auto; display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 28px;
+    }
+    .arc-card { position: static; width: 100%; transform: none !important; }
+    .portal-shell { clip-path: none !important; padding: 60px 18px 68px; border-radius: 24px 24px 0 0; }
+    .quote-deck { grid-template-columns: 1fr; padding: 20px; transform: none !important; }
+    .obs-grid { grid-template-columns: 1fr; }
+    .obs-card { opacity: 1; transform: none; }
+    .sticky-mob { display: flex; }
+    body { padding-bottom: 74px; }
   }
-
-  .site-footer {
-    border-top: 1px solid var(--border); padding: 28px 0 40px;
-    font-size: 13.5px; color: var(--muted);
-  }
-  .sticky-bar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 80;
-    background: var(--hero-bg); border-top: 1px solid rgba(255,255,255,0.16);
-    padding: 10px 14px; display: none; gap: 10px;
-  }
-  .sticky-bar a {
-    flex: 1; text-align: center; text-decoration: none; font-weight: 700;
-    font-size: 14px; padding: 11px 10px; border-radius: var(--radius);
-  }
-  .sticky-call { background: rgba(255,255,255,0.12); color: #ffffff; border: 1px solid rgba(255,255,255,0.22); }
-  .sticky-wa { background: var(--accent); color: var(--accent-ink); }
-
-  @media (max-width: 820px) {
-    .hero-grid, .svc-grid, .quote-box, .rev-grid { grid-template-columns: 1fr; }
-    .trust-grid { grid-template-columns: repeat(2, 1fr); }
-    .trust-cell { border-bottom: 1px solid var(--border); }
-    .nav-links .hide-sm { display: none; }
-    .sticky-bar { display: flex; }
+  @media (prefers-reduced-motion: reduce) {
+    .obs-card { opacity: 1; transform: none; transition: none; }
+    .portal-shell { clip-path: none !important; }
   }
 </style>
 </head>
 <body>
 ${previewBar}
 
-<header class="nav">
-  <div class="nav-inner">
-    <a class="brand" href="#top">${escapeHtml(site.name)}<small>${escapeHtml(site.badge)}</small></a>
-    <nav class="nav-links" aria-label="Primary">
-      <a class="hide-sm" href="#services">Services</a>
-      <a class="hide-sm" href="#quote">Quick Quote</a>
-      <a class="hide-sm" href="#areas">Areas</a>
-      <a class="nav-cta" href="tel:${escapeHtml(site.phoneTel)}">${escapeHtml(site.phoneDisplay)}</a>
+<!-- SECTION 1: 100VH ARCHITECTURAL HERO + INTERACTIVE 3D CONCAVE CAROUSEL -->
+<section id="top" class="hero">
+  <header class="topbar">
+    <a class="wordmark" href="#top">${escapeHtml(site.wordmark)}</a>
+    <div class="meta-cols">
+      <div class="meta-col">
+        <div class="m-k"><span class="dot-live"></span> ${escapeHtml(site.statusTop)}</div>
+        <div class="m-v">${escapeHtml(site.statusSub)}</div>
+      </div>
+      <div class="meta-col">
+        <div class="m-k">Serving</div>
+        <div class="m-v">${escapeHtml(site.locationSub)}</div>
+      </div>
+    </div>
+    <nav class="vnav" aria-label="Primary navigation">
+      <a href="#services">Services</a>
+      <a href="#quote">Quick Quote</a>
+      <a href="#reviews">Reviews</a>
+      <a href="tel:${escapeHtml(site.phoneTel)}">${escapeHtml(site.phoneDisplay)}</a>
     </nav>
-  </div>
-</header>
+  </header>
 
-<main id="top">
-  <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
-        <div class="eyebrow">${escapeHtml(site.eyebrow)}</div>
-        <h1>${escapeHtml(site.headline)}</h1>
-        <p class="hero-sub">${escapeHtml(site.subhead)}</p>
-        <div class="hero-btns">
-          <a class="btn-primary" href="#quote">${escapeHtml(primaryContactLabel)} →</a>
-          <a class="btn-ghost" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)}</a>
-        </div>
-      </div>
-      <aside class="hero-card">
-        <h2>Direct Local Contact</h2>
-        <p>Speak straight to the team serving ${escapeHtml(site.area)} — fast quotes, clear scheduling, zero runaround.</p>
-        <div class="direct-row"><span>Telephone</span><a href="tel:${escapeHtml(site.phoneTel)}">${escapeHtml(site.phoneDisplay)}</a></div>
-        <div class="direct-row"><span>Email</span><a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a></div>
-        <div class="direct-row"><span>Coverage</span><strong>${escapeHtml(site.area)}</strong></div>
-      </aside>
-    </div>
-  </section>
-
-  <div class="trust-strip">
-    <div class="wrap trust-grid">${trustHtml}</div>
+  <div id="c3dStage" class="stage-wrap" aria-label="Interactive 3D showcase carousel">
+    <div id="c3dRing" class="c3d-ring">${c3dCardsHtml}</div>
+    <div class="drag-hint">Drag to rotate · Click any card ↗</div>
   </div>
 
-  <section id="services" class="block">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2>${escapeHtml(site.servicesTitle)}</h2>
-        <p>${escapeHtml(site.servicesLead)}</p>
+  <div class="hero-bottom">
+    <div class="hero-left">
+      <div class="eyebrow">${escapeHtml(site.eyebrow)}</div>
+      <h1 class="hero-h1">${escapeHtml(site.heroLine1)}<br>${escapeHtml(site.heroLine2)}</h1>
+      <div class="hero-ctas">
+        <a class="pill-primary" href="#quote"><span>${escapeHtml(primaryContactLabel)}</span><span class="pill-circle">↗</span></a>
+        <a class="pill-ghost" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)}</a>
       </div>
-      <div class="svc-grid">${servicesHtml}</div>
     </div>
-  </section>
+    <div class="hero-right">
+      <p class="hero-quote">${escapeHtml(site.heroQuoteLead)}<strong>${escapeHtml(site.heroQuoteBold)}</strong>${escapeHtml(site.heroQuoteTail)}</p>
+      <div class="sig">${escapeHtml(site.signatureText)}</div>
+    </div>
+  </div>
+</section>
 
-  <section id="quote" class="block alt">
-    <div class="wrap">
-      <div class="sec-head">
+<!-- SECTION 2: PINNED SPLIT-TONE HEADLINE + FANNED CURVED ARC SHOWCASE -->
+<section id="services" class="choreo-sec">
+  <div class="choreo-sticky">
+    <div id="splitHead" class="split-head-wrap">
+      <h2 class="split-h2">
+        <span class="m">${escapeHtml(s1.muted)}</span>
+        <span class="s">${escapeHtml(s1.strong)}</span>
+        <img class="inline-pill-img" src="${escapeHtml(detailPhoto)}" alt="${escapeHtml(site.shortName)} craft preview">
+        <span class="m">${escapeHtml(s1.muted2)}</span>
+        <span class="s">${escapeHtml(s1.strong2)}</span><br>
+        <span class="s">${escapeHtml(s2.strong)}</span>
+        <span class="m">${escapeHtml(s2.muted)}</span>
+        <span class="s">${escapeHtml(s2.strong2)}</span>
+      </h2>
+      <p class="split-sub">${escapeHtml(site.splitSub)}</p>
+      <a class="dark-pill" href="#quote">${escapeHtml(primaryContactLabel)} →</a>
+    </div>
+
+    <div id="arcStage" class="arc-stage">${arcCardsHtml}</div>
+  </div>
+</section>
+
+<!-- SECTION 3: SCROLL-EXPANDING PORTAL + INTERACTIVE 30S QUOTE BUILDER -->
+<div id="quote" class="portal-outer">
+  <section id="portalShell" class="portal-shell">
+    <div class="portal-inner">
+      <div class="portal-corners">
+        <span><span class="star">✦</span> ${escapeHtml(site.portalCornerLeft)}</span>
+        <span>${escapeHtml(site.portalCornerRight)} <span class="star">✦</span></span>
+      </div>
+      <div class="portal-head">
         <h2>${escapeHtml(site.quoteTitle)}</h2>
         <p>${escapeHtml(site.quoteLead)}</p>
       </div>
-      <div class="quote-box">
+      <div id="quoteDeck" class="quote-deck">
         <div>
-          <div class="field">
+          <div class="q-field">
             <label for="qJob">Service Needed</label>
             <select id="qJob">${jobOptionsHtml}</select>
           </div>
-          <div class="field">
+          <div class="q-field">
             <label for="qSec">${escapeHtml(site.quoteSecondaryLabel)}</label>
             <select id="qSec">${secOptionsHtml}</select>
           </div>
-          <div class="field">
+          <div class="q-field">
             <label for="qPost">London Postcode</label>
             <input id="qPost" type="text" placeholder="e.g. NW6, W4, N12" maxlength="16">
           </div>
-          <div class="field">
+          <div class="q-field">
             <label for="qNotes">Quick Details (optional)</label>
             <textarea id="qNotes" placeholder="Preferred day/time or brief details..."></textarea>
           </div>
         </div>
-        <div class="quote-summary">
+        <div class="q-card">
           <h3>Your Ready-to-Send Enquiry</h3>
-          <p>Everything below updates live — tap once to send directly to ${escapeHtml(site.shortName)}.</p>
-          <div id="qPreview" class="msg-preview"></div>
-          <div class="quote-actions">
+          <p class="q-sub">Updates live — tap once to send straight to ${escapeHtml(site.shortName)}.</p>
+          <div id="qPreview" class="q-msg"></div>
+          <div class="q-btns">
             ${
               site.waDigits
-                ? `<a id="qWaBtn" class="btn-primary" target="_blank" rel="noopener" href="${escapeHtml(waHref)}">Send via WhatsApp →</a>`
-                : `<a id="qCallBtn" class="btn-primary" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)} →</a>`
+                ? `<a id="qWaBtn" class="q-wa" target="_blank" rel="noopener" href="${escapeHtml(waHref)}">Send via WhatsApp →</a>`
+                : `<a id="qCallBtn" class="q-wa" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)} →</a>`
             }
-            <a id="qMailBtn" class="btn-outline" href="mailto:${escapeHtml(site.email)}">Send by Email</a>
+            <a id="qMailBtn" class="q-mail" href="mailto:${escapeHtml(site.email)}">Send by Email</a>
           </div>
         </div>
       </div>
     </div>
   </section>
+</div>
 
-  <section class="block">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2>${escapeHtml(site.reviewsTitle)}</h2>
-      </div>
-      <div class="rev-grid">${reviewsHtml}</div>
+<!-- SECTION 4: OBSIDIAN KINETIC RIBBON + SPRING-POP REVIEWS + MINIMAL FOOTER -->
+<section id="reviews" class="obsidian">
+  <div class="ribbon-wrap" aria-hidden="true">
+    <div id="ribbonTrack" class="ribbon-track">
+      <span>${escapeHtml(site.ribbonText)}</span>
+      <span class="hl">${escapeHtml(site.ribbonText)}</span>
+      <span>${escapeHtml(site.ribbonText)}</span>
     </div>
-  </section>
+  </div>
 
-  <section id="areas" class="block alt">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2>Areas We Cover</h2>
-        <p>Local coverage across ${escapeHtml(site.area)}.</p>
+  <div class="obs-inner">
+    <div class="obs-grid">${reviewsHtml}</div>
+
+    <div class="areas-row">${areasHtml}</div>
+
+    <div class="final-cta">
+      <h3>Ready when you are — direct across ${escapeHtml(site.area)}.</h3>
+      <div class="final-btns">
+        ${
+          site.waDigits
+            ? `<a class="btn-light" target="_blank" rel="noopener" href="${escapeHtml(waHref)}">WhatsApp ${escapeHtml(site.phoneDisplay)} ↗</a>`
+            : `<a class="btn-light" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)} ↗</a>`
+        }
+        <a class="btn-dark-out" href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a>
       </div>
-      <div class="areas-list">${areasHtml}</div>
+      <div class="foot-copy">${escapeHtml(site.footerNote)}</div>
     </div>
-  </section>
-</main>
+  </div>
+</section>
 
-<footer class="site-footer">
-  <div class="wrap">${escapeHtml(site.footerNote)}</div>
-</footer>
+<!-- FROSTED-GLASS CARD DETAIL MODAL -->
+<div id="cardSheet" class="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-box">
+    <div class="sheet-media">
+      <img id="sheetImg" src="" alt="">
+      <button type="button" class="sheet-x" data-action="close-sheet" aria-label="Close">×</button>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-meta">
+        <span id="sheetTag" class="sheet-tag"></span>
+        <span id="sheetPrice" class="sheet-price"></span>
+      </div>
+      <h3 id="sheetTitle"></h3>
+      <p id="sheetDesc"></p>
+      <ul id="sheetBullets"></ul>
+      <button type="button" id="sheetQuoteBtn" class="sheet-cta" data-action="sheet-to-quote">Select for 30-Second Quote →</button>
+    </div>
+  </div>
+</div>
 
-<div class="sticky-bar">
-  <a class="sticky-call" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)}</a>
-  <a class="sticky-wa" href="#quote">${escapeHtml(primaryContactLabel)}</a>
+<!-- MOBILE FLOATING ACTION PILL -->
+<div class="sticky-mob">
+  <a class="sm-call" href="tel:${escapeHtml(site.phoneTel)}">Call ${escapeHtml(site.phoneDisplay)}</a>
+  <a class="sm-quote" href="#quote">${escapeHtml(primaryContactLabel)} ↗</a>
 </div>
 
 <script>
@@ -961,8 +1449,143 @@ ${previewBar}
     email: site.email,
     waDigits: site.waDigits,
     secLabel: site.quoteSecondaryLabel,
+    cards: carouselCards,
   })};
 
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var isMobile = function () { return window.innerWidth <= 900; };
+
+  /* 1. INTERACTIVE 3D CONCAVE CAROUSEL WITH DRAG INERTIA */
+  var stage = document.getElementById("c3dStage");
+  var ring = document.getElementById("c3dRing");
+  var c3dCards = ring ? Array.prototype.slice.call(ring.querySelectorAll(".c3d-card")) : [];
+  var angle = 0;
+  var velocity = 0.08;
+  var dragging = false;
+  var didDrag = false;
+  var startX = 0;
+  var lastX = 0;
+
+  var currentRadius = 390;
+
+  function layoutCylinder() {
+    if (!c3dCards.length) return;
+    var count = c3dCards.length;
+    var step = 360 / count;
+    currentRadius = isMobile() ? 275 : 390;
+    for (var i = 0; i < count; i++) {
+      var a = i * step;
+      c3dCards[i].style.transform = "rotateY(" + a + "deg) translateZ(" + currentRadius + "px)";
+    }
+  }
+  layoutCylinder();
+  window.addEventListener("resize", layoutCylinder);
+
+  if (stage && ring) {
+    stage.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      didDrag = false;
+      startX = e.clientX;
+      lastX = e.clientX;
+      stage.classList.add("dragging");
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lastX;
+      if (Math.abs(e.clientX - startX) > 6) didDrag = true;
+      angle += dx * 0.28;
+      velocity = dx * 0.22;
+      lastX = e.clientX;
+    });
+    window.addEventListener("pointerup", function () {
+      if (!dragging) return;
+      dragging = false;
+      stage.classList.remove("dragging");
+    });
+  }
+
+  /* 2. SCROLL-LINKED ARC CHOREOGRAPHY + CLIP-PATH PORTAL + KINETIC RIBBON */
+  var choreoSec = document.getElementById("services");
+  var splitHead = document.getElementById("splitHead");
+  var arcCards = Array.prototype.slice.call(document.querySelectorAll(".arc-card"));
+  var portalShell = document.getElementById("portalShell");
+  var ribbonTrack = document.getElementById("ribbonTrack");
+  var currentScrollP = 0;
+
+  function updateChoreography() {
+    if (!isMobile() && choreoSec && arcCards.length) {
+      var rect = choreoSec.getBoundingClientRect();
+      var total = Math.max(1, choreoSec.offsetHeight - window.innerHeight);
+      var targetP = Math.max(0, Math.min(1, -rect.top / total));
+      currentScrollP += (targetP - currentScrollP) * 0.12;
+
+      if (splitHead && !reduced) {
+        var blurPx = Math.max(0, (0.18 - currentScrollP) * 28);
+        var fade = Math.min(1, 0.35 + currentScrollP * 3.8);
+        splitHead.style.filter = "blur(" + blurPx.toFixed(2) + "px)";
+        splitHead.style.opacity = fade.toFixed(3);
+      }
+
+      var n = arcCards.length;
+      for (var i = 0; i < n; i++) {
+        var norm = (i - (n - 1) / 2) / ((n - 1) / 2); // -1 to +1
+        var spread = 0.65 + currentScrollP * 0.52;
+        var shiftX = norm * 470 * spread - (currentScrollP - 0.5) * 160;
+        var arcY = Math.pow(norm, 2) * 86 + (1 - currentScrollP) * 24;
+        var rot = norm * 14 * (0.75 + currentScrollP * 0.4);
+        var sc = 0.94 + (1 - Math.abs(norm)) * 0.08;
+        arcCards[i].style.transform =
+          "translate3d(calc(-50% + " + shiftX.toFixed(1) + "px), " + arcY.toFixed(1) + "px, 0) rotate(" + rot.toFixed(2) + "deg) scale(" + sc.toFixed(3) + ")";
+        arcCards[i].style.zIndex = String(10 - Math.round(Math.abs(norm) * 5));
+      }
+    }
+
+    if (!isMobile() && portalShell && !reduced) {
+      var pr = portalShell.getBoundingClientRect();
+      var pp = Math.max(0, Math.min(1, (window.innerHeight - pr.top) / (window.innerHeight * 0.72)));
+      var side = (1 - pp) * 5.5;
+      var rad = (1 - pp) * 34;
+      portalShell.style.clipPath = "inset(0% " + side.toFixed(2) + "% 0% " + side.toFixed(2) + "% round " + rad.toFixed(1) + "px)";
+    }
+
+    if (ribbonTrack && !reduced) {
+      var rr = ribbonTrack.getBoundingClientRect();
+      var rp = (window.innerHeight - rr.top) / (window.innerHeight + rr.height);
+      var tx = -rp * 320;
+      ribbonTrack.style.transform = "translate3d(" + tx.toFixed(1) + "px, 0, 0)";
+    }
+  }
+
+  function tick() {
+    if (ring) {
+      if (!dragging) {
+        if (!reduced) {
+          angle -= 0.09;
+          angle += velocity;
+          velocity *= 0.94;
+        }
+      }
+      ring.style.transform = "translateZ(-" + currentRadius + "px) rotateX(-3deg) rotateY(" + angle.toFixed(2) + "deg)";
+    }
+    updateChoreography();
+    window.requestAnimationFrame(tick);
+  }
+  window.requestAnimationFrame(tick);
+
+  /* 3. SPRING-POP REVIEW CARDS VIA INTERSECTION OBSERVER */
+  var popEls = document.querySelectorAll("[data-pop]");
+  if ("IntersectionObserver" in window && !reduced) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (ent) {
+        if (ent.isIntersecting) ent.target.classList.add("in");
+      });
+    }, { threshold: 0.18 });
+    popEls.forEach(function (el) { io.observe(el); });
+  } else {
+    popEls.forEach(function (el) { el.classList.add("in"); });
+  }
+
+  /* 4. LIVE QUOTE BUILDER */
   var jobEl = document.getElementById("qJob");
   var secEl = document.getElementById("qSec");
   var postEl = document.getElementById("qPost");
@@ -990,13 +1613,49 @@ ${previewBar}
         "&body=" + encodeURIComponent(msg);
     }
   }
-
   [jobEl, secEl, postEl, notesEl].forEach(function (el) {
     if (!el) return;
     el.addEventListener("input", refreshQuote);
     el.addEventListener("change", refreshQuote);
   });
   refreshQuote();
+
+  /* 5. FROSTED-GLASS CARD SHEET & ACTIONS */
+  var sheet = document.getElementById("cardSheet");
+  var activeCardTitle = "";
+
+  function openSheet(idx) {
+    var c = cfg.cards[idx];
+    if (!c || !sheet) return;
+    activeCardTitle = c.title;
+    document.getElementById("sheetImg").src = c.img;
+    document.getElementById("sheetImg").alt = c.title;
+    document.getElementById("sheetTag").textContent = c.tag;
+    document.getElementById("sheetPrice").textContent = c.price;
+    document.getElementById("sheetTitle").textContent = c.title;
+    document.getElementById("sheetDesc").textContent = c.desc;
+    var ul = document.getElementById("sheetBullets");
+    ul.innerHTML = "";
+    (c.bullets || []).forEach(function (b) {
+      var li = document.createElement("li");
+      li.textContent = b;
+      ul.appendChild(li);
+    });
+    sheet.classList.add("open");
+  }
+
+  function closeSheet() {
+    if (sheet) sheet.classList.remove("open");
+  }
+
+  if (sheet) {
+    sheet.addEventListener("click", function (ev) {
+      if (ev.target === sheet) closeSheet();
+    });
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") closeSheet();
+  });
 
   document.addEventListener("click", function (ev) {
     var btn = ev.target && ev.target.closest ? ev.target.closest("[data-action]") : null;
@@ -1007,28 +1666,37 @@ ${previewBar}
       if (b) b.style.display = "none";
       return;
     }
-    if (act === "pick-service") {
-      var svc = btn.getAttribute("data-service") || "";
-      if (jobEl && svc) {
-        var found = false;
+    if (act === "open-card") {
+      if (didDrag && btn.classList.contains("c3d-card")) { didDrag = false; return; }
+      openSheet(parseInt(btn.getAttribute("data-idx") || "0", 10));
+      return;
+    }
+    if (act === "close-sheet") {
+      closeSheet();
+      return;
+    }
+    if (act === "sheet-to-quote") {
+      closeSheet();
+      if (jobEl && activeCardTitle) {
+        var matched = false;
         for (var i = 0; i < jobEl.options.length; i++) {
-          if (jobEl.options[i].value.toLowerCase().indexOf(svc.toLowerCase().slice(0, 12)) !== -1) {
+          if (jobEl.options[i].value.toLowerCase().indexOf(activeCardTitle.toLowerCase().slice(0, 10)) !== -1) {
             jobEl.selectedIndex = i;
-            found = true;
+            matched = true;
             break;
           }
         }
-        if (!found) {
-          var opt = document.createElement("option");
-          opt.value = svc;
-          opt.textContent = svc;
-          jobEl.appendChild(opt);
-          jobEl.value = svc;
+        if (!matched) {
+          var o = document.createElement("option");
+          o.value = activeCardTitle;
+          o.textContent = activeCardTitle;
+          jobEl.appendChild(o);
+          jobEl.value = activeCardTitle;
         }
         refreshQuote();
       }
-      var qSecEl = document.getElementById("quote");
-      if (qSecEl) qSecEl.scrollIntoView({ behavior: "smooth" });
+      var qTarget = document.getElementById("quote");
+      if (qTarget) qTarget.scrollIntoView({ behavior: "smooth" });
       return;
     }
     if (act === "claim-site") {
