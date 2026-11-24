@@ -611,17 +611,29 @@ export async function loadCautionFeedEntries(kv, limit = 100) {
       // Fall through cleanly to bundled repo entries if any
     }
   }
+  const byId = new Map();
+  for (const e of entries) byId.set(e.id, e);
   for (const repoItem of REPO_CAUTION_VIDEOS || []) {
-    if (repoItem?.id && !seen.has(repoItem.id) && ANY_CAUTION_MISINFO_RE.test(String(repoItem.cautionText || ""))) {
-      const normalized = {
-        ...repoItem,
-        cautionCategory:
-          repoItem.cautionCategory ||
-          (UNVERIFIED_CAUTION_RE.test(String(repoItem.cautionText || "")) ? "unverified_content" : "inaccurate_info"),
-      };
-      seen.add(repoItem.id);
-      entries.push(normalized);
+    if (!repoItem?.id || !ANY_CAUTION_MISINFO_RE.test(String(repoItem.cautionText || ""))) continue;
+    const existing = byId.get(repoItem.id);
+    if (existing) {
+      if (!existing.voiceToText && repoItem.voiceToText) existing.voiceToText = repoItem.voiceToText;
+      if (!existing.subtitleUrl && repoItem.subtitleUrl) existing.subtitleUrl = repoItem.subtitleUrl;
+      if (!existing.secUid && repoItem.secUid) existing.secUid = repoItem.secUid;
+      if (!existing.thumbnailUrl && repoItem.thumbnailUrl) existing.thumbnailUrl = repoItem.thumbnailUrl;
+      if (!existing.description && repoItem.description) existing.description = repoItem.description;
+      if (!existing.shareLimited && repoItem.shareLimited) existing.shareLimited = true;
+      continue;
     }
+    const normalized = {
+      ...repoItem,
+      cautionCategory:
+        repoItem.cautionCategory ||
+        (UNVERIFIED_CAUTION_RE.test(String(repoItem.cautionText || "")) ? "unverified_content" : "inaccurate_info"),
+    };
+    seen.add(repoItem.id);
+    byId.set(repoItem.id, normalized);
+    entries.push(normalized);
   }
   // Sort primary "Flagged Unverified Content" clips first, then newest inaccurate/share-limited clips
   entries.sort((a, b) => {
