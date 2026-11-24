@@ -122,7 +122,8 @@
     "kosif199022-jpg/kosif-one",
     "Kengkorok/studio",
     "alphineaiinc/aca-realtime-gateway-clean",
-    "LeDat0312/ads-automation"
+    "LeDat0312/ads-automation",
+    "mordsm/compass"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -247,7 +248,8 @@
     "kosif199022@gmail.com",
     "sa7one@gmail.com",
     "alphineai.inc@gmail.com",
-    "le.dat0312@gmail.com"
+    "le.dat0312@gmail.com",
+    "sharon.moshe@gmail.com"
   ],
   "history": [
     {
@@ -987,6 +989,12 @@
       "email": "le.dat0312@gmail.com",
       "tool_count": 3,
       "sent_date": "2026-11-21T13:33:19.575793+00:00"
+    },
+    {
+      "repo": "mordsm/compass",
+      "email": "sharon.moshe@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-24T22:39:11.898944+00:00"
     }
   ],
   "skipped_no_email_repos": [
@@ -1024,7 +1032,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-23T07:55:31.596622+00:00",
+  "updated_at": "2026-11-24T22:39:11.899020+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
