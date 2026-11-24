@@ -67,7 +67,10 @@
     "info@atenaa.com",
     "sales@kokybeautysupply.com"
   ],
-  "bounced_emails": [],
+  "bounced_emails": [
+    "info@atenaa.com",
+    "into@cicbeauty.com"
+  ],
   "replied_emails": [
     "bonjour@mademoisellemacaron.co.uk",
     "help@cutlerandgross.com",
@@ -359,6 +362,9 @@
       "sent_date": "2026-11-24T10:11:36.341622+00:00"
     }
   ],
-  "updated_at": "2026-11-24T10:11:36.341694+00:00",
-  "post_fix_bounced_emails": []
+  "updated_at": "2026-11-24T22:36:57.887303+00:00",
+  "post_fix_bounced_emails": [
+    "info@atenaa.com",
+    "into@cicbeauty.com"
+  ]
 }
