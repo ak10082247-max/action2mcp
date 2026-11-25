@@ -7,6 +7,27 @@
 
 import { cleanSecret } from "../stripe_billing.js";
 import { LONDON_SITES, escapeHtml, renderClientSiteHtml } from "./sites.js";
+import { NO_SITE_STUDIOS } from "./studios.js";
+import { renderLuxuryStudioHtml } from "./templates/luxury_studio.js";
+
+function resolveSiteOrStudio(slug) {
+  const key = String(slug || "").trim().toLowerCase();
+  if (LONDON_SITES[key]) {
+    return { kind: "legacy", item: LONDON_SITES[key], pathPrefix: "/" };
+  }
+  if (NO_SITE_STUDIOS[key]) {
+    const st = NO_SITE_STUDIOS[key];
+    return {
+      kind: "studio",
+      item: {
+        ...st,
+        domain: `${st.slug.replace(/-/g, "")}.co.uk`,
+      },
+      pathPrefix: "/s/",
+    };
+  }
+  return null;
+}
 
 const PRICE_GBP_PENCE = 19900; // £199.00 one-time
 
@@ -41,7 +62,7 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-async function createGbpCheckoutSession(env, origin, site) {
+async function createGbpCheckoutSession(env, origin, site, pathPrefix = "/") {
   const stripeKey = cleanSecret(env?.STRIPE_SECRET_KEY);
   if (!stripeKey) {
     return { error: "Stripe checkout is not configured yet.", status: 503 };
@@ -49,7 +70,7 @@ async function createGbpCheckoutSession(env, origin, site) {
   const params = new URLSearchParams();
   params.set("mode", "payment");
   params.set("success_url", `${origin}/success?slug=${encodeURIComponent(site.slug)}&session_id={CHECKOUT_SESSION_ID}`);
-  params.set("cancel_url", `${origin}/${encodeURIComponent(site.slug)}`);
+  params.set("cancel_url", `${origin}${pathPrefix}${encodeURIComponent(site.slug)}`);
   params.set("line_items[0][quantity]", "1");
   params.set("line_items[0][price_data][currency]", "gbp");
   params.set("line_items[0][price_data][unit_amount]", String(PRICE_GBP_PENCE));
@@ -204,7 +225,12 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     if (path === "/api/health") {
-      return jsonResponse({ ok: true, service: "london-previews", sites: Object.keys(LONDON_SITES) });
+      return jsonResponse({
+        ok: true,
+        service: "london-previews",
+        sites: Object.keys(LONDON_SITES),
+        studios: Object.keys(NO_SITE_STUDIOS),
+      });
     }
 
     if (path === "/") {
@@ -212,12 +238,17 @@ export default {
     }
 
     if (path === "/api/checkout") {
-      const slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
-      const site = LONDON_SITES[slug];
-      if (!site) return jsonResponse({ ok: false, error: "Unknown preview slug." }, 404);
-      const out = await createGbpCheckoutSession(env, url.origin, site);
+      let slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
+      let wantJson = url.searchParams.get("format") === "json" || request.method === "POST";
+      if (!slug && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        slug = String(body?.slug || "").trim().toLowerCase();
+      }
+      const resolved = resolveSiteOrStudio(slug);
+      if (!resolved) return jsonResponse({ ok: false, error: "Unknown preview slug." }, 404);
+      const out = await createGbpCheckoutSession(env, url.origin, resolved.item, resolved.pathPrefix);
       if (out.error) return jsonResponse({ ok: false, error: out.error }, out.status || 500);
-      if (url.searchParams.get("format") === "json") {
+      if (wantJson) {
         return jsonResponse({ ok: true, ...out });
       }
       return Response.redirect(out.url, 303);
@@ -226,28 +257,40 @@ export default {
     if (path === "/success") {
       const slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
       const sessionId = (url.searchParams.get("session_id") || "").trim();
-      const site = LONDON_SITES[slug];
-      if (!site) return htmlResponse("<h1>Not found</h1>", 404);
+      const resolved = resolveSiteOrStudio(slug);
+      if (!resolved) return htmlResponse("<h1>Not found</h1>", 404);
       const verification = await verifyStripePaidSession(env, sessionId, slug);
-      return htmlResponse(renderSuccessPage(site, verification, sessionId), verification.paid ? 200 : 402);
+      return htmlResponse(renderSuccessPage(resolved.item, verification, sessionId), verification.paid ? 200 : 402);
     }
 
     if (path === "/api/download") {
       const slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
       const sessionId = (url.searchParams.get("session_id") || "").trim();
-      const site = LONDON_SITES[slug];
-      if (!site) return jsonResponse({ ok: false, error: "Unknown site." }, 404);
+      const resolved = resolveSiteOrStudio(slug);
+      if (!resolved) return jsonResponse({ ok: false, error: "Unknown site." }, 404);
       const verification = await verifyStripePaidSession(env, sessionId, slug);
       if (!verification.paid) return jsonResponse({ ok: false, error: verification.reason }, 402);
-      const cleanHtml = renderClientSiteHtml(site, { clean: true });
+      const cleanHtml = resolved.kind === "studio"
+        ? renderLuxuryStudioHtml(resolved.item, { clean: true })
+        : renderClientSiteHtml(resolved.item, { clean: true });
       return new Response(cleanHtml, {
         status: 200,
         headers: secHeaders({
           "Content-Type": "text/html; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${site.slug}-index.html"`,
+          "Content-Disposition": `attachment; filename="${resolved.item.slug}-index.html"`,
           "Cache-Control": "no-store",
         }),
       });
+    }
+
+    if (path.startsWith("/s/")) {
+      const studioSlug = path.slice(3).toLowerCase();
+      const studio = NO_SITE_STUDIOS[studioSlug];
+      if (studio) {
+        const clean = url.searchParams.get("clean") === "1";
+        return htmlResponse(renderLuxuryStudioHtml(studio, { clean }));
+      }
+      return htmlResponse("<h1>Studio preview not found</h1><p><a href='/'>Home</a></p>", 404);
     }
 
     const slug = path.slice(1).toLowerCase();
