@@ -5,6 +5,8 @@
  * + expanding hover-pill showcase cards — populated with 100% REAL Fresha studio photos, prices & reviews.
  */
 
+import { renderStyleSwitcherBar, STYLE_SWITCHER_CSS } from "./motionsites_3d_studio.js";
+
 const ASSET_ORIGIN = "https://london-previews.ak10082247.workers.dev";
 
 function esc(s) {
@@ -16,16 +18,41 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+function resolvePhoto(p) {
+  return /^https?:\/\//i.test(p) ? p : `${ASSET_ORIGIN}${p}`;
+}
+
 export function renderMotionSitesModernAgencyStudio(studio, { clean = false } = {}) {
-  const photos = studio.photos.map((p) => `${ASSET_ORIGIN}${p}`);
+  const photos = (studio.photos || []).map(resolvePhoto);
   const imgA = photos[0] || "";
   const imgB = photos[2] || photos[1] || imgA;
   const imgC = photos[1] || imgA;
   const imgD = photos[3] || photos[0] || imgA;
   const directWa = `https://wa.me/${studio.waDigits}?text=${encodeURIComponent(`Hi ${studio.name}, I'd love to book an appointment — do you have availability this week?`)}`;
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${studio.name} ${studio.street} ${studio.postcode} London`)}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${studio.name} ${studio.street} ${studio.postcode}`)}`;
 
-  const servicesHtml = studio.services
+  const heroLabel = studio.heroLabel || `${studio.name} · ${studio.street}, ${studio.neighbourhood} ${studio.postcode}`;
+  const heroLines = studio.heroLines || [
+    `${studio.rating}-star ${studio.cat === "barber" ? "barbering" : "beauty & care"}`,
+    `trusted by ${studio.reviewCount.toLocaleString("en-GB")}+ clients`,
+    `in ${studio.neighbourhood}.`,
+  ];
+  const aboutTag = studio.aboutTag || `Inside ${studio.shortName}`;
+  const aboutHeadline = studio.aboutHeadline || `${esc(studio.rating)}-star rated craft,<br>direct WhatsApp booking.`;
+  const aboutBody = studio.aboutBody || `Located at ${esc(studio.street)}, ${esc(studio.neighbourhood)} —<br>book straight into the studio with zero<br>third-party platform fees.`;
+  const casesTag = studio.casesTag || `Inside Our ${studio.postcode} Studio`;
+  const casesHeadline = studio.casesHeadline || `The studio &amp; craft`;
+  const case1Title = studio.case1Title || `${studio.name} Interior`;
+  const case1Desc = studio.case1Desc || `Real studio photography from ${studio.street} — rated ${studio.rating} stars across ${studio.reviewCount.toLocaleString("en-GB")} verified visits.`;
+  const case2Title = studio.case2Title || `${studio.street}, ${studio.postcode}`;
+  const case2Desc = studio.case2Desc || `Open ${studio.hours}. Tap to message directly on WhatsApp (${studio.phoneDisplay}).`;
+
+  const servicesList = studio.services && studio.services.length ? studio.services : [
+    { name: "Signature Studio Appointment", dur: "45 min", price: "Ask on WhatsApp" },
+    { name: "Consultation & Bespoke Treatment", dur: "60 min", price: "Ask on WhatsApp" },
+  ];
+
+  const servicesHtml = servicesList
     .map(
       (srv) => `
       <div class="srv-row">
@@ -52,31 +79,7 @@ export function renderMotionSitesModernAgencyStudio(studio, { clean = false } = 
     )
     .join("");
 
-  const previewPill = clean
-    ? ""
-    : `
-  <aside class="pv-pill" id="previewPill" aria-label="Website preview badge">
-    <span class="pv-dot"></span>
-    <span class="pv-txt">Draft for <strong>${esc(studio.shortName)}</strong></span>
-    <button type="button" class="pv-go" id="openClaimBtn">Go Live · £199</button>
-    <button type="button" class="pv-x" id="closePillBtn" aria-label="Dismiss">×</button>
-  </aside>
-  <div class="cm-bg" id="claimModal" hidden>
-    <div class="cm-box" role="dialog" aria-modal="true">
-      <button type="button" class="cm-x" id="closeClaimBtn" aria-label="Close">×</button>
-      <p class="cm-k">ONE-TIME LAUNCH · £0/MO HOSTING</p>
-      <h3>Put ${esc(studio.name)} live on your own domain in 24h.</h3>
-      <p class="cm-p">Built with your real ${esc(studio.neighbourhood)} studio photos, real prices, and ${esc(studio.rating)}★ reviews. £199 one-time (zero monthly fees, zero sales calls — handled 100% over WhatsApp or email).</p>
-      <ul class="cm-ul">
-        <li>Connected to your own <strong>.co.uk</strong> domain on free Cloudflare hosting forever</li>
-        <li>Any extra photos, full price list &amp; wording tweaks included before launch</li>
-        <li>Direct WhatsApp booking so repeat clients book fee-free</li>
-      </ul>
-      <button type="button" class="cm-pay" id="startCheckoutBtn">Claim &amp; Launch — £199 One-Time →</button>
-      <a class="cm-mail" href="mailto:armkhan18@gmail.com?subject=${encodeURIComponent(`Launch ${studio.name} website (£199)`)}">Questions? Email armkhan18@gmail.com</a>
-      <p class="cm-st" id="claimStatus"></p>
-    </div>
-  </div>`;
+  const previewPill = renderStyleSwitcherBar(studio, "modern-agency", { clean });
 
   return `<!doctype html>
 <html lang="en-GB">
@@ -214,22 +217,7 @@ h2.big{font-size:clamp(1.75rem,7vw,4.2rem);line-height:1.08;letter-spacing:-.03e
 .ft{background:#fff;border-top:1px solid #e5e7eb;padding:28px 20px 72px;font-size:13px;color:#6b7280}
 .ft-in{max-width:1440px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:0 28px}
 
-/* DISCREET FLOATING PREVIEW PILL */
-.pv-pill{position:fixed;right:16px;bottom:16px;z-index:60;display:inline-flex;align-items:center;gap:10px;padding:7px 9px 7px 14px;border-radius:9999px;background:rgba(17,24,39,.92);color:#fff;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.22);font-size:12px}
-.pv-dot{width:7px;height:7px;border-radius:50%;background:#34d399}
-.pv-go{padding:6px 12px;border-radius:9999px;background:#F26522;color:#fff;font-size:12px;font-weight:600}
-.pv-x{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:14px}
-.cm-bg{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}
-.cm-bg[hidden]{display:none}
-.cm-box{position:relative;width:min(500px,100%);background:#fff;color:#111827;border-radius:20px;padding:32px 28px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
-.cm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;font-size:18px}
-.cm-k{font-size:11px;font-weight:700;letter-spacing:.14em;color:#F26522;margin-bottom:8px}
-.cm-box h3{font-size:26px;font-weight:600;letter-spacing:-.025em;line-height:1.15;margin-bottom:12px}
-.cm-p{font-size:14px;color:#4b5563;line-height:1.6;margin-bottom:16px}
-.cm-ul{padding-left:18px;font-size:14px;color:#111827;display:grid;gap:8px;margin-bottom:22px}
-.cm-pay{width:100%;padding:14px 20px;border-radius:9999px;background:#F26522;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px}
-.cm-mail{display:block;text-align:center;padding:11px;border-radius:9999px;border:1px solid #d1d5db;font-size:13px;font-weight:500}
-.cm-st{font-size:13px;color:#dc2626;text-align:center;margin-top:8px;min-height:18px}
+${STYLE_SWITCHER_CSS}
 
 @media(min-width:640px){
  .nav-in{padding:12px}.logo{width:40px;height:40px;font-size:11px}
@@ -292,8 +280,8 @@ h2.big{font-size:clamp(1.75rem,7vw,4.2rem);line-height:1.08;letter-spacing:-.03e
     </div>
   </div></div></nav>
   <div class="hero-c"><div class="hero-in">
-    <p class="label">${esc(studio.heroLabel)}</p>
-    <h1>${esc(studio.heroLines[0])}<br class="br"><span class="sp"> </span>${esc(studio.heroLines[1])}<br class="br"><span class="sp"> </span>${esc(studio.heroLines[2])}</h1>
+    <p class="label">${esc(heroLabel)}</p>
+    <h1>${esc(heroLines[0])}<br class="br"><span class="sp"> </span>${esc(heroLines[1])}<br class="br"><span class="sp"> </span>${esc(heroLines[2])}</h1>
     <div class="cta">
       <a class="btn org" href="#book"><span class="roll"><span><span>Book an appointment</span><span>Book an appointment</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
       <a class="badge" href="#reviews"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"/></svg>${esc(studio.rating)} ★ (${esc(studio.reviewCount.toLocaleString("en-GB"))} Reviews)<em>Verified</em></a>
@@ -311,45 +299,45 @@ h2.big{font-size:clamp(1.75rem,7vw,4.2rem);line-height:1.08;letter-spacing:-.03e
 </div>
 
 <section class="about" id="about"><div class="wrap">
-  <div class="badge-row"><span class="num">1</span><span class="tag">${esc(studio.aboutTag)}</span></div>
-  <h2>${studio.aboutHeadline}</h2>
+  <div class="badge-row"><span class="num">1</span><span class="tag">${esc(aboutTag)}</span></div>
+  <h2>${aboutHeadline}</h2>
   <div class="mob">
-    <p>${studio.aboutBody.replace(/<br>/g, " ")}</p>
+    <p>${aboutBody.replace(/<br>/g, " ")}</p>
     <a class="btn org" href="#menu"><span class="roll"><span><span>See prices</span><span>See prices</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
     <div class="imgs">
-      <img class="rimg i1 a" alt="${esc(studio.name)}" src="${esc(imgA)}">
-      <img class="rimg i2 b" alt="${esc(studio.name)} storefront" src="${esc(imgB)}">
+      <img class="rimg i1 a" alt="${esc(studio.name)}" referrerpolicy="no-referrer" src="${esc(imgA)}">
+      <img class="rimg i2 b" alt="${esc(studio.name)} storefront" referrerpolicy="no-referrer" src="${esc(imgB)}">
     </div>
   </div>
   <div class="desk">
-    <div class="l"><img class="rimg i1" alt="${esc(studio.name)}" src="${esc(imgA)}"></div>
+    <div class="l"><img class="rimg i1" alt="${esc(studio.name)}" referrerpolicy="no-referrer" src="${esc(imgA)}"></div>
     <div class="c"><div>
-      <p>${studio.aboutBody}</p>
+      <p>${aboutBody}</p>
       <a class="btn org" href="#menu"><span class="roll"><span><span>See prices</span><span>See prices</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
     </div></div>
-    <div class="r"><img class="rimg" alt="${esc(studio.name)}" src="${esc(imgB)}"></div>
+    <div class="r"><img class="rimg" alt="${esc(studio.name)}" referrerpolicy="no-referrer" src="${esc(imgB)}"></div>
   </div>
 </div></section>
 
 <section class="cases" id="space"><div class="wrap">
-  <div class="badge-row"><span class="num">2</span><span class="tag" style="border-color:#d1d5db">${esc(studio.casesTag)}</span></div>
-  <h2 class="big">${studio.casesHeadline}</h2>
+  <div class="badge-row"><span class="num">2</span><span class="tag" style="border-color:#d1d5db">${esc(casesTag)}</span></div>
+  <h2 class="big">${casesHeadline}</h2>
   <div class="grid">
     <a href="#book">
       <div class="vid" style="aspect-ratio:329/246;background:#1a1d2e">
-        <img src="${esc(imgC)}" alt="${esc(studio.case1Title)}">
+        <img src="${esc(imgC)}" alt="${esc(case1Title)}" referrerpolicy="no-referrer">
         <div class="hb"><span>Book direct</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
       </div>
-      <p class="desc">${esc(studio.case1Desc)}</p>
-      <p class="ttl">${esc(studio.case1Title)}</p>
+      <p class="desc">${esc(case1Desc)}</p>
+      <p class="ttl">${esc(case1Title)}</p>
     </a>
     <a href="${esc(mapsUrl)}" target="_blank" rel="noopener">
       <div class="vid" style="aspect-ratio:1/1;background:#6b6b6b">
-        <img src="${esc(imgD)}" alt="${esc(studio.case2Title)}">
+        <img src="${esc(imgD)}" alt="${esc(case2Title)}" referrerpolicy="no-referrer">
         <div class="hb dk"><span>Open in Maps</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
       </div>
-      <p class="desc">${esc(studio.case2Desc)}</p>
-      <p class="ttl">${esc(studio.case2Title)}</p>
+      <p class="desc">${esc(case2Desc)}</p>
+      <p class="ttl">${esc(case2Title)}</p>
     </a>
   </div>
 </div></section>
@@ -484,9 +472,9 @@ ${previewPill}
   if(cm)cm.onclick=function(e){if(e.target===cm)cm.hidden=true};
   if(pb)pb.onclick=function(){
     pb.disabled=true;pb.textContent='Opening £199 Stripe Checkout...';if(st)st.textContent='';
-    fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:${JSON.stringify(studio.slug)}})})
+    fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:${JSON.stringify(studio.slug)},style:'modern-agency'})})
       .then(function(r){return r.json()}).then(function(d){if(d&&d.url){location.href=d.url;return}throw new Error((d&&d.error)||'Checkout failed')})
-      .catch(function(e){pb.disabled=false;pb.textContent='Claim & Launch — £199 One-Time →';if(st)st.textContent=e.message});
+      .catch(function(e){pb.disabled=false;pb.textContent='Claim This Style — £199 One-Time →';if(st)st.textContent=e.message});
   };
 })();
 </script>

@@ -10,13 +10,21 @@ import { LONDON_SITES, escapeHtml, renderClientSiteHtml } from "./sites.js";
 import { NO_SITE_STUDIOS } from "./studios.js";
 import { FRESHA_STUDIOS } from "./fresha_studios.js";
 import { renderLuxuryStudioHtml } from "./templates/luxury_studio.js";
+import { renderMotionSites3DStudio } from "./templates/motionsites_3d_studio.js";
 import { renderMotionSitesCustomSpacesStudio } from "./templates/motionsites_custom_spaces_studio.js";
 import { renderMotionSitesModernAgencyStudio } from "./templates/motionsites_modern_agency_studio.js";
 
-function renderFreshaStudio(studio, opts) {
-  return studio.template === "modern-agency"
-    ? renderMotionSitesModernAgencyStudio(studio, opts)
-    : renderMotionSitesCustomSpacesStudio(studio, opts);
+function normalizeStyle(style, fallback = "3d") {
+  const s = String(style || "").trim().toLowerCase();
+  if (s === "3d" || s === "custom-spaces" || s === "modern-agency") return s;
+  return fallback;
+}
+
+function renderFreshaStudio(studio, { clean = false, style = "" } = {}) {
+  const chosen = normalizeStyle(style, "3d");
+  if (chosen === "custom-spaces") return renderMotionSitesCustomSpacesStudio(studio, { clean });
+  if (chosen === "modern-agency") return renderMotionSitesModernAgencyStudio(studio, { clean });
+  return renderMotionSites3DStudio(studio, { clean });
 }
 
 function resolveSiteOrStudio(slug) {
@@ -79,15 +87,18 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-async function createGbpCheckoutSession(env, origin, site, pathPrefix = "/") {
+async function createGbpCheckoutSession(env, origin, site, pathPrefix = "/", style = "") {
   const stripeKey = cleanSecret(env?.STRIPE_SECRET_KEY);
   if (!stripeKey) {
     return { error: "Stripe checkout is not configured yet.", status: 503 };
   }
+  const cleanStyle = style ? normalizeStyle(style, "3d") : "";
+  const styleQuery = cleanStyle ? `&style=${encodeURIComponent(cleanStyle)}` : "";
+  const cancelStyleQuery = cleanStyle ? `?style=${encodeURIComponent(cleanStyle)}` : "";
   const params = new URLSearchParams();
   params.set("mode", "payment");
-  params.set("success_url", `${origin}/success?slug=${encodeURIComponent(site.slug)}&session_id={CHECKOUT_SESSION_ID}`);
-  params.set("cancel_url", `${origin}${pathPrefix}${encodeURIComponent(site.slug)}`);
+  params.set("success_url", `${origin}/success?slug=${encodeURIComponent(site.slug)}${styleQuery}&session_id={CHECKOUT_SESSION_ID}`);
+  params.set("cancel_url", `${origin}${pathPrefix}${encodeURIComponent(site.slug)}${cancelStyleQuery}`);
   params.set("line_items[0][quantity]", "1");
   params.set("line_items[0][price_data][currency]", "gbp");
   params.set("line_items[0][price_data][unit_amount]", String(PRICE_GBP_PENCE));
@@ -99,6 +110,7 @@ async function createGbpCheckoutSession(env, origin, site, pathPrefix = "/") {
   params.set("metadata[slug]", site.slug);
   params.set("metadata[business]", site.name);
   params.set("metadata[domain]", site.domain);
+  if (cleanStyle) params.set("metadata[style]", cleanStyle);
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -135,6 +147,7 @@ async function verifyStripePaidSession(env, sessionId, expectedSlug) {
     paid: true,
     email: data?.customer_details?.email || "",
     slug: metaSlug || expectedSlug,
+    style: data?.metadata?.style || "",
     amountTotal: data?.amount_total || PRICE_GBP_PENCE,
   };
 }
@@ -257,14 +270,16 @@ export default {
 
     if (path === "/api/checkout") {
       let slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
+      let style = (url.searchParams.get("style") || "").trim().toLowerCase();
       let wantJson = url.searchParams.get("format") === "json" || request.method === "POST";
-      if (!slug && request.method === "POST") {
+      if (request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        slug = String(body?.slug || "").trim().toLowerCase();
+        if (!slug) slug = String(body?.slug || "").trim().toLowerCase();
+        if (!style) style = String(body?.style || "").trim().toLowerCase();
       }
       const resolved = resolveSiteOrStudio(slug);
       if (!resolved) return jsonResponse({ ok: false, error: "Unknown preview slug." }, 404);
-      const out = await createGbpCheckoutSession(env, url.origin, resolved.item, resolved.pathPrefix);
+      const out = await createGbpCheckoutSession(env, url.origin, resolved.item, resolved.pathPrefix, style);
       if (out.error) return jsonResponse({ ok: false, error: out.error }, out.status || 500);
       if (wantJson) {
         return jsonResponse({ ok: true, ...out });
@@ -283,13 +298,15 @@ export default {
 
     if (path === "/api/download") {
       const slug = (url.searchParams.get("slug") || "").trim().toLowerCase();
+      const styleParam = (url.searchParams.get("style") || "").trim().toLowerCase();
       const sessionId = (url.searchParams.get("session_id") || "").trim();
       const resolved = resolveSiteOrStudio(slug);
       if (!resolved) return jsonResponse({ ok: false, error: "Unknown site." }, 404);
       const verification = await verifyStripePaidSession(env, sessionId, slug);
       if (!verification.paid) return jsonResponse({ ok: false, error: verification.reason }, 402);
+      const chosenStyle = styleParam || verification.style || "3d";
       const cleanHtml = resolved.kind === "fresha"
-        ? renderFreshaStudio(resolved.item, { clean: true })
+        ? renderFreshaStudio(resolved.item, { clean: true, style: chosenStyle })
         : resolved.kind === "studio"
           ? renderLuxuryStudioHtml(resolved.item, { clean: true })
           : renderClientSiteHtml(resolved.item, { clean: true });
@@ -306,8 +323,9 @@ export default {
     if (path.startsWith("/s/")) {
       const studioSlug = path.slice(3).toLowerCase();
       const clean = url.searchParams.get("clean") === "1";
+      const style = url.searchParams.get("style") || "";
       if (FRESHA_STUDIOS[studioSlug]) {
-        return htmlResponse(renderFreshaStudio(FRESHA_STUDIOS[studioSlug], { clean }));
+        return htmlResponse(renderFreshaStudio(FRESHA_STUDIOS[studioSlug], { clean, style }));
       }
       const studio = NO_SITE_STUDIOS[studioSlug];
       if (studio) {

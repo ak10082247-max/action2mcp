@@ -4,6 +4,8 @@
  * real verified client reviews, and direct WhatsApp booking concierge.
  */
 
+import { renderStyleSwitcherBar, STYLE_SWITCHER_CSS } from "./motionsites_3d_studio.js";
+
 const ASSET_ORIGIN = "https://london-previews.ak10082247.workers.dev";
 
 function esc(s) {
@@ -15,14 +17,27 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+function resolvePhoto(p) {
+  return /^https?:\/\//i.test(p) ? p : `${ASSET_ORIGIN}${p}`;
+}
+
 export function renderMotionSitesCustomSpacesStudio(studio, { clean = false } = {}) {
-  const photos = studio.photos.map((p) => `${ASSET_ORIGIN}${p}`);
+  const photos = (studio.photos || []).map(resolvePhoto);
   // Ensure at least 6 slides in the marquee loop cleanly
   const marqueePhotos = photos.length >= 6 ? photos : [...photos, ...photos].slice(0, 6);
   const directWa = `https://wa.me/${studio.waDigits}?text=${encodeURIComponent(`Hi ${studio.name}, I'd love to book an appointment — do you have availability this week?`)}`;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${studio.name} ${studio.street} ${studio.postcode} London`)}`;
+  const heroLine1 = studio.heroLine1 || studio.name;
+  const heroLine2 = studio.heroLine2 || studio.neighbourhood;
+  const heroSub = studio.heroSub || `${studio.rating} ★ from ${studio.reviewCount.toLocaleString("en-GB")} verified reviews · ${studio.street}, ${studio.neighbourhood} ${studio.postcode}.`;
+  const bottomStatement = studio.bottomStatement || `Rated ${studio.rating} stars across ${studio.reviewCount.toLocaleString("en-GB")} verified visits at ${studio.street}, ${studio.neighbourhood} — book directly on WhatsApp with zero platform fees.`;
 
-  const servicesHtml = studio.services
+  const servicesList = studio.services && studio.services.length ? studio.services : [
+    { name: "Signature Studio Appointment", dur: "45 min", price: "Ask on WhatsApp" },
+    { name: "Consultation & Bespoke Treatment", dur: "60 min", price: "Ask on WhatsApp" },
+  ];
+
+  const servicesHtml = servicesList
     .map(
       (srv) => `
       <div class="srv-row">
@@ -62,31 +77,7 @@ export function renderMotionSitesCustomSpacesStudio(studio, { clean = false } = 
     </section>`
     : "";
 
-  const previewPill = clean
-    ? ""
-    : `
-  <aside class="pv-pill" id="previewPill" aria-label="Website preview badge">
-    <span class="pv-dot"></span>
-    <span class="pv-txt">Draft for <strong>${esc(studio.shortName)}</strong></span>
-    <button type="button" class="pv-go" id="openClaimBtn">Go Live · £199</button>
-    <button type="button" class="pv-x" id="closePillBtn" aria-label="Dismiss">×</button>
-  </aside>
-  <div class="cm-bg" id="claimModal" hidden>
-    <div class="cm-box" role="dialog" aria-modal="true">
-      <button type="button" class="cm-x" id="closeClaimBtn" aria-label="Close">×</button>
-      <p class="cm-k">ONE-TIME LAUNCH · £0/MO HOSTING</p>
-      <h3>Put ${esc(studio.name)} live on your own domain in 24h.</h3>
-      <p class="cm-p">Built using your real photos, prices, and ${esc(studio.rating)}★ reviews. £199 one-time (no monthly Wix/Squarespace bills, zero sales calls — handled 100% via WhatsApp or email).</p>
-      <ul class="cm-ul">
-        <li>Connected to your own <strong>.co.uk</strong> domain on free Cloudflare hosting forever</li>
-        <li>Any extra photos, full price list &amp; wording tweaks included before launch</li>
-        <li>Direct WhatsApp booking so repeat clients book fee-free</li>
-      </ul>
-      <button type="button" class="cm-pay" id="startCheckoutBtn">Claim &amp; Launch — £199 One-Time →</button>
-      <a class="cm-mail" href="mailto:armkhan18@gmail.com?subject=${encodeURIComponent(`Launch ${studio.name} website (£199)`)}">Questions? Email armkhan18@gmail.com</a>
-      <p class="cm-st" id="claimStatus"></p>
-    </div>
-  </div>`;
+  const previewPill = renderStyleSwitcherBar(studio, "custom-spaces", { clean });
 
   return `<!doctype html>
 <html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -192,22 +183,7 @@ h1{font-size:36px;line-height:1.05;font-weight:600;letter-spacing:-.025em;max-wi
 .wa-note{text-align:center;font-size:12px;color:#737373;margin-top:10px}
 .ft{border-top:1px solid #ececec;padding:32px 20px 68px;max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:13px;color:#737373}
 
-/* DISCREET FLOATING PREVIEW PILL (BOTTOM-RIGHT ONLY) */
-.pv-pill{position:fixed;right:16px;bottom:16px;z-index:60;display:inline-flex;align-items:center;gap:10px;padding:7px 9px 7px 14px;border-radius:9999px;background:rgba(23,23,23,.92);color:#fff;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.22);font-size:12px}
-.pv-dot{width:7px;height:7px;border-radius:50%;background:#34d399}
-.pv-go{padding:6px 12px;border-radius:9999px;border:0;background:#fff;color:#171717;font-size:12px;font-weight:600}
-.pv-x{width:24px;height:24px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:14px}
-.cm-bg{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}
-.cm-bg[hidden]{display:none}
-.cm-box{position:relative;width:min(500px,100%);background:#fff;color:#171717;border-radius:20px;padding:32px 28px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
-.cm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:1px solid #e5e5e5;background:#fff;font-size:18px}
-.cm-k{font-size:11px;font-weight:700;letter-spacing:.14em;color:#737373;margin-bottom:8px}
-.cm-box h3{font-size:26px;font-weight:600;letter-spacing:-.025em;line-height:1.15;margin-bottom:12px}
-.cm-p{font-size:14px;color:#525252;line-height:1.6;margin-bottom:16px}
-.cm-ul{padding-left:18px;font-size:14px;color:#262626;display:grid;gap:8px;margin-bottom:22px}
-.cm-pay{width:100%;padding:14px 20px;border-radius:9999px;border:0;background:#171717;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px}
-.cm-mail{display:block;text-align:center;padding:11px;border-radius:9999px;border:1px solid #d4d4d4;font-size:13px;font-weight:500}
-.cm-st{font-size:13px;color:#dc2626;text-align:center;margin-top:8px;min-height:18px}
+${STYLE_SWITCHER_CSS}
 
 @media(min-width:640px){
 nav{padding:20px 24px}.brand-txt{display:inline}.pill{display:inline-block}.spacer{display:none}
@@ -247,8 +223,8 @@ nav{padding:20px 24px}.brand-txt{display:inline}.pill{display:inline-block}.spac
 </aside>
 
 <section class="hero">
-  <h1>${esc(studio.heroLine1)}<br>${esc(studio.heroLine2)}</h1>
-  <p class="sub">${esc(studio.heroSub)}</p>
+  <h1>${esc(heroLine1)}<br>${esc(heroLine2)}</h1>
+  <p class="sub">${esc(heroSub)}</p>
 </section>
 
 <section class="mq" id="gallery">
@@ -258,7 +234,7 @@ nav{padding:20px 24px}.brand-txt{display:inline}.pill{display:inline-block}.spac
 </section>
 
 <section class="bottom">
-  <p>${esc(studio.bottomStatement)}</p>
+  <p>${esc(bottomStatement)}</p>
   <div class="ctas">
     <a href="#book">Book on WhatsApp</a>
     <a href="#menu">See Menu &amp; Prices</a>
@@ -333,7 +309,7 @@ ${previewPill}
   var photos=${JSON.stringify(marqueePhotos)};
   var tr=document.getElementById('tr'),html='';
   photos.concat(photos).forEach(function(src){
-    html+='<div class="slide"><img src="'+src+'" alt="${esc(studio.name)}" loading="eager" draggable="false"></div>';
+    html+='<div class="slide"><img src="'+src+'" alt="${esc(studio.name)}" referrerpolicy="no-referrer" loading="eager" draggable="false"></div>';
   });
   tr.innerHTML=html;
   var off=0,vel=0,drag=false,sx=0,so=0,lx=0,lt=0,SPEED=.8;
@@ -382,9 +358,9 @@ ${previewPill}
   if(cm)cm.onclick=function(e){if(e.target===cm)cm.hidden=true};
   if(pb)pb.onclick=function(){
     pb.disabled=true;pb.textContent='Opening £199 Stripe Checkout...';if(st)st.textContent='';
-    fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:${JSON.stringify(studio.slug)}})})
+    fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:${JSON.stringify(studio.slug)},style:'custom-spaces'})})
       .then(function(r){return r.json()}).then(function(d){if(d&&d.url){location.href=d.url;return}throw new Error((d&&d.error)||'Checkout failed')})
-      .catch(function(e){pb.disabled=false;pb.textContent='Claim & Launch — £199 One-Time →';if(st)st.textContent=e.message});
+      .catch(function(e){pb.disabled=false;pb.textContent='Claim This Style — £199 One-Time →';if(st)st.textContent=e.message});
   };
 })();
 </script></body></html>`;
