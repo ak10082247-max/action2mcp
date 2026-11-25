@@ -537,49 +537,50 @@ export const LONDON_SITES = {
     services: [
       {
         tag: "From £35",
-        title: "Everyday Care & Valets",
+        title: "Monthly Maintenance & Exterior Detail",
         price: "From £35",
         img: "hero",
-        desc: "Safe driveway maintenance washes through to full interior deep cleans — keeping daily cars effortlessly sharp at home or work.",
-        bullets: ["Safe snow foam & scratch-free wash", "Full interior deep clean options", "Own power & water onboard"],
+        desc: "Keep your car sparkling all year with our Monthly Maintenance Package or Exterior Detail Only — safe foam wash, wheels, and gloss protection on your driveway.",
+        bullets: ["Monthly Maintenance Package", "Exterior Detail Only refresh", "Own power & water onboard — zero garage trips"],
+      },
+      {
+        tag: "Inside & Out",
+        title: "Visuals Signature Deep Clean",
+        price: "Full Decontamination",
+        img: "detail",
+        desc: "A thorough interior and exterior decontamination returning your entire car to its crisp factory look, just like the first day you bought it.",
+        bullets: ["Complete interior & exterior reset", "Safe clay & fallout decontamination", "Self-contained mobile van to your door"],
+      },
+      {
+        tag: "Restoration",
+        title: "Stage 1 & Stage 2 Paint Correction",
+        price: "Mirror Gloss",
+        img: "hero",
+        desc: "Precision rotary and dual-action machine paint correction removing swirls, dullness, and surface defects across prestige, daily, and supercar paintwork.",
+        bullets: ["Stage 1 single-step enhancement", "Stage 2 multi-stage defect correction", "Trusted on Lamborghinis, Ferraris & daily drivers"],
       },
       {
         tag: "Protection",
         title: "Wheels-Off Ceramic & Leather",
         price: "Pro Chemistry",
         img: "detail",
-        desc: "Paint enhancement, wheels-off ceramic coating, and dedicated leather protection using the same pro chemistry as our restorations.",
-        bullets: ["Wheels-off alloy & caliper ceramic", "Interior leather & trim protection", "Deep hydrophobic gloss"],
-      },
-      {
-        tag: "Restoration",
-        title: "Stage 1 & 2 Paint Correction",
-        price: "Mirror Gloss",
-        img: "hero",
-        desc: "Precision single-stage enhancement or deeper Stage 2 machine correction levelling swirls, hazing, and surface blemishes.",
-        bullets: ["Stage 1 gloss refinement", "Stage 2 deeper defect removal", "Ideal for new-car or pre-sale prep"],
-      },
-      {
-        tag: "Tailored Add-Ons",
-        title: "Bespoke Detailing Upgrades",
-        price: "Mix & Match",
-        img: "detail",
-        desc: "Add glass rain-repellent coating, engine bay dressing, pet hair removal, or fabric protection to any driveway visit.",
-        bullets: ["Tailored add-on options", "Multi-car household slots", "7 areas across London & Home Counties"],
+        desc: "Paint enhancement, wheels-off ceramic coating (alloys & calipers), and dedicated interior leather protection using the same pro chemistry as our restorations.",
+        bullets: ["Wheels-off alloy & caliper ceramic coating", "Interior leather & trim protection", "7 coverage areas across London & South East"],
       },
     ],
     quoteTitle: "Get Your Instant Driveway Quote",
-    quoteLead: "Choose your package and county below — opens a pre-filled WhatsApp straight to +44 7859 743762.",
+    quoteLead: "Pick your package and area below — opens a pre-filled WhatsApp straight to +44 7859 743762 (same-day quote confirmation).",
     quoteJobs: [
-      "Maintenance Wash / Everyday Valet (from £35)",
-      "Full Interior & Exterior Deep Clean",
+      "Monthly Maintenance Package (from £35)",
+      "Visuals Signature Deep Clean (Inside & Out)",
+      "Exterior Detail Only",
       "Stage 1 Paint Enhancement",
       "Stage 2 Multi-Stage Paint Correction",
       "Wheels-Off Ceramic Coating & Leather Protection",
     ],
     quoteSecondaryLabel: "Your County / Area",
-    quoteSecondaryOptions: ["London / Hounslow", "Surrey", "Berkshire", "Buckinghamshire", "Hampshire / Hertfordshire"],
-    areas: ["London", "Hounslow", "Surrey", "Berkshire", "Buckinghamshire", "Hampshire", "Hertfordshire"],
+    quoteSecondaryOptions: ["London (Chelsea / Kensington / Fulham / Richmond / Hounslow)", "Surrey (Guildford / Woking / Esher)", "Berkshire", "Buckinghamshire (Beaconsfield / Marlow / Gerrards Cross)", "Hampshire / Hertfordshire"],
+    areas: ["Chelsea", "Kensington", "Mayfair", "Wimbledon", "Richmond", "Fulham", "Hampstead", "Canary Wharf", "Hounslow", "Guildford", "Woking", "Esher", "Beaconsfield", "Gerrards Cross", "Marlow", "Winchester"],
     reviews: [
       {
         sticker: "5.0 ★ RATED",
@@ -664,19 +665,19 @@ export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGI
   }
 
   const t = site.theme;
-  const heroPhoto = `${origin}${site.heroImg}`;
-  const detailPhoto = `${origin}${site.detailImg}`;
+  const r = (name) => `${origin}/assets/real/${name}`;
+  const detailPhoto = r("vis-bmw-foam.webp");
   const waHref = site.waDigits
     ? `https://wa.me/${site.waDigits}?text=${encodeURIComponent(`Hi ${site.shortName}, I'd like a quick quote please.`)}`
     : `mailto:${encodeURIComponent(site.email)}?subject=${encodeURIComponent(`Quote Request — ${site.shortName}`)}`;
   const primaryContactLabel = site.waDigits ? "WhatsApp Quote" : "Request Callback";
 
-  // Build 6 rich interactive showcase cards for BOTH the 3D concave hero cylinder AND the fanned scroll arc
+  // Build 6 rich interactive showcase cards using Visuals Detailing's 6 REAL supercar & branded-van photos
   const carouselCards = [
     {
       id: 0,
       kind: "photo",
-      img: heroPhoto,
+      img: r("vis-lambo-urus.webp"),
       tag: site.services[0].tag,
       title: site.services[0].title,
       price: site.services[0].price,
@@ -686,7 +687,7 @@ export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGI
     {
       id: 1,
       kind: "photo",
-      img: detailPhoto,
+      img: r("vis-ferrari-van.webp"),
       tag: site.services[1].tag,
       title: site.services[1].title,
       price: site.services[1].price,
@@ -696,7 +697,7 @@ export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGI
     {
       id: 2,
       kind: "photo",
-      img: heroPhoto,
+      img: r("vis-rotary-polish.webp"),
       tag: site.services[2].tag,
       title: site.services[2].title,
       price: site.services[2].price,
@@ -706,7 +707,7 @@ export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGI
     {
       id: 3,
       kind: "photo",
-      img: detailPhoto,
+      img: r("vis-lambo-svj.webp"),
       tag: site.services[3].tag,
       title: site.services[3].title,
       price: site.services[3].price,
@@ -716,22 +717,22 @@ export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGI
     {
       id: 4,
       kind: "photo",
-      img: heroPhoto,
-      tag: site.reviews[0].sticker,
-      title: site.reviews[0].author,
-      price: site.reviews[0].meta,
-      desc: site.reviews[0].quote,
-      bullets: [`Serving ${site.area}`, `Direct contact: ${site.phoneDisplay}`, "Zero call-centre middlemen"],
+      img: r("vis-lambo-white-van.webp"),
+      tag: "Mobile Unit · West London",
+      title: "Own Power & Water On Site",
+      price: "7 Counties Covered",
+      desc: "Based in West London, our branded Visuals mobile unit arrives self-contained at your home or workplace across London, Surrey & the Home Counties.",
+      bullets: ["Chelsea, Kensington, Mayfair & Richmond", "Guildford, Woking, Esher & Beaconsfield", "Direct WhatsApp: +44 7859 743762"],
     },
     {
       id: 5,
       kind: "photo",
-      img: detailPhoto,
-      tag: site.statusTop,
-      title: `${site.shortName} Direct`,
-      price: site.statusSub,
+      img: r("vis-lambo-blue.webp"),
+      tag: "5.0 ★ Rated",
+      title: "Supercar & Daily Care",
+      price: "Same-Day Quotes",
       desc: site.splitSub,
-      bullets: site.areas.slice(0, 3).map((a) => `Covering ${a} & surrounds`),
+      bullets: ["From £35 maintenance to full restorations", "Zero garage drop-offs needed", "5.0 ★ verified driveway detailing"],
     },
   ];
 

@@ -1,16 +1,14 @@
 /**
  * MotionSites Official "Apple DESIGN.md" Reference -> Bespoke build for Wish Wash Valeting & Detailing (wish-wash.co.uk)
- * Exact Apple DESIGN.md visual language:
- *  - "A gallery wall lit by daylight — oversized type drops shadows on a white surface, and color enters the frame only through the product itself."
- *  - Near-white gallery canvas (#f5f5f7) so pure white (#ffffff) content wells & package cards lift off the surface without heavy shadows
- *  - Weight-700 chiseled display headlines up to 80–92px tracked at -0.022em paired with feather-light body breathing at -0.003em
- *  - Interactive Apple-style segmented vehicle-size pill (Standard Car vs Large SUV/4x4) that updates live £43-£49 / £59-£69 / £70-£80 package pricing
- *  - Instant 1-tap WhatsApp booking directly to +44 7763 453883 + verbatim S. Ottmann 5★ review
+ * Uses 100% REAL Wish Wash photos & facts straight from wish-wash.co.uk:
+ *  - Real 2K Porsche Taycan snow-foam driveway wash (ww-taycan-wash.jpg)
+ *  - Real spotless dark leather & classic tan gated-manual cabins + foam spray + headlamp gallery
+ *  - Real chemistry partners (Gtechniq, Infinity Wax, Chemical Guys) + slogan "Because you Wish we Wash!"
+ *  - Exact £43-£49 / £59-£69 / £70-£80 packages + interactive Standard vs SUV toggle + S. Ottmann 5★ review
  */
 
 export function renderWishWashAppleGallery(site, { clean = false, origin, previewBarHtml, claimScriptJs }) {
-  const heroPhoto = `${origin}${site.heroImg}`;
-  const detailPhoto = `${origin}${site.detailImg}`;
+  const r = (name) => `${origin}/assets/real/${name}`;
   const waQuick = `https://wa.me/${site.waDigits}?text=${encodeURIComponent("Hi Wish Wash, I'd like to book a mobile valet in London.")}`;
 
   const packages = [
@@ -58,13 +56,20 @@ export function renderWishWashAppleGallery(site, { clean = false, origin, previe
     },
   ];
 
+  const gallery = [
+    { img: r("ww-foam-spray.jpg"), title: "pH-Neutral Snow Foam", sub: "Touchless Pre-Wash Soak" },
+    { img: r("ww-cabin-dark.jpg"), title: "Deep Interior Valeting", sub: "Leather, Carpets & Trim Care" },
+    { img: r("ww-tan-leather.jpg"), title: "Classic & Prestige Cabins", sub: "Gentle Brush & Conditioning" },
+    { img: r("ww-bmw-light.jpg"), title: "Showroom Exterior Finish", sub: "Ultragloss SiO2 & Glass Clarity" },
+  ];
+
   return `<!doctype html>
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Wish Wash Valeting &amp; Detailing — Mobile Car Care London</title>
-<meta name="description" content="12+ years mobile car valeting & detailing across London. Own onboard water & power. Transparent pricing from £43. Book on WhatsApp +44 7763 453883.">
+<meta name="description" content="12+ years mobile car valeting & detailing across London. Own onboard pure water & power. Transparent pricing from £43. Because you Wish we Wash!">
 <style>
 :root{
   --canvas:#f5f5f7;
@@ -88,7 +93,6 @@ body{
 a{color:inherit;text-decoration:none}
 button{font:inherit;cursor:pointer}
 
-/* Preview handover bar */
 .pv-bar{position:sticky;top:0;z-index:120;background:#1d1d1f;color:#f5f5f7;border-bottom:1px solid rgba(255,255,255,.14);font-size:12.5px;line-height:1.4}
 .pv-inner{max-width:1120px;margin:0 auto;padding:9px 18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .pv-copy{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -97,23 +101,21 @@ button{font:inherit;cursor:pointer}
 .pv-buy{background:#10b981;color:#052e16;border:0;border-radius:999px;padding:7px 14px;font-weight:700;font-size:12.5px}
 .pv-close{background:transparent;color:#d2d2d7;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12px}
 
-/* GALLERY GLASS TOP NAV */
 .nav{
   position:sticky;top:0;z-index:60;
-  background:rgba(245,245,247,.82);
+  background:rgba(245,245,247,.84);
   backdrop-filter:saturate(180%) blur(20px);
   border-bottom:1px solid rgba(0,0,0,.06);
 }
-.nav-in{max-width:1060px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.nav-in{max-width:1080px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{font-size:18px;font-weight:600;letter-spacing:-.02em}
 .nav-links{display:flex;align-items:center;gap:24px;font-size:13px;color:var(--muted)}
 .nav-links a:hover{color:var(--ink)}
 .nav-cta{background:var(--blue);color:#fff;font-size:12.5px;font-weight:500;padding:7px 16px;border-radius:999px;transition:background .15s}
 .nav-cta:hover{background:var(--blue-h)}
 
-/* DAYLIGHT GALLERY HERO (APPLE DESIGN.MD: 80-96px, -0.022em, CHISELED MASS & AIR) */
-.hero{max-width:1060px;margin:0 auto;padding:72px 22px 44px;text-align:center}
-.eyebrow{font-size:17px;font-weight:600;color:var(--muted);margin-bottom:14px;letter-spacing:-.01em}
+.hero{max-width:1080px;margin:0 auto;padding:68px 22px 44px;text-align:center}
+.eyebrow{font-size:16.5px;font-weight:600;color:var(--muted);margin-bottom:14px;letter-spacing:-.01em}
 .hero h1{
   font-size:clamp(44px,8.2vw,88px);
   font-weight:700;
@@ -127,7 +129,7 @@ button{font:inherit;cursor:pointer}
   font-size:clamp(18px,2.2vw,23px);
   font-weight:400;
   color:var(--muted);
-  max-width:650px;
+  max-width:670px;
   margin:0 auto 30px;
   line-height:1.42;
 }
@@ -137,48 +139,34 @@ button{font:inherit;cursor:pointer}
 .btn-link{color:var(--blue);padding:13px 18px;font-size:16px;font-weight:500}
 .btn-link:hover{text-decoration:underline;text-underline-offset:4px}
 
-/* HERO PHOTOGRAPH FRAME — COLOR ENTERS ONLY THROUGH THE PRODUCT */
-.hero-media{
-  background:var(--well);
-  border-radius:28px;
-  padding:12px;
-  overflow:hidden;
-}
+.hero-media{background:var(--well);border-radius:28px;padding:12px;overflow:hidden}
 .hero-media img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:20px;display:block}
-.hero-specs{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;
-}
-.spec-pill{
-  background:var(--well);border-radius:18px;padding:18px 16px;text-align:left;
-}
+.hero-specs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.spec-pill{background:var(--well);border-radius:18px;padding:18px 16px;text-align:left}
 .spec-pill small{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
 .spec-pill strong{font-size:17px;font-weight:600;letter-spacing:-.015em}
 
-/* GALLERY SECTIONS */
-.sec{max-width:1060px;margin:0 auto;padding:64px 22px}
-.sec-head{text-align:center;max-width:680px;margin:0 auto 32px}
+.brands-strip{
+  margin-top:14px;background:var(--well);border-radius:18px;padding:15px 22px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  font-size:13px;color:var(--muted);
+}
+.brands-list{display:flex;flex-wrap:wrap;gap:18px;font-weight:700;color:var(--ink);letter-spacing:.03em;text-transform:uppercase;font-size:12.5px}
+
+.sec{max-width:1080px;margin:0 auto;padding:60px 22px}
+.sec-head{text-align:center;max-width:680px;margin:0 auto 30px}
 .sec-head h2{font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:-.022em;line-height:1.06;margin-bottom:12px}
 .sec-head p{font-size:17px;color:var(--muted)}
 
-/* APPLE-STYLE SEGMENTED VEHICLE SIZE TOGGLE */
 .seg-wrap{display:flex;justify-content:center;margin-bottom:28px}
-.seg{
-  display:inline-flex;background:#e8e8ed;border-radius:999px;padding:4px;gap:4px;
-}
-.seg button{
-  border:0;background:transparent;color:var(--muted);padding:9px 20px;border-radius:999px;
-  font-size:14px;font-weight:600;transition:all .2s ease;
-}
+.seg{display:inline-flex;background:#e8e8ed;border-radius:999px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--muted);padding:9px 20px;border-radius:999px;font-size:14px;font-weight:600;transition:all .2s ease}
 .seg button.active{background:var(--well);color:var(--ink)}
 
-/* SHADOWLESS WHITE CONTENT WELLS ON #F5F5F7 */
 .pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.pkg-card{
-  background:var(--well);border-radius:24px;padding:30px 26px;
-  display:flex;flex-direction:column;transition:transform .25s ease;
-}
+.pkg-card{background:var(--well);border-radius:24px;padding:30px 26px;display:flex;flex-direction:column;transition:transform .25s ease}
 .pkg-card:hover{transform:translateY(-3px)}
-.pkg-tag{font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px;letter-spacing:.01em}
+.pkg-tag{font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px}
 .pkg-card h3{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
 .pkg-price{font-size:38px;font-weight:700;letter-spacing:-.025em;margin:8px 0 4px}
 .pkg-subprice{font-size:12.5px;color:var(--muted);margin-bottom:16px}
@@ -186,36 +174,30 @@ button{font:inherit;cursor:pointer}
 .pkg-list{list-style:none;margin-bottom:24px;display:flex;flex-direction:column;gap:9px;font-size:14px}
 .pkg-list li{padding-left:18px;position:relative}
 .pkg-list li::before{content:"✓";position:absolute;left:0;color:var(--blue);font-weight:700}
-.pkg-btn{
-  margin-top:auto;width:100%;border:0;border-radius:999px;padding:12px 18px;
-  background:var(--ink);color:#fff;font-size:14.5px;font-weight:600;transition:opacity .15s;
-}
-.pkg-btn:hover{opacity:.88}
+.pkg-btn{margin-top:auto;width:100%;border:0;border-radius:999px;padding:12px 18px;background:var(--ink);color:#fff;font-size:14.5px;font-weight:600}
 .pkg-card.featured .pkg-btn{background:var(--blue)}
 
-/* TWO-UP EDITORIAL CRAFT + CABIN PHOTO */
-.bento{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+/* REAL GALLERY STRIP */
+.gal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.gal-card{background:var(--well);border-radius:20px;padding:10px;margin:0}
+.gal-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;display:block}
+.gal-card figcaption{padding:10px 6px 4px}
+.gal-card strong{display:block;font-size:14px;font-weight:600}
+.gal-card span{font-size:12px;color:var(--muted)}
+
+.bento{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
 .bento-photo{background:var(--well);border-radius:24px;padding:12px;display:flex;flex-direction:column}
-.bento-photo img{width:100%;height:100%;min-height:300px;object-fit:cover;border-radius:16px}
-.bento-review{
-  background:var(--well);border-radius:24px;padding:34px 30px;display:flex;flex-direction:column;justify-content:space-between;
-}
+.bento-photo img{width:100%;height:100%;min-height:290px;object-fit:cover;border-radius:16px}
+.bento-review{background:var(--well);border-radius:24px;padding:34px 30px;display:flex;flex-direction:column;justify-content:space-between}
 .stars{font-size:15px;letter-spacing:2px;color:#f59e0b;margin-bottom:14px}
 .bento-review blockquote{font-size:21px;font-weight:500;letter-spacing:-.015em;line-height:1.38;margin-bottom:22px}
 .bento-review footer strong{display:block;font-size:15px}
 .bento-review footer span{font-size:13px;color:var(--muted)}
 
-/* WHATSAPP BOOKING WELL */
-.book-well{
-  background:var(--well);border-radius:28px;padding:36px;
-  display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;
-}
+.book-well{background:var(--well);border-radius:28px;padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
 .qf{margin-bottom:14px}
 .qf label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
-.qf input,.qf select,.qf textarea{
-  width:100%;padding:12px 14px;font:inherit;font-size:15px;
-  border:1px solid var(--hairline);border-radius:12px;background:var(--canvas);color:var(--ink);
-}
+.qf input,.qf select,.qf textarea{width:100%;padding:12px 14px;font:inherit;font-size:15px;border:1px solid var(--hairline);border-radius:12px;background:var(--canvas);color:var(--ink)}
 .qf textarea{min-height:74px;resize:vertical}
 .q-out{background:var(--canvas);border-radius:20px;padding:24px}
 .q-out h3{font-size:20px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px}
@@ -226,12 +208,7 @@ button{font:inherit;cursor:pointer}
 .q-wa:hover{background:var(--blue-h)}
 .q-mail{text-align:center;background:var(--well);color:var(--ink);border:1px solid var(--hairline);padding:13px 18px;border-radius:999px;font-weight:600;font-size:14.5px}
 
-footer.ap-foot{
-  max-width:1060px;margin:0 auto;padding:28px 22px 84px;
-  border-top:1px solid var(--hairline);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
-  font-size:12.5px;color:var(--muted);
-}
-
+footer.ap-foot{max-width:1080px;margin:0 auto;padding:28px 22px 84px;border-top:1px solid var(--hairline);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--muted)}
 .mob-bar{position:fixed;bottom:12px;left:12px;right:12px;z-index:90;background:rgba(29,29,31,.92);backdrop-filter:blur(14px);border-radius:999px;padding:6px;display:none;gap:6px}
 .mob-bar a{flex:1;text-align:center;font-size:13.5px;font-weight:600;padding:10px;border-radius:999px}
 .mb-c{color:#fff;background:rgba(255,255,255,.12)}
@@ -240,7 +217,7 @@ footer.ap-foot{
 @media(max-width:860px){
   .nav-links{display:none}
   .hero{padding:46px 18px 28px}
-  .hero-specs{grid-template-columns:repeat(2,1fr)}
+  .hero-specs,.gal-grid{grid-template-columns:repeat(2,1fr)}
   .pkg-grid,.bento,.book-well{grid-template-columns:1fr}
   .book-well{padding:24px 20px}
   .mob-bar{display:flex}
@@ -254,7 +231,7 @@ ${previewBarHtml}
     <a class="brand" href="#top">Wish Wash</a>
     <nav class="nav-links">
       <a href="#packages">Packages</a>
-      <a href="#reviews">Reviews</a>
+      <a href="#gallery">Gallery</a>
       <a href="#book">Book Online</a>
       <a href="tel:${site.phoneTel}">${site.phoneDisplay}</a>
     </nav>
@@ -263,29 +240,33 @@ ${previewBarHtml}
 </header>
 
 <section id="top" class="hero">
-  <div class="eyebrow">Wish Wash Valeting &amp; Detailing · 12+ Years in London</div>
+  <div class="eyebrow">Wish Wash Valeting &amp; Detailing · Because You Wish, We Wash</div>
   <h1>Showroom clean.<br>Right at your door.</h1>
-  <p class="hero-lead">Fully self-contained mobile valeting with our own water and power supply. Transparent packages from £43 — zero hassle, zero mess.</p>
+  <p class="hero-lead">More than 12 years of mobile car valeting &amp; detailing in London. Pure onboard water, own power supply, and clear transparent pricing from £43.</p>
   <div class="hero-acts">
     <a class="btn-blue" href="#packages">View Packages (From £43)</a>
     <a class="btn-link" href="${waQuick}" target="_blank" rel="noopener">WhatsApp +44 7763 453883 ›</a>
   </div>
 
   <div class="hero-media">
-    <img src="${heroPhoto}" alt="Wish Wash snow foam mobile car valeting on a London driveway">
+    <img src="${r("ww-taycan-wash.jpg")}" alt="Wish Wash hand-washing a black Porsche Taycan on a London driveway">
   </div>
   <div class="hero-specs">
     <div class="spec-pill"><small>Experience</small><strong>12+ Years</strong></div>
-    <div class="spec-pill"><small>Setup Required</small><strong>Own Water &amp; Power</strong></div>
+    <div class="spec-pill"><small>Onboard Setup</small><strong>Pure Water &amp; Power</strong></div>
     <div class="spec-pill"><small>Clear Pricing</small><strong>£43 to £80</strong></div>
-    <div class="spec-pill"><small>Location</small><strong>Home or Office</strong></div>
+    <div class="spec-pill"><small>Convenience</small><strong>Home or Office</strong></div>
+  </div>
+  <div class="brands-strip">
+    <span>Selected professional-grade car care chemistry used on every visit:</span>
+    <div class="brands-list"><span>Gtechniq</span><span>Infinity Wax</span><span>Chemical Guys</span><span>Ultragloss SiO2</span></div>
   </div>
 </section>
 
 <section id="packages" class="sec">
   <div class="sec-head">
     <h2>Three clear packages.</h2>
-    <p>Toggle your vehicle size for exact transparent pricing, then tap any package to pre-fill your WhatsApp booking.</p>
+    <p>Switch vehicle size for exact pricing, then tap any package to pre-fill your WhatsApp booking.</p>
   </div>
 
   <div class="seg-wrap">
@@ -312,10 +293,21 @@ ${previewBarHtml}
   </div>
 </section>
 
-<section id="reviews" class="sec" style="padding-top:16px">
+<section id="gallery" class="sec" style="padding-top:16px">
+  <div class="sec-head">
+    <h2>Pure water. Selected craft.</h2>
+    <p>Real exterior snow-foam washes and spotless cabin detailing across London.</p>
+  </div>
+  <div class="gal-grid">
+    ${gallery
+      .map(
+        (g) => `<figure class="gal-card"><img src="${g.img}" alt="${g.title}" loading="lazy"><figcaption><strong>${g.title}</strong><span>${g.sub}</span></figcaption></figure>`
+      )
+      .join("")}
+  </div>
   <div class="bento">
     <div class="bento-photo">
-      <img src="${detailPhoto}" alt="Spotless freshly valeted leather car interior by Wish Wash" loading="lazy">
+      <img src="${r("ww-cabin-dark.jpg")}" alt="Spotless interior detailed by Wish Wash" loading="lazy">
     </div>
     <div class="bento-review">
       <div>
@@ -355,7 +347,7 @@ ${previewBarHtml}
 </section>
 
 <footer class="ap-foot">
-  <span>© 2026 Wish Wash Valeting &amp; Detailing · London · Own Water &amp; Power</span>
+  <span>© 2026 Wish Wash Valeting &amp; Detailing · Because You Wish, We Wash · Own Pure Water &amp; Power</span>
   <span><a href="tel:${site.phoneTel}">${site.phoneDisplay}</a> · <a href="mailto:${site.email}">${site.email}</a></span>
 </footer>
 

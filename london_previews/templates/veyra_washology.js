@@ -1,19 +1,14 @@
 /**
  * MotionSites "Veyra Electric" Template -> Bespoke build for Washology Mobile Detailing (washologymv.co.uk)
- * Exact Veyra Electric design DNA:
- *  - Space Grotesk typography (-0.03em tracking), slate-blue studio canvas (#6b879d / #708fa2), acid-yellow (#edff39) hotspots
- *  - Coordinate-locked 16:9 media-envelope with crisp 3px white frame
- *  - 4 breathing interactive hotspots pinned directly onto Wesley's North London Porsche 911:
- *      1) Bonnet -> Ceramic Coating (smooth scale(1.5) zoom into hydrophobic beading macro + accordion breakdown)
- *      2) Side Panel -> Multi-Stage Paint Correction (zoom + Stage 1/2 accordion breakdown)
- *      3) Wheels & Trim -> Mobile Deep Clean (30 min - 5 hr home/workplace care)
- *      4) Cabin -> 5.0★ North London Reviews (Sarah P., Zoe F., Stephan H. verbatim)
- *  - Keyboard Escape support, Back to Vehicle button, 4-column feature notes strip + 1-tap WhatsApp booking bar (07388 725375)
+ * Uses 100% REAL Washology assets straight from washologymv.co.uk:
+ *  - Official WASHOLOGY Valeting & Detailing logo (wash-logo.png)
+ *  - Wesley's REAL detailed navy Porsche 911 (996) Cabriolet as the interactive hotspot vehicle
+ *  - Zoom-in detail cutaways using Wesley's REAL BMW M3, REAL BMW M-Sport cabin, and REAL photos of Wesley in his red Washology polo
+ *  - Complete Recent Work Gallery strip of all 6 real North London client vehicles + Sarah P., Zoe F., Stephan H. reviews
  */
 
 export function renderWashologyVeyra(site, { clean = false, origin, previewBarHtml, claimScriptJs }) {
-  const heroPhoto = `${origin}${site.heroImg}`;
-  const detailPhoto = `${origin}${site.detailImg}`;
+  const r = (name) => `${origin}/assets/real/${name}`;
   const waQuick = `https://wa.me/${site.waDigits}?text=${encodeURIComponent("Hi Wesley, I'd like to book a mobile detail with Washology in North London.")}`;
 
   const zones = {
@@ -23,30 +18,30 @@ export function renderWashologyVeyra(site, { clean = false, origin, previewBarHt
       category: "Long-term hydrophobic shield",
       title: "Glass-like gloss,\nyear round.",
       description:
-        "Finest-grade ceramic protection locks in mirror reflections across your paintwork while repelling London road grime, rain, and UV.",
-      benefit: "Tight crystal water beading cuts future wash time in half and protects resale value.",
-      image: detailPhoto,
-      anchor: { x: 35, y: 51 },
+        "Finest-grade ceramic protection locks in mirror reflections across your paintwork while repelling North London road grime, rain, and UV.",
+      benefit: "Tight hydrophobic beading keeps dark metallic finishes looking freshly detailed month after month.",
+      image: r("wash-bmwm3.jpg"),
+      anchor: { x: 24, y: 49 },
       parts: [
-        { n: "01", name: "Hydrophobic top coat", desc: "Tight water droplets sheet straight off the bonnet on wet London commutes." },
-        { n: "02", name: "Chemical & UV barrier", desc: "Guards clear-coat against bird droppings, traffic film, and oxidation." },
-        { n: "03", name: "Applied on your driveway", desc: "Carried out cleanly at your North London home or workplace." },
+        { n: "01", name: "Hydrophobic ceramic barrier", desc: "Water and traffic film bead straight off bonnets, wings, and bumpers." },
+        { n: "02", name: "Finest-grade chemistry", desc: "Only proven, paint-safe coatings selected for lasting UK weather durability." },
+        { n: "03", name: "Applied at your home or workplace", desc: "Zero drop-off required anywhere across North London." },
       ],
     },
     correction: {
       index: "02",
       label: "Paint correction",
-      category: "Swirl & defect removal",
+      category: "Enhancement & multi-stage polish",
       title: "Depth restored,\npanel by panel.",
       description:
-        "From single-stage Paint Enhancement to meticulous multi-stage Paint Correction removing swirl marks, haze, and micro-marring.",
-      benefit: "Brings dark metallic paint back to crisp showroom clarity before sealing or ceramic coating.",
-      image: heroPhoto,
-      anchor: { x: 70, y: 49 },
+        "From single-stage Paint Enhancements to meticulous 4–5 hour Paint Corrections levelling swirl marks, oxidation, and wash marring.",
+      benefit: "Brings prestige & daily-driver paintwork back to deep showroom clarity right on your driveway.",
+      image: r("wash-wesley-close.jpg"),
+      anchor: { x: 54, y: 47 },
       parts: [
-        { n: "01", name: "Decontamination & clay bar", desc: "Safely lifts bonded iron fallout and tar before a polisher ever touches the paint." },
-        { n: "02", name: "Stage 1 paint enhancement", desc: "Single-stage machine refinement clearing light wash marks and dullness." },
-        { n: "03", name: "Multi-stage correction", desc: "Up to 5-hour dedicated compounding and jewelling for deeper defects." },
+        { n: "01", name: "Safe wash & decontamination", desc: "Lifts bonded iron fallout and tar before machine polishing begins." },
+        { n: "02", name: "Paint enhancement", desc: "Single-stage machine polish restoring rich gloss and crisp reflections." },
+        { n: "03", name: "Multi-stage paint correction", desc: "Dedicated multi-hour machine compounding and finishing for deeper defects." },
       ],
     },
     deepclean: {
@@ -55,26 +50,26 @@ export function renderWashologyVeyra(site, { clean = false, origin, previewBarHt
       category: "30 min to 5 hr sessions",
       title: "Home or office,\nzero drop-off.",
       description:
-        "Safe exterior hand wash, wheel barrel cleaning, and full interior reset using eco-friendly finest-grade products right outside your door.",
-      benefit: "Zero waiting rooms — carry on with your workday in North London while Wesley details your vehicle.",
-      image: heroPhoto,
-      anchor: { x: 58, y: 74 },
+        "Wesley arrives directly at your North London home or workplace with eco-friendly, finest-grade products — from a swift 30-minute wash to a full deep clean.",
+      benefit: "No queues, no garage trips, and personal care from Wesley himself on every visit.",
+      image: r("wash-wesley-suv.jpg"),
+      anchor: { x: 78, y: 56 },
       parts: [
-        { n: "01", name: "Safe scratch-free exterior", desc: "Pre-wash snow foam, soft microfibre wash, and wheel-face detailing." },
-        { n: "02", name: "Full cabin reset", desc: "Carpets, leather, vents, plastics, and streak-free interior glass." },
-        { n: "03", name: "Flexible maintenance plans", desc: "Swift 30-minute refresh through to meticulous 4–5 hour details." },
+        { n: "01", name: "pH-neutral snow foam & safe wash", desc: "Thick pre-wash soak and scratch-free two-bucket hand wash." },
+        { n: "02", name: "Wheels, arches & trims", desc: "Brake dust safely removed from multi-spoke alloys, calipers, and tyres." },
+        { n: "03", name: "Cars, SUVs & motorhomes", desc: "Tailored packages for daily drivers, prestige cars, and large vans." },
       ],
     },
     reviews: {
       index: "04",
-      label: "5.0 ★ Reviews",
-      category: "North London client proof",
+      label: "Interior & 5★ proof",
+      category: "Spotless cabins · 5.0 ★ clients",
       title: "Washed like\nhis own car.",
       description:
-        "The most highly rated mobile valeting and detailing service in North London — verified five-star client feedback.",
+        "Meticulous leather, carpet, and trim detailing backed by North London's most highly rated mobile valeting reviews.",
       benefit: "Direct communication and punctual scheduling straight with Wesley on 07388 725375.",
-      image: detailPhoto,
-      anchor: { x: 52, y: 34 },
+      image: r("wash-interior.jpg"),
+      anchor: { x: 55, y: 27 },
       parts: [
         { n: "5★", name: "Sarah P.", desc: "“Wesley was friendly and efficient and washed it like it was his own car, with attention and detail. Highly recommend Washology!”" },
         { n: "5★", name: "Zoe F.", desc: "“Washology truly exceeded my expectations — their customer service was exceptional, from streamlined communication to accommodating my schedule.”" },
@@ -83,13 +78,22 @@ export function renderWashologyVeyra(site, { clean = false, origin, previewBarHt
     },
   };
 
+  const gallery = [
+    { img: r("wash-porsche.jpg"), title: "Porsche 911 Cabriolet", sub: "Full Mobile Detail & Gloss Finish" },
+    { img: r("wash-bmwm3.jpg"), title: "BMW M3 (E92)", sub: "Paint Enhancement & Protection" },
+    { img: r("wash-interior.jpg"), title: "BMW M-Sport Cabin", sub: "Deep Leather & Interior Reset" },
+    { img: r("wash-wesley-suv.jpg"), title: "Wesley On Site — North London", sub: "Safe Multi-Bucket Driveway Wash" },
+    { img: r("wash-wesley-foam.jpg"), title: "Snow Foam Pre-Wash", sub: "Touchless Grit Removal at Home" },
+    { img: r("wash-van-foam.jpg"), title: "Motorhomes & Large Vans", sub: "Full Exterior Foam & Rinse" },
+  ];
+
   return `<!doctype html>
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Washology — Mobile Car Detailing &amp; Ceramic Coating · North London</title>
-<meta name="description" content="North London's highly rated mobile car valeting, paint correction, and ceramic coating service. Direct WhatsApp booking with Wesley on 07388 725375.">
+<title>Washology — Mobile Valeting &amp; Detailing · North London</title>
+<meta name="description" content="The most highly rated mobile valeting & detailing service in North London. Deep Cleans, Paint Corrections & Ceramic Coatings with Wesley on 07388 725375.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
@@ -110,7 +114,6 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 ::selection{background:var(--acid);color:var(--on-acid)}
 [hidden]{display:none!important}
 
-/* Preview handover bar */
 .pv-bar{position:sticky;top:0;z-index:120;background:#101824;color:#f8fafc;border-bottom:1px solid rgba(255,255,255,.16);font-size:12.5px;line-height:1.4;letter-spacing:0}
 .pv-inner{max-width:1320px;margin:0 auto;padding:9px 18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .pv-copy{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -120,8 +123,9 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 .pv-close{background:transparent;color:#cbd5e1;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12px}
 
 .experience{min-height:92vh;display:flex;flex-direction:column;position:relative;background:var(--studio)}
-.masthead{height:74px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto;z-index:10;gap:18px;border-bottom:1px solid var(--line)}
-.wordmark{font-size:26px;font-weight:500;letter-spacing:-.055em;line-height:1}
+.masthead{height:76px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto;z-index:10;gap:18px;border-bottom:1px solid var(--line)}
+.brand-logo{display:inline-flex;align-items:center;gap:10px;background:#0a0d12;padding:6px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.22)}
+.brand-logo img{height:34px;width:auto;display:block}
 .header-mid{font-size:14px;color:var(--muted)}
 .header-cta{display:inline-flex;align-items:center;gap:8px;background:var(--acid);color:var(--on-acid);padding:9px 15px;border-radius:var(--radius-control);font-size:13.5px;font-weight:600}
 .header-cta:hover{background:#f4ff78}
@@ -134,14 +138,13 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 .intro-desc span{display:block}
 
 .toolbar-detail{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.back{display:inline-flex;align-items:center;gap:10px;min-height:42px;background:var(--acid);color:var(--on-acid);border:0;border-radius:var(--radius-control);padding:9px 14px;font-size:14px;font-weight:500;transition:background var(--ui-fast)}
+.back{display:inline-flex;align-items:center;gap:10px;min-height:42px;background:var(--acid);color:var(--on-acid);border:0;border-radius:var(--radius-control);padding:9px 14px;font-size:14px;font-weight:500}
 .back:hover{background:#f4ff78}
 .back kbd{font:inherit;font-size:11.5px;border-left:1px solid #18394b40;padding-left:9px;margin-left:4px;opacity:.8}
 
-/* COORDINATE-LOCKED VEHICLE STAGE + DETAIL SPLIT */
 .scene-grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:center}
 .experience.phase-detail .scene-grid{grid-template-columns:1.35fr 0.85fr}
-.plane{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;box-shadow:0 0 0 3px #fff,0 26px 60px rgba(12,24,36,.32);background:#0f172a}
+.plane{position:relative;width:100%;aspect-ratio:16/10;border-radius:16px;overflow:hidden;box-shadow:0 0 0 3px #fff,0 26px 60px rgba(12,24,36,.32);background:#0f172a}
 .car-visual,.detail-visual{position:absolute;inset:0}
 .car-visual{transform-origin:var(--fx,50%) var(--fy,50%);transition:transform 1.1s cubic-bezier(.65,0,.25,1)}
 .experience.phase-detail .car-visual{transform:scale(1.42)}
@@ -151,19 +154,17 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 .detail-visual img{transform:scale(1.06);transition:transform 1.1s cubic-bezier(.22,1,.36,1)}
 .experience.phase-detail .detail-visual img{transform:scale(1)}
 
-/* BREATHING ACID HOTSPOTS (EXACT VEYRA) */
 .hotspot-layer{position:absolute;inset:0;z-index:4;transition:opacity .3s ease}
 .experience.phase-detail .hotspot-layer{opacity:0;pointer-events:none}
 .hotspot{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:0;background:none;padding:0;border-radius:50%}
-.hotspot-ring{position:relative;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--on-acid);background:var(--acid);box-shadow:0 0 0 6px #edff3922;transition:transform var(--ui-fast),box-shadow var(--ui-fast)}
+.hotspot-ring{position:relative;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--on-acid);background:var(--acid);box-shadow:0 0 0 6px #edff3922;transition:transform var(--ui-fast)}
 .hotspot-ring:after{content:'';position:absolute;inset:-6px;border:1.5px solid #edff3985;border-radius:50%;animation:breath 3.6s ease-in-out infinite}
 @keyframes breath{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.85;transform:scale(1.16)}}
-.hotspot:hover .hotspot-ring,.hotspot:focus-visible .hotspot-ring{transform:scale(1.1);box-shadow:0 0 0 8px #edff3930}
+.hotspot:hover .hotspot-ring,.hotspot:focus-visible .hotspot-ring{transform:scale(1.1)}
 .hotspot-label{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translate(-50%,4px);opacity:0;display:flex;gap:8px;align-items:center;white-space:nowrap;background:var(--acid);color:var(--on-acid);border-radius:var(--radius-control);padding:9px 13px;font-size:13.5px;font-weight:600;box-shadow:0 10px 24px rgba(0,0,0,.22);transition:opacity var(--ui-fast),transform var(--ui-enter) var(--ease);pointer-events:none}
 .hotspot:hover .hotspot-label,.hotspot:focus-visible .hotspot-label,.hotspot.hint .hotspot-label{opacity:1;transform:translate(-50%,0)}
 
-/* DETAIL ACCORDION PANEL */
-.detail-copy{display:none;background:rgba(22,42,56,.62);border:1px solid var(--line);border-radius:16px;padding:26px;backdrop-filter:blur(12px)}
+.detail-copy{display:none;background:rgba(22,42,56,.68);border:1px solid var(--line);border-radius:16px;padding:26px;backdrop-filter:blur(12px)}
 .experience.phase-detail .detail-copy{display:block;animation:fadeUp .45s var(--ease)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .eyebrow{font-size:13px;color:var(--acid);margin:0 0 10px;text-transform:uppercase;letter-spacing:.04em}
@@ -182,8 +183,7 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 .benefit strong{display:block;color:var(--ink);margin-top:4px;font-weight:500}
 .detail-book{display:inline-flex;align-items:center;justify-content:center;width:100%;margin-top:18px;background:var(--acid);color:var(--on-acid);padding:12px 16px;border-radius:var(--radius-control);font-weight:600;font-size:14.5px}
 
-/* 4-COLUMN FEATURE NOTES BAR */
-.scene-footer{width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto;padding:22px 0 26px;color:var(--muted)}
+.scene-footer{width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto;padding:22px 0 28px;color:var(--muted)}
 .feature-notes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
 .f-note{background:transparent;border:0;border-top:1px solid var(--line);padding:14px 0 0;text-align:left;transition:border-color .2s}
 .f-note:hover{border-top-color:var(--acid)}
@@ -191,8 +191,21 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 .f-note h3 span{color:var(--acid);font-size:13px}
 .f-note p{font-size:13.5px;line-height:1.42;margin:0;color:var(--muted)}
 
-/* WHATSAPP INSTANT BOOKING DOCK BELOW STAGE */
-.book-sec{background:#1b3040;border-top:1px solid var(--line);padding:56px 0 64px}
+/* REAL RECENT WORK GALLERY */
+.gal-sec{background:#233d50;border-top:1px solid var(--line);padding:56px 0}
+.gal-in{width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto}
+.gal-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:26px}
+.gal-head h2{font-size:clamp(26px,3.2vw,40px);font-weight:400;margin:0;line-height:1.05}
+.gal-head p{margin:0;font-size:14px;color:var(--muted);max-width:420px}
+.gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.gal-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#1b3040;margin:0}
+.gal-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .45s ease}
+.gal-card:hover img{transform:scale(1.04)}
+.gal-card figcaption{padding:12px 14px}
+.gal-card strong{display:block;font-size:14.5px;font-weight:500;color:#fff}
+.gal-card span{font-size:12.5px;color:var(--muted)}
+
+.book-sec{background:#182b3a;border-top:1px solid var(--line);padding:56px 0 64px}
 .book-inner{width:min(1260px,calc(100% - 2*var(--gutter)));margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start}
 .book-inner h2{font-size:clamp(26px,3.2vw,40px);font-weight:400;line-height:1.05;margin:0 0 10px}
 .book-lead{font-size:14.5px;color:var(--muted);margin:0 0 22px}
@@ -215,10 +228,10 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
   .intro{flex-direction:column;align-items:flex-start}
   .intro-desc{text-align:left}
   .experience.phase-detail .scene-grid,.book-inner{grid-template-columns:1fr}
-  .feature-notes{grid-template-columns:repeat(2,1fr)}
+  .feature-notes,.gal-grid{grid-template-columns:repeat(2,1fr)}
 }
-@media(max-width:520px){
-  .feature-notes{grid-template-columns:1fr}
+@media(max-width:560px){
+  .feature-notes,.gal-grid{grid-template-columns:1fr}
   .hotspot-label{font-size:12px;padding:7px 10px}
 }
 </style>
@@ -227,26 +240,26 @@ button{font:inherit;letter-spacing:inherit;cursor:pointer}
 ${previewBarHtml}
 <main class="experience" id="exp">
   <header class="masthead">
-    <a class="wordmark" href="#top" id="brandReset">WASHOLOGY</a>
-    <span class="header-mid">North London mobile valeting &amp; detailing</span>
-    <a class="header-cta" href="#book">Book Wesley · 07388 725375 ↗</a>
+    <a class="brand-logo" href="#top" id="brandReset"><img src="${r("wash-logo.png")}" alt="Washology Valeting &amp; Detailing"></a>
+    <span class="header-mid">North London's highly rated mobile valeting &amp; detailing</span>
+    <a class="header-cta" href="#book">WhatsApp Wesley · 07388 725375 ↗</a>
   </header>
 
   <section class="stage-outer" id="top">
     <div class="intro" id="intro">
-      <h1>Showroom finish,<br>inside out.</h1>
-      <p class="intro-desc"><span>Tap any glowing point on the vehicle to inspect our detailing process.</span><span>North London home or workplace · 30 min to 5 hr sessions.</span></p>
+      <h1>Our results speak<br>for themselves.</h1>
+      <p class="intro-desc"><span>Tap any glowing point on our North London Porsche detail to explore packages &amp; reviews.</span><span>Home or workplace · Deep Cleans, Paint Corrections &amp; Ceramic Coatings.</span></p>
     </div>
 
     <div class="toolbar-detail" id="detailBar" hidden>
       <button type="button" class="back" id="backBtn">← Back to vehicle <kbd>ESC</kbd></button>
-      <span style="font-size:13px;color:var(--muted)">North London · Direct with Wesley</span>
+      <span style="font-size:13px;color:var(--muted)">Direct with Wesley · 07388 725375</span>
     </div>
 
     <div class="scene-grid">
       <div class="plane" id="plane">
-        <div class="car-visual" id="carVisual"><img src="${heroPhoto}" alt="Black Porsche 911 detailed by Washology on a North London driveway"></div>
-        <div class="detail-visual" id="detailVisual"><img id="detailImg" src="${detailPhoto}" alt="Washology detailing detail view"></div>
+        <div class="car-visual" id="carVisual"><img src="${r("wash-porsche.jpg")}" alt="Navy Porsche 911 detailed by Washology in North London"></div>
+        <div class="detail-visual" id="detailVisual"><img id="detailImg" src="${r("wash-bmwm3.jpg")}" alt="Washology detailing work"></div>
         <div class="hotspot-layer" id="hotspotLayer"></div>
       </div>
 
@@ -255,7 +268,7 @@ ${previewBarHtml}
         <h2 id="dTitle"></h2>
         <p class="sys-desc" id="dDesc"></p>
         <div class="part-list" id="dParts"></div>
-        <div class="benefit"><span>Why drivers book this</span><strong id="dBenefit"></strong></div>
+        <div class="benefit"><span>Why North London drivers book this</span><strong id="dBenefit"></strong></div>
         <a id="dBook" class="detail-book" href="#book">Quote This Service via WhatsApp ↗</a>
       </aside>
     </div>
@@ -263,23 +276,39 @@ ${previewBarHtml}
 
   <div class="scene-footer">
     <div class="feature-notes">
-      <button type="button" class="f-note" data-zone="ceramic"><h3>Ceramic coating <span>01 ↗</span></h3><p>Hydrophobic mirror gloss shielding paintwork year-round.</p></button>
-      <button type="button" class="f-note" data-zone="correction"><h3>Paint correction <span>02 ↗</span></h3><p>Single-stage enhancement &amp; multi-stage swirl removal.</p></button>
-      <button type="button" class="f-note" data-zone="deepclean"><h3>Mobile deep clean <span>03 ↗</span></h3><p>30 min to 5 hr safe detailing at home or workplace.</p></button>
-      <button type="button" class="f-note" data-zone="reviews"><h3>5.0 ★ Reviews <span>04 ↗</span></h3><p>Sarah P., Zoe F. &amp; Stephan H. across North London.</p></button>
+      <button type="button" class="f-note" data-zone="ceramic"><h3>Ceramic coating <span>01 ↗</span></h3><p>Hydrophobic gloss protection across bonnets, panels &amp; trims.</p></button>
+      <button type="button" class="f-note" data-zone="correction"><h3>Paint correction <span>02 ↗</span></h3><p>Enhancements &amp; multi-stage swirl removal on your drive.</p></button>
+      <button type="button" class="f-note" data-zone="deepclean"><h3>Mobile deep clean <span>03 ↗</span></h3><p>30 min to 5 hr safe detailing at your home or workplace.</p></button>
+      <button type="button" class="f-note" data-zone="reviews"><h3>Interior &amp; 5★ proof <span>04 ↗</span></h3><p>Spotless cabins · Sarah P., Zoe F. &amp; Stephan H. reviews.</p></button>
     </div>
   </div>
 </main>
 
+<section class="gal-sec" id="gallery">
+  <div class="gal-in">
+    <div class="gal-head">
+      <h2>Recent North London<br>Client Vehicles</h2>
+      <p>Real vehicles detailed by Wesley across North London — from prestige Porsches and BMW M3s to family SUVs and motorhomes.</p>
+    </div>
+    <div class="gal-grid">
+      ${gallery
+        .map(
+          (g) => `<figure class="gal-card"><img src="${g.img}" alt="${g.title}" loading="lazy"><figcaption><strong>${g.title}</strong><span>${g.sub}</span></figcaption></figure>`
+        )
+        .join("")}
+    </div>
+  </div>
+</section>
+
 <section class="book-sec" id="book">
   <div class="book-inner">
     <div>
-      <h2>Book Your North London<br>Detail in 30 Seconds</h2>
+      <h2>Book Your Mobile<br>Detail in 30 Seconds</h2>
       <p class="book-lead">No slow Wix address widget — select your package and vehicle size below to send a ready-made WhatsApp straight to Wesley on 07388 725375.</p>
       <div class="qf"><label for="qJob">Package</label><select id="qJob">${site.quoteJobs.map((j) => `<option>${j}</option>`).join("")}</select></div>
       <div class="qf"><label for="qSec">${site.quoteSecondaryLabel}</label><select id="qSec">${site.quoteSecondaryOptions.map((o) => `<option>${o}</option>`).join("")}</select></div>
       <div class="qf"><label for="qPost">North London Postcode</label><input id="qPost" type="text" placeholder="e.g. N12, N3, EN4, NW3" maxlength="16"></div>
-      <div class="qf"><label for="qNotes">Car Make/Model &amp; Preferred Day</label><textarea id="qNotes" placeholder="e.g. Porsche 911 / BMW X5, weekday morning at home..."></textarea></div>
+      <div class="qf"><label for="qNotes">Car Make/Model &amp; Preferred Day</label><textarea id="qNotes" placeholder="e.g. Porsche / BMW / SUV, weekday morning at home..."></textarea></div>
     </div>
     <div class="q-panel">
       <h3>Direct WhatsApp to Wesley</h3>

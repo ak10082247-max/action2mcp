@@ -1,17 +1,20 @@
 /**
  * MotionSites "Modern Agency" Template -> Bespoke build for Thermwise Limited (thermwise.co.uk)
- * Exact Modern Agency design DNA:
- *  - Full-viewport #efefef hero with live interactive ChromaFlow orange/white canvas + fluted glass + SVG grain
- *  - Floating white pill navbar with circular TW badge, live London HH:MM clock, and vertical roll-text pill CTAs
- *  - #F26522 flame-orange primary roll-text CTA + official Gas Safe #597272 Featured partner badge
- *  - Section 2 (bg-white): Numbered badge [1] + asymmetric 26% / 1fr / 48% desktop editorial image spread
- *  - Section 3 (bg-[#F5F5F5]): Numbered badge [2] + 2-column showcase cards with expanding circular hover pills (36px -> 168px)
- *  - Emergency 30-second Boiler/Leak Callback Triage wired to 020 3962 0533 & info@thermwise.co.uk
+ * Uses 100% REAL Thermwise assets straight from thermwise.co.uk:
+ *  - Official Thermwise 4-square orange brand logo (tw-logo.png)
+ *  - Real Thermwise engineers in branded navy Thermwise fleeces (tw-eng-tablet.jpg, tw-eng-flue.jpg, tw-eng-kitchen.jpg, tw-eng-rad.jpg)
+ *  - Real Thermwise copper manifold & boiler servicing photos (tw-manifold.jpg, tw-boiler-service.jpg)
+ *  - Official Gas Safe #597272, 8,000+ jobs, 7+ years family-run, 12-month guarantee, 4.3★ Google, 020 3962 0533
  */
 
 export function renderThermwiseModernAgency(site, { clean = false, origin, previewBarHtml, claimScriptJs }) {
-  const heroPhoto = `${origin}${site.heroImg}`;
-  const detailPhoto = `${origin}${site.detailImg}`;
+  const r = (name) => `${origin}/assets/real/${name}`;
+  const cards = [
+    { img: r("tw-eng-flue.jpg"), tag: "24/7 Emergency", price: "Within the Hour", title: "Emergency Boiler Breakdown & Repair", desc: "No heating, no hot water, fault codes, or pressure drops diagnosed fast day or night by our own Gas Safe (#597272) engineers." },
+    { img: r("tw-boiler-service.jpg"), tag: "Fixed Price", price: "Free Boiler Survey", title: "New Boiler Installations", desc: "Honest fixed-price boiler replacements properly sized for London homes, installed neatly with full Gas Safe registration and 12-month guarantee." },
+    { img: r("tw-manifold.jpg"), tag: "Heating Systems", price: "Same-Day Service", title: "Underfloor Heating, Radiators & Systems", desc: "Precision copper manifold installations, cold radiator diagnostics, valve replacements, hot water cylinders, and full central heating care." },
+    { img: r("tw-eng-rad.jpg"), tag: "Plumbing & Gas", price: "Home & Landlord", title: "Leaks, Plumbing & Landlord CP12 Certs", desc: "Burst pipes, dripping taps, gas leaks, cooker/hob installations, blockages, and annual Landlord Gas Safety Certificates." },
+  ];
 
   return `<!doctype html>
 <html lang="en-GB">
@@ -30,7 +33,6 @@ img{display:block;max-width:100%}
 svg{display:block}
 .wrap{max-width:1440px;margin:0 auto}
 
-/* Preview bar */
 .pv-bar{position:sticky;top:0;z-index:120;background:#111827;color:#f9fafb;border-bottom:1px solid rgba(255,255,255,.14);font-size:12.5px;line-height:1.4}
 .pv-inner{max-width:1440px;margin:0 auto;padding:9px 18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .pv-copy{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -39,7 +41,6 @@ svg{display:block}
 .pv-buy{background:#10b981;color:#052e16;border:0;border-radius:999px;padding:7px 14px;font-weight:700;font-size:12.5px;cursor:pointer}
 .pv-close{background:transparent;color:#d1d5db;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer}
 
-/* HERO + CHROMAFLOW FLUTED GLASS */
 .hero{position:relative;min-height:92vh;display:flex;flex-direction:column;background:#efefef;overflow:hidden}
 .fx{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
 .fx canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -50,9 +51,11 @@ svg{display:block}
 
 nav.top{position:relative;z-index:20;width:100%}
 .nav-in{max-width:1440px;margin:0 auto;padding:10px}
-.pill{background:#fff;border-radius:999px;padding:6px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 24px rgba(17,24,39,.06)}
+.pill{background:#fff;border-radius:999px;padding:6px 8px 6px 6px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 24px rgba(17,24,39,.06)}
 .left,.right{display:flex;align-items:center}
-.logo{width:38px;height:38px;border-radius:50%;background:#111827;color:#fff;font-size:11px;font-weight:700;letter-spacing:-.025em;display:flex;align-items:center;justify-content:center}
+.logo-brand{display:inline-flex;align-items:center;gap:10px}
+.logo-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb}
+.logo-txt{font-weight:700;font-size:15px;letter-spacing:-.02em;color:#111827}
 .links{display:none;gap:24px;margin-left:24px}
 .links a{font-size:14px;color:#111827;transition:color .3s}
 .links a:hover{color:#6b7280}
@@ -61,7 +64,6 @@ nav.top{position:relative;z-index:20;width:100%}
 .clock{display:none;align-items:center;gap:6px;font-size:13px;color:#4b5563}
 .menu-btn{background:#111827;color:#fff;border-radius:999px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:9px 16px}
 
-/* ROLL TEXT BUTTON (EXACT MODERN AGENCY) */
 .btn{display:inline-flex;align-items:center;gap:12px;border-radius:999px;color:#fff;font-weight:500;font-size:13.5px;padding:8px 8px 8px 20px;white-space:nowrap}
 .btn.dark{background:#111827}
 .btn.org{background:#F26522;transition:background .3s}
@@ -85,7 +87,6 @@ h1{font-size:clamp(2rem,6.8vw,4.35rem);font-weight:500;line-height:1.06;letter-s
 .badge em{font-style:normal;font-size:11px;background:#111827;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600}
 .br{display:none}
 
-/* MOBILE SHEET */
 .mm{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;justify-content:flex-end;visibility:hidden;transition:visibility 0s .5s}
 .mm.open{visibility:visible;transition:none}
 .mm .bd{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .5s}
@@ -96,7 +97,6 @@ h1{font-size:clamp(2rem,6.8vw,4.35rem);font-weight:500;line-height:1.06;letter-s
 .sheet a.l{display:block;font-size:28px;font-weight:500;padding:6px 0}
 .sheet .btn{margin-top:18px}
 
-/* SECTION 2: ABOUT ASYMMETRIC EDITORIAL */
 .about{background:#fff;padding:64px 0 48px;overflow:hidden}
 .badge-row{display:flex;align-items:center;gap:12px;padding:0 20px;margin-bottom:24px}
 .num{width:26px;height:26px;border-radius:50%;background:#111827;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
@@ -105,19 +105,18 @@ h2{font-size:clamp(1.6rem,4vw,3.25rem);font-weight:500;line-height:1.12;letter-s
 .mob{padding:0 20px}
 .mob p{font-size:15.5px;line-height:1.6;font-weight:500;margin-bottom:20px}
 .mob .imgs{display:flex;flex-direction:column;gap:16px;margin-top:28px}
-.rimg{border-radius:16px;object-fit:cover;width:100%}
-.i1{aspect-ratio:438/346}.i2{aspect-ratio:3/2}
+.rimg{border-radius:16px;object-fit:cover;object-position:center 20%;width:100%}
+.i1{aspect-ratio:4/4}.i2{aspect-ratio:4/3}
 .desk{display:none}
 
-/* SECTION 3: SERVICES GRID WITH EXPANDING PILL HOVER */
 .cases{background:#F5F5F5;padding:64px 0}
 h2.big{font-size:clamp(1.85rem,6vw,4.1rem);line-height:1.08;letter-spacing:-.03em;margin-bottom:40px}
 .grid{display:grid;grid-template-columns:1fr;gap:22px;padding:0 20px}
-.card-box{position:relative;border-radius:18px;overflow:hidden;cursor:pointer;background:#111827}
-.card-box img{width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.25,.1,.25,1)}
+.card-box{position:relative;border-radius:18px;overflow:hidden;cursor:pointer;background:#111827;aspect-ratio:16/11}
+.card-box img{width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:transform .6s cubic-bezier(.25,.1,.25,1)}
 .card-box:hover img{transform:scale(1.04)}
-.card-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,24,39,.05) 35%,rgba(17,24,39,.65) 100%)}
-.card-badge{position:absolute;top:16px;left:16px;background:rgba(255,255,255,.92);color:#111827;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
+.card-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,24,39,.04) 35%,rgba(17,24,39,.62) 100%)}
+.card-badge{position:absolute;top:16px;left:16px;background:rgba(255,255,255,.94);color:#111827;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px}
 .hb{position:absolute;left:16px;bottom:16px;height:38px;width:38px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;overflow:hidden;transition:all .32s ease-in-out;background:#fff;color:#111827;white-space:nowrap}
 .card-box:hover .hb{width:176px}
 .hb.dk{background:#F26522;color:#fff}
@@ -129,7 +128,6 @@ h2.big{font-size:clamp(1.85rem,6vw,4.1rem);line-height:1.08;letter-spacing:-.03e
 .desc{font-size:13.5px;line-height:1.6;color:#4b5563;margin-top:14px}
 .ttl{font-size:16px;font-weight:600;color:#111827;margin-top:4px}
 
-/* SECTION 4: EMERGENCY CALLBACK & DISPATCH TRIAGE */
 .dispatch{background:#111827;color:#fff;padding:72px 20px 84px}
 .d-wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
 .d-wrap h2{color:#fff;padding:0;margin-bottom:14px;font-size:clamp(1.8rem,3.6vw,2.9rem)}
@@ -151,7 +149,7 @@ h2.big{font-size:clamp(1.85rem,6vw,4.1rem);line-height:1.08;letter-spacing:-.03e
 .mb-q{color:#111827;background:#fff}
 
 @media(min-width:640px){
-  .nav-in{padding:14px}.logo{width:42px;height:42px}
+  .nav-in{padding:14px}.logo-img{width:42px;height:42px}
   .hero-in{padding:64px 32px 64px}.label{font-size:14px;margin-bottom:26px}
   .br{display:inline}.sp{display:none}
   .cta{flex-direction:row;align-items:center;gap:18px;margin-top:42px}
@@ -161,14 +159,12 @@ h2.big{font-size:clamp(1.85rem,6vw,4.1rem);line-height:1.08;letter-spacing:-.03e
   .cases{padding:84px 0}.grid{padding:0 32px;gap:24px}
   .mob-bar{display:none}
 }
-@media(min-width:768px){
-  .links{display:flex}.clock{display:flex}.menu-btn{display:none}.grid{grid-template-columns:1fr 1fr}
-}
+@media(min-width:768px){.links{display:flex}.clock{display:flex}.menu-btn{display:none}.grid{grid-template-columns:1fr 1fr}}
 @media(min-width:1024px){
   .status{display:block}.hero-in{padding:72px 48px 76px}
   .about{padding:112px 0 92px}.badge-row{padding:0 48px}h2{padding:0 48px;margin-bottom:88px}
   .mob{display:none}
-  .desk{display:grid;grid-template-columns:26% 1fr 48%;align-items:end;gap:28px;padding:0 48px}
+  .desk{display:grid;grid-template-columns:28% 1fr 46%;align-items:end;gap:28px;padding:0 48px}
   .desk .c{align-self:start;display:flex;justify-content:flex-end}
   .desk .c>div{display:flex;flex-direction:column;align-items:flex-start}
   .desk p{font-size:17px;line-height:1.65;margin-bottom:22px;color:#1f2937}
@@ -189,8 +185,8 @@ ${previewBarHtml}
   </div>
   <nav class="top"><div class="nav-in"><div class="pill">
     <div class="left">
-      <a class="logo" href="#top">TW</a>
-      <div class="links"><a href="#about">Family Team</a><a href="#services">Services</a><a href="#dispatch">24/7 Dispatch</a><a href="tel:${site.phoneTel}">${site.phoneDisplay}</a></div>
+      <a class="logo-brand" href="#top"><img class="logo-img" src="${r("tw-logo.png")}" alt="Thermwise Logo"><span class="logo-txt">Thermwise</span></a>
+      <div class="links"><a href="#about">Our Engineers</a><a href="#services">Services</a><a href="#dispatch">24/7 Dispatch</a><a href="tel:${site.phoneTel}">${site.phoneDisplay}</a></div>
     </div>
     <div class="right">
       <span class="status">24/7 Engineers On Standby</span>
@@ -201,13 +197,13 @@ ${previewBarHtml}
   </div></div></nav>
 
   <div class="hero-c"><div class="hero-in">
-    <p class="label">Thermwise Limited · North, West &amp; Central London</p>
+    <p class="label">Thermwise Limited · North, West &amp; Central London + Hertfordshire</p>
     <h1>London's heating &amp; plumbing<br class="br"><span class="sp"> </span>engineers, at your door<br class="br"><span class="sp"> </span>within the hour.</h1>
     <div class="cta">
       <a class="btn org" href="#dispatch"><span class="roll"><span><span>Request 24/7 Engineer</span><span>Request 24/7 Engineer</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
       <a class="badge" href="#about">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F26522" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        Gas Safe Reg #597272<em>8,000+ Jobs</em>
+        <img src="${r("tw-logo.png")}" alt="" style="width:22px;height:22px;border-radius:4px">
+        Gas Safe Reg #597272 · 4.3★ Google<em>8,000+ Jobs</em>
       </a>
     </div>
   </div></div>
@@ -217,7 +213,7 @@ ${previewBarHtml}
   <div class="bd" id="bd"></div>
   <div class="sheet">
     <div class="tb"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span><span class="t">00:00</span> in London</span></div>
-    <a class="l" href="#about">Family Team</a><a class="l" href="#services">Services</a><a class="l" href="#dispatch">24/7 Dispatch</a><a class="l" href="tel:${site.phoneTel}">${site.phoneDisplay}</a>
+    <a class="l" href="#about">Our Engineers</a><a class="l" href="#services">Services</a><a class="l" href="#dispatch">24/7 Dispatch</a><a class="l" href="tel:${site.phoneTel}">${site.phoneDisplay}</a>
     <a class="btn org" href="#dispatch"><span class="roll"><span><span>Request Engineer</span><span>Request Engineer</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
   </div>
 </div>
@@ -226,20 +222,20 @@ ${previewBarHtml}
   <div class="badge-row"><span class="num">1</span><span class="tag">Family-Run · 7+ Years · 12-Month Guarantee</span></div>
   <h2>Our own engineers.<br>Zero call-centre middlemen.</h2>
   <div class="mob">
-    <p>Unlike national agencies that pass your emergency to whoever is free, Thermwise sends our own Gas Safe (#597272) engineers across North, West &amp; Central London — backed by 8,000+ jobs and a 12-month guarantee.</p>
+    <p>Unlike national agencies that pass your emergency to whoever is free, Thermwise sends our own Gas Safe (#597272) engineers across North, West &amp; Central London — backed by 8,000+ completed jobs and a 12-month workmanship guarantee.</p>
     <a class="btn org" href="tel:${site.phoneTel}"><span class="roll"><span><span>Call 020 3962 0533</span><span>Call 020 3962 0533</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
     <div class="imgs">
-      <img class="rimg i1 a" alt="Thermwise heating installation" src="${detailPhoto}">
-      <img class="rimg i2 b" alt="Thermwise Gas Safe boiler engineer" src="${heroPhoto}">
+      <img class="rimg i1 a" alt="Thermwise engineer servicing kitchen boiler" src="${r("tw-eng-kitchen.jpg")}">
+      <img class="rimg i2 b" alt="Thermwise Gas Safe engineer diagnosing combi boiler" src="${r("tw-eng-tablet.jpg")}">
     </div>
   </div>
   <div class="desk">
-    <div class="l"><img class="rimg i1" alt="Column radiator and copper pipework" src="${detailPhoto}"></div>
+    <div class="l"><img class="rimg i1" alt="Thermwise engineer servicing a London kitchen boiler" src="${r("tw-eng-kitchen.jpg")}"></div>
     <div class="c"><div>
-      <p>Unlike national agencies that pass your job<br>to whoever is free, Thermwise sends our own<br>Gas Safe (#597272) engineers from diagnosis<br>to sign-off — 4.3★ Google rated across London.</p>
+      <p>Unlike agencies that pass your job<br>to whoever is free, Thermwise sends our<br>own uniformed Gas Safe (#597272) team<br>from diagnosis to 12-month sign-off.</p>
       <a class="btn org" href="#dispatch"><span class="roll"><span><span>Book Priority Callback</span><span>Book Priority Callback</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
     </div></div>
-    <div class="r"><img class="rimg i2" alt="Thermwise London boiler engineer" src="${heroPhoto}"></div>
+    <div class="r"><img class="rimg i2" alt="Thermwise engineer with boiler diagnostics tablet" src="${r("tw-eng-tablet.jpg")}"></div>
   </div>
 </div></section>
 
@@ -247,17 +243,17 @@ ${previewBarHtml}
   <div class="badge-row"><span class="num">2</span><span class="tag" style="border-color:#d1d5db">One Team for Your Whole Home</span></div>
   <h2 class="big">Heating, boilers &amp; 24/7 plumbing</h2>
   <div class="grid">
-    ${site.services
+    ${cards
       .map(
-        (s, idx) => `<div>
-      <div class="card-box" data-pick="${s.title}" style="aspect-ratio:${idx % 2 === 0 ? "16/11" : "16/11"}">
-        <img src="${idx % 2 === 0 ? heroPhoto : detailPhoto}" alt="${s.title}" loading="lazy">
+        (c, idx) => `<div>
+      <div class="card-box" data-pick="${c.title}">
+        <img src="${c.img}" alt="${c.title}" loading="lazy">
         <div class="card-scrim"></div>
-        <span class="card-badge">${s.tag} · ${s.price}</span>
+        <span class="card-badge">${c.tag} · ${c.price}</span>
         <div class="hb${idx % 2 === 1 ? " dk" : ""}"><span>Request quote</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
       </div>
-      <p class="desc">${s.desc}</p>
-      <p class="ttl">${s.title}</p>
+      <p class="desc">${c.desc}</p>
+      <p class="ttl">${c.title}</p>
     </div>`
       )
       .join("")}
@@ -267,16 +263,16 @@ ${previewBarHtml}
 <section class="dispatch" id="dispatch">
   <div class="d-wrap">
     <div>
-      <h2>24/7 Emergency Triage<br>&amp; Fixed Boiler Quote</h2>
-      <p class="d-lead">No waiting on a slow Wix form — choose your issue and urgency below to call 020 3962 0533 directly or send a structured priority dispatch email to info@thermwise.co.uk.</p>
+      <h2>24/7 Emergency Triage<br>&amp; Free Boiler Survey</h2>
+      <p class="d-lead">No waiting on a slow 9-second Wix page — pick your issue and urgency below to call 020 3962 0533 immediately or send a priority callback request to info@thermwise.co.uk.</p>
       <div class="qf"><label for="qJob">What do you need help with?</label><select id="qJob">${site.quoteJobs.map((j) => `<option>${j}</option>`).join("")}</select></div>
       <div class="qf"><label for="qSec">${site.quoteSecondaryLabel}</label><select id="qSec">${site.quoteSecondaryOptions.map((o) => `<option>${o}</option>`).join("")}</select></div>
       <div class="qf"><label for="qPost">London / Herts Postcode</label><input id="qPost" type="text" placeholder="e.g. W5, NW3, N12" maxlength="16"></div>
-      <div class="qf"><label for="qNotes">Boiler Brand / Fault Code / Notes</label><textarea id="qNotes" placeholder="e.g. Worcester boiler showing fault code, no hot water..."></textarea></div>
+      <div class="qf"><label for="qNotes">Boiler Brand / Fault Code / Notes</label><textarea id="qNotes" placeholder="e.g. Worcester / Vaillant boiler fault code, no hot water..."></textarea></div>
     </div>
     <div class="d-panel">
       <h3>Priority Dispatch Summary</h3>
-      <p class="ds">For bursts or no heating tonight, tap Call Now. For fixed quotes or CP12 certs, tap Send Callback Email.</p>
+      <p class="ds">For bursts or no heating tonight, tap Call Now. For fixed boiler quotes or CP12 certs, tap Send Callback Email.</p>
       <div id="qPreview" class="d-prev"></div>
       <div class="d-btns">
         <a class="btn org" href="tel:${site.phoneTel}"><span class="roll"><span><span>Call 020 3962 0533</span><span>Call 020 3962 0533</span></span></span><span class="circ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>

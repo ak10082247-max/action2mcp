@@ -1752,11 +1752,11 @@ test("LondonPreviews: all 5 bespoke sites render <25KB valid JS, GBP £199 Strip
     assert.equal(homeRes.headers.get("X-Frame-Options"), "DENY");
 
     const expectedMarkers = {
-      "at-electric": ["Custom Spaces".slice(0, 0) || 'id="tr"', "NICEIC Approved"],
-      "thermwise": ['id="cv"', "in London", "Gas Safe Reg #597272"],
-      "washology": ['id="hotspotLayer"', "Ceramic coating", "WASHOLOGY"],
-      "wish-wash": ["--canvas:#f5f5f7", "data-size=\"suv\"", "£43 – £49"],
-      "visuals-detailing": ['id="c3dRing"', 'id="arcStage"', 'id="portalShell"', 'id="ribbonTrack"'],
+      "at-electric": ['id="tr"', "NICEIC Approved", "/assets/real/at-ali-board.jpg", "14486367", "440926693"],
+      "thermwise": ['id="cv"', "in London", "Gas Safe Reg #597272", "/assets/real/tw-logo.png", "/assets/real/tw-eng-tablet.jpg"],
+      "washology": ['id="hotspotLayer"', "Ceramic coating", "/assets/real/wash-logo.png", "/assets/real/wash-porsche.jpg"],
+      "wish-wash": ["--canvas:#f5f5f7", 'data-size="suv"', "£43 – £49", "/assets/real/ww-taycan-wash.jpg", "Gtechniq"],
+      "visuals-detailing": ['id="c3dRing"', 'id="arcStage"', 'id="portalShell"', "/assets/real/vis-lambo-urus.webp", "/assets/real/vis-ferrari-van.webp"],
     };
     const slugs = Object.keys(expectedMarkers);
     for (const slug of slugs) {
@@ -1765,7 +1765,6 @@ test("LondonPreviews: all 5 bespoke sites render <25KB valid JS, GBP £199 Strip
       const html = await res.text();
       assert.ok(html.length < 65000, `Expected <65KB HTML for ${slug}, got ${html.length}`);
       assert.ok(html.includes('id="previewBanner"'), `Expected preview banner on ${slug}`);
-      assert.ok(html.includes(`/assets/${slug}-hero.jpg`), `Expected bespoke hero photo on ${slug}`);
       for (const marker of expectedMarkers[slug]) {
         assert.ok(html.includes(marker), `Expected template marker ${marker} on ${slug}`);
       }
