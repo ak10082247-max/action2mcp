@@ -50,7 +50,9 @@
     {
       "domain": "marketplace.visualstudio.com",
       "email": "support@puzaricloud.in",
-      "sent_date": "2026-11-23T08:05:01.684354+00:00"
+      "sent_date": "2026-11-23T08:05:01.684354+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-25T09:02:19.626271+00:00"
     },
     {
       "domain": "tide.pinme.dev",
@@ -58,5 +60,5 @@
       "sent_date": "2026-11-24T10:21:15.390094+00:00"
     }
   ],
-  "updated_at": "2026-11-24T10:21:15.390196+00:00"
+  "updated_at": "2026-11-25T09:02:20.607402+00:00"
 }
