@@ -9,6 +9,11 @@
  *  - Zero generic dark-purple AI-slop templates; <0.2s edge load; 100% mobile-responsive + reduced-motion safe
  */
 
+import { renderAtElectricCustomSpaces } from "./templates/custom_spaces_at_electric.js";
+import { renderThermwiseModernAgency } from "./templates/modern_agency_thermwise.js";
+import { renderWashologyVeyra } from "./templates/veyra_washology.js";
+import { renderWishWashAppleGallery } from "./templates/apple_wish_wash.js";
+
 export const ASSET_ORIGIN = "https://london-previews.ak10082247.workers.dev";
 
 export function escapeHtml(str) {
@@ -599,7 +604,65 @@ export const LONDON_SITES = {
   },
 };
 
+function buildPreviewBarHtml(site, clean) {
+  if (clean) return "";
+  return `<div id="previewBanner" class="pv-bar" role="region" aria-label="Website preview banner">
+  <div class="pv-inner">
+    <div class="pv-copy">
+      <span class="pv-pill">LIVE PREVIEW</span>
+      <span>Built for <strong>${escapeHtml(site.name)}</strong> · Replaces ${escapeHtml(site.currentSpeed)} · <strong>£199 one-time</strong> (£0/mo hosting, 100% text/email handover).</span>
+    </div>
+    <div class="pv-actions">
+      <button type="button" class="pv-buy" data-action="claim-site" data-slug="${escapeHtml(site.slug)}">Claim &amp; Go Live — £199</button>
+      <button type="button" class="pv-close" data-action="hide-banner" aria-label="Hide preview banner">Hide</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function buildClaimScriptJs(slug) {
+  return `
+  document.addEventListener('click', function(ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-action]') : null;
+    if (!b) return;
+    var act = b.getAttribute('data-action');
+    if (act === 'hide-banner') {
+      var bar = document.getElementById('previewBanner');
+      if (bar) bar.style.display = 'none';
+      return;
+    }
+    if (act === 'claim-site') {
+      var orig = b.textContent;
+      b.disabled = true;
+      b.textContent = 'Opening Stripe £199...';
+      fetch('/api/checkout?slug=' + encodeURIComponent(${JSON.stringify(slug)}) + '&format=json')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.url) { window.location.href = d.url; }
+          else { b.disabled = false; b.textContent = orig; alert((d && d.error) || 'Checkout unavailable — reply YES via WhatsApp or email to claim.'); }
+        })
+        .catch(function(){ b.disabled = false; b.textContent = orig; alert('Network error — reply YES via WhatsApp or email to claim.'); });
+    }
+  });`;
+}
+
 export function renderClientSiteHtml(site, { clean = false, origin = ASSET_ORIGIN } = {}) {
+  const previewBarHtml = buildPreviewBarHtml(site, clean);
+  const claimScriptJs = buildClaimScriptJs(site.slug);
+
+  if (site.slug === "at-electric") {
+    return renderAtElectricCustomSpaces(site, { clean, origin, previewBarHtml, claimScriptJs });
+  }
+  if (site.slug === "thermwise") {
+    return renderThermwiseModernAgency(site, { clean, origin, previewBarHtml, claimScriptJs });
+  }
+  if (site.slug === "washology") {
+    return renderWashologyVeyra(site, { clean, origin, previewBarHtml, claimScriptJs });
+  }
+  if (site.slug === "wish-wash") {
+    return renderWishWashAppleGallery(site, { clean, origin, previewBarHtml, claimScriptJs });
+  }
+
   const t = site.theme;
   const heroPhoto = `${origin}${site.heroImg}`;
   const detailPhoto = `${origin}${site.detailImg}`;
