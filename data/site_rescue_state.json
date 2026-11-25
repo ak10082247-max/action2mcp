@@ -293,13 +293,17 @@
       "sent_date": "2026-11-25T09:52:11.820370+00:00"
     }
   ],
-  "updated_at": "2026-11-25T09:52:11.820459+00:00",
-  "bounced_emails": [],
+  "updated_at": "2026-11-25T16:43:34.230526+00:00",
+  "bounced_emails": [
+    "info@coloradohearing.net"
+  ],
   "replied_emails": [],
   "paid_sales": 0,
   "daily_cap": 20,
   "stop_loss_cap": 200,
   "paused_reason": "",
   "bounce_reset_at": "2026-11-20T12:15:00+00:00",
-  "post_fix_bounced_emails": []
+  "post_fix_bounced_emails": [
+    "info@coloradohearing.net"
+  ]
 }
