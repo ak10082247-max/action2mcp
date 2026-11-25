@@ -8,12 +8,29 @@
 import { cleanSecret } from "../stripe_billing.js";
 import { LONDON_SITES, escapeHtml, renderClientSiteHtml } from "./sites.js";
 import { NO_SITE_STUDIOS } from "./studios.js";
+import { FRESHA_STUDIOS } from "./fresha_studios.js";
 import { renderLuxuryStudioHtml } from "./templates/luxury_studio.js";
+import { renderMotionSitesCustomSpacesStudio } from "./templates/motionsites_custom_spaces_studio.js";
+import { renderMotionSitesModernAgencyStudio } from "./templates/motionsites_modern_agency_studio.js";
+
+function renderFreshaStudio(studio, opts) {
+  return studio.template === "modern-agency"
+    ? renderMotionSitesModernAgencyStudio(studio, opts)
+    : renderMotionSitesCustomSpacesStudio(studio, opts);
+}
 
 function resolveSiteOrStudio(slug) {
   const key = String(slug || "").trim().toLowerCase();
   if (LONDON_SITES[key]) {
     return { kind: "legacy", item: LONDON_SITES[key], pathPrefix: "/" };
+  }
+  if (FRESHA_STUDIOS[key]) {
+    const st = FRESHA_STUDIOS[key];
+    return {
+      kind: "fresha",
+      item: { ...st, domain: `${st.slug.replace(/-/g, "")}.co.uk` },
+      pathPrefix: "/s/",
+    };
   }
   if (NO_SITE_STUDIOS[key]) {
     const st = NO_SITE_STUDIOS[key];
@@ -229,6 +246,7 @@ export default {
         ok: true,
         service: "london-previews",
         sites: Object.keys(LONDON_SITES),
+        freshaStudios: Object.keys(FRESHA_STUDIOS),
         studios: Object.keys(NO_SITE_STUDIOS),
       });
     }
@@ -270,9 +288,11 @@ export default {
       if (!resolved) return jsonResponse({ ok: false, error: "Unknown site." }, 404);
       const verification = await verifyStripePaidSession(env, sessionId, slug);
       if (!verification.paid) return jsonResponse({ ok: false, error: verification.reason }, 402);
-      const cleanHtml = resolved.kind === "studio"
-        ? renderLuxuryStudioHtml(resolved.item, { clean: true })
-        : renderClientSiteHtml(resolved.item, { clean: true });
+      const cleanHtml = resolved.kind === "fresha"
+        ? renderFreshaStudio(resolved.item, { clean: true })
+        : resolved.kind === "studio"
+          ? renderLuxuryStudioHtml(resolved.item, { clean: true })
+          : renderClientSiteHtml(resolved.item, { clean: true });
       return new Response(cleanHtml, {
         status: 200,
         headers: secHeaders({
@@ -285,9 +305,12 @@ export default {
 
     if (path.startsWith("/s/")) {
       const studioSlug = path.slice(3).toLowerCase();
+      const clean = url.searchParams.get("clean") === "1";
+      if (FRESHA_STUDIOS[studioSlug]) {
+        return htmlResponse(renderFreshaStudio(FRESHA_STUDIOS[studioSlug], { clean }));
+      }
       const studio = NO_SITE_STUDIOS[studioSlug];
       if (studio) {
-        const clean = url.searchParams.get("clean") === "1";
         return htmlResponse(renderLuxuryStudioHtml(studio, { clean }));
       }
       return htmlResponse("<h1>Studio preview not found</h1><p><a href='/'>Home</a></p>", 404);
