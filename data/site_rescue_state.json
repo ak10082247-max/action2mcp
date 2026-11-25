@@ -1,5 +1,5 @@
 {
-  "cursor": 58,
+  "cursor": 72,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -37,7 +37,8 @@
     "downtownveterinaryclinic.com",
     "oculus2020.com",
     "hamiltonplazavision.com",
-    "progressivepodiatryny.com"
+    "progressivepodiatryny.com",
+    "wrigleyvillevet.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -76,7 +77,8 @@
     "downtownvetclinic@gmail.com",
     "oculus2020@aol.com",
     "hamiltonplazavision@aol.com",
-    "drbreth@progressivepodiatryny.com"
+    "drbreth@progressivepodiatryny.com",
+    "info@wrigleyvillevet.com"
   ],
   "history": [
     {
@@ -180,22 +182,30 @@
     {
       "domain": "riverdalehealthcare.com",
       "email": "ashgatereception@riverdalehealthcare.com",
-      "sent_date": "2026-11-23T15:48:52.197058+00:00"
+      "sent_date": "2026-11-23T15:48:52.197058+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-25T22:30:12.371186+00:00"
     },
     {
       "domain": "central-orthodontics.co.uk",
       "email": "centralortho@hotmail.com",
-      "sent_date": "2026-11-23T16:02:59.223887+00:00"
+      "sent_date": "2026-11-23T16:02:59.223887+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-25T22:30:12.371186+00:00"
     },
     {
       "domain": "completedentalbearwood.co.uk",
       "email": "dental.v08166@nhs.net",
-      "sent_date": "2026-11-23T16:03:06.567231+00:00"
+      "sent_date": "2026-11-23T16:03:06.567231+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-25T22:30:12.371186+00:00"
     },
     {
       "domain": "scottarmsdentalpractice.com",
       "email": "info@scottarmsdentalpractice.com",
-      "sent_date": "2026-11-23T16:03:14.321694+00:00"
+      "sent_date": "2026-11-23T16:03:14.321694+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-25T22:30:12.371186+00:00"
     },
     {
       "domain": "baronscourtvet.co.uk",
@@ -291,9 +301,14 @@
       "domain": "progressivepodiatryny.com",
       "email": "drbreth@progressivepodiatryny.com",
       "sent_date": "2026-11-25T09:52:11.820370+00:00"
+    },
+    {
+      "domain": "wrigleyvillevet.com",
+      "email": "info@wrigleyvillevet.com",
+      "sent_date": "2026-11-25T22:30:07.370108+00:00"
     }
   ],
-  "updated_at": "2026-11-25T16:43:34.230526+00:00",
+  "updated_at": "2026-11-25T22:30:28.864307+00:00",
   "bounced_emails": [
     "info@coloradohearing.net"
   ],
