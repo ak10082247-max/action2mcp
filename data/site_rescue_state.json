@@ -1,5 +1,5 @@
 {
-  "cursor": 44,
+  "cursor": 58,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -25,7 +25,19 @@
     "abingdonvets.co.uk",
     "greatchapelst.org.uk",
     "marktangri.com",
-    "your-gp.com"
+    "your-gp.com",
+    "blackandlizars.com",
+    "jbeyecare.com",
+    "anitaglasbyoptometry.co.uk",
+    "duncanandtoddgroup.com",
+    "coloradohearing.net",
+    "manhattanprimarycaredoctorsnyc.com",
+    "nyulangone.org",
+    "footdoctorpodiatristnyc.com",
+    "downtownveterinaryclinic.com",
+    "oculus2020.com",
+    "hamiltonplazavision.com",
+    "progressivepodiatryny.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -52,7 +64,19 @@
     "reception@abingdonvets.co.uk",
     "clccg.gcs@nhs.net",
     "reception@marktangri.com",
-    "reception@your.gp"
+    "reception@your.gp",
+    "enquiries@blackandlizars.com",
+    "info@jbeyecare.com",
+    "info@anitaglasbyoptometry.co.uk",
+    "help@duncanandtodd.com",
+    "info@coloradohearing.net",
+    "info@manhattanprimarycaredoctorsnyc.com",
+    "vilcek-info@nyulangone.org",
+    "info@footdoctorpodiatristnyc.com",
+    "downtownvetclinic@gmail.com",
+    "oculus2020@aol.com",
+    "hamiltonplazavision@aol.com",
+    "drbreth@progressivepodiatryny.com"
   ],
   "history": [
     {
@@ -207,9 +231,69 @@
       "domain": "your-gp.com",
       "email": "reception@your.gp",
       "sent_date": "2026-11-24T23:01:39.788379+00:00"
+    },
+    {
+      "domain": "blackandlizars.com",
+      "email": "enquiries@blackandlizars.com",
+      "sent_date": "2026-11-25T09:51:08.419024+00:00"
+    },
+    {
+      "domain": "jbeyecare.com",
+      "email": "info@jbeyecare.com",
+      "sent_date": "2026-11-25T09:51:14.150417+00:00"
+    },
+    {
+      "domain": "anitaglasbyoptometry.co.uk",
+      "email": "info@anitaglasbyoptometry.co.uk",
+      "sent_date": "2026-11-25T09:51:19.863247+00:00"
+    },
+    {
+      "domain": "duncanandtoddgroup.com",
+      "email": "help@duncanandtodd.com",
+      "sent_date": "2026-11-25T09:51:25.634138+00:00"
+    },
+    {
+      "domain": "coloradohearing.net",
+      "email": "info@coloradohearing.net",
+      "sent_date": "2026-11-25T09:51:31.379417+00:00"
+    },
+    {
+      "domain": "manhattanprimarycaredoctorsnyc.com",
+      "email": "info@manhattanprimarycaredoctorsnyc.com",
+      "sent_date": "2026-11-25T09:51:37.470002+00:00"
+    },
+    {
+      "domain": "nyulangone.org",
+      "email": "vilcek-info@nyulangone.org",
+      "sent_date": "2026-11-25T09:51:43.193867+00:00"
+    },
+    {
+      "domain": "footdoctorpodiatristnyc.com",
+      "email": "info@footdoctorpodiatristnyc.com",
+      "sent_date": "2026-11-25T09:51:48.874399+00:00"
+    },
+    {
+      "domain": "downtownveterinaryclinic.com",
+      "email": "downtownvetclinic@gmail.com",
+      "sent_date": "2026-11-25T09:51:54.688772+00:00"
+    },
+    {
+      "domain": "oculus2020.com",
+      "email": "oculus2020@aol.com",
+      "sent_date": "2026-11-25T09:52:00.404823+00:00"
+    },
+    {
+      "domain": "hamiltonplazavision.com",
+      "email": "hamiltonplazavision@aol.com",
+      "sent_date": "2026-11-25T09:52:06.113388+00:00"
+    },
+    {
+      "domain": "progressivepodiatryny.com",
+      "email": "drbreth@progressivepodiatryny.com",
+      "sent_date": "2026-11-25T09:52:11.820370+00:00"
     }
   ],
-  "updated_at": "2026-11-24T23:01:39.788475+00:00",
+  "updated_at": "2026-11-25T09:52:11.820459+00:00",
   "bounced_emails": [],
   "replied_emails": [],
   "paid_sales": 0,
