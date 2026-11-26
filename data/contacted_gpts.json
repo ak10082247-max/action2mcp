@@ -123,7 +123,8 @@
     "Kengkorok/studio",
     "alphineaiinc/aca-realtime-gateway-clean",
     "LeDat0312/ads-automation",
-    "mordsm/compass"
+    "mordsm/compass",
+    "kinyatanaka-code/kinbot"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -249,7 +250,8 @@
     "sa7one@gmail.com",
     "alphineai.inc@gmail.com",
     "le.dat0312@gmail.com",
-    "sharon.moshe@gmail.com"
+    "sharon.moshe@gmail.com",
+    "hezhedemo@gmail.com"
   ],
   "history": [
     {
@@ -995,6 +997,12 @@
       "email": "sharon.moshe@gmail.com",
       "tool_count": 6,
       "sent_date": "2026-11-24T22:39:11.898944+00:00"
+    },
+    {
+      "repo": "kinyatanaka-code/kinbot",
+      "email": "hezhedemo@gmail.com",
+      "tool_count": 6,
+      "sent_date": "2026-11-26T21:45:33.303509+00:00"
     }
   ],
   "skipped_no_email_repos": [
@@ -1032,7 +1040,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-24T22:39:11.899020+00:00",
+  "updated_at": "2026-11-26T21:45:33.303590+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
