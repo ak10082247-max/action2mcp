@@ -1,5 +1,5 @@
 {
-  "cursor": 72,
+  "cursor": 86,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -38,7 +38,8 @@
     "oculus2020.com",
     "hamiltonplazavision.com",
     "progressivepodiatryny.com",
-    "wrigleyvillevet.com"
+    "wrigleyvillevet.com",
+    "satellitehealthcare.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -78,7 +79,8 @@
     "oculus2020@aol.com",
     "hamiltonplazavision@aol.com",
     "drbreth@progressivepodiatryny.com",
-    "info@wrigleyvillevet.com"
+    "info@wrigleyvillevet.com",
+    "info@satellitehealth.com"
   ],
   "history": [
     {
@@ -210,22 +212,30 @@
     {
       "domain": "baronscourtvet.co.uk",
       "email": "primahengkiki@gmail.com",
-      "sent_date": "2026-11-24T00:49:26.533234+00:00"
+      "sent_date": "2026-11-24T00:49:26.533234+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T09:29:55.414173+00:00"
     },
     {
       "domain": "chelseaveterinarysurgery.co.uk",
       "email": "reception@chelseaveterinarysurgery.co.uk",
-      "sent_date": "2026-11-24T00:49:32.623052+00:00"
+      "sent_date": "2026-11-24T00:49:32.623052+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T09:29:55.414173+00:00"
     },
     {
       "domain": "peckhamvets.co.uk",
       "email": "reception@peckhamvets.co.uk",
-      "sent_date": "2026-11-24T00:49:38.899930+00:00"
+      "sent_date": "2026-11-24T00:49:38.899930+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T09:29:55.414173+00:00"
     },
     {
       "domain": "abingdonvets.co.uk",
       "email": "reception@abingdonvets.co.uk",
-      "sent_date": "2026-11-24T00:49:44.960073+00:00"
+      "sent_date": "2026-11-24T00:49:44.960073+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T09:29:55.414173+00:00"
     },
     {
       "domain": "greatchapelst.org.uk",
@@ -306,9 +316,14 @@
       "domain": "wrigleyvillevet.com",
       "email": "info@wrigleyvillevet.com",
       "sent_date": "2026-11-25T22:30:07.370108+00:00"
+    },
+    {
+      "domain": "satellitehealthcare.com",
+      "email": "info@satellitehealth.com",
+      "sent_date": "2026-11-26T09:29:50.412995+00:00"
     }
   ],
-  "updated_at": "2026-11-25T22:30:28.864307+00:00",
+  "updated_at": "2026-11-26T09:30:10.780195+00:00",
   "bounced_emails": [
     "info@coloradohearing.net"
   ],
