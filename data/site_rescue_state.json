@@ -1,5 +1,5 @@
 {
-  "cursor": 86,
+  "cursor": 100,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -39,7 +39,10 @@
     "hamiltonplazavision.com",
     "progressivepodiatryny.com",
     "wrigleyvillevet.com",
-    "satellitehealthcare.com"
+    "satellitehealthcare.com",
+    "danforthpainclinic.ca",
+    "vectoronto.com",
+    "ctvrc.ca"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -80,7 +83,10 @@
     "hamiltonplazavision@aol.com",
     "drbreth@progressivepodiatryny.com",
     "info@wrigleyvillevet.com",
-    "info@satellitehealth.com"
+    "info@satellitehealth.com",
+    "danforthpainclinic@gmail.com",
+    "info@vectoronto.com",
+    "info@ctvrc.ca"
   ],
   "history": [
     {
@@ -240,12 +246,16 @@
     {
       "domain": "greatchapelst.org.uk",
       "email": "clccg.gcs@nhs.net",
-      "sent_date": "2026-11-24T00:49:51.040385+00:00"
+      "sent_date": "2026-11-24T00:49:51.040385+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T22:19:31.612073+00:00"
     },
     {
       "domain": "marktangri.com",
       "email": "reception@marktangri.com",
-      "sent_date": "2026-11-24T10:54:28.353341+00:00"
+      "sent_date": "2026-11-24T10:54:28.353341+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-26T22:19:31.612073+00:00"
     },
     {
       "domain": "your-gp.com",
@@ -321,9 +331,24 @@
       "domain": "satellitehealthcare.com",
       "email": "info@satellitehealth.com",
       "sent_date": "2026-11-26T09:29:50.412995+00:00"
+    },
+    {
+      "domain": "danforthpainclinic.ca",
+      "email": "danforthpainclinic@gmail.com",
+      "sent_date": "2026-11-26T22:19:15.258309+00:00"
+    },
+    {
+      "domain": "vectoronto.com",
+      "email": "info@vectoronto.com",
+      "sent_date": "2026-11-26T22:19:20.952193+00:00"
+    },
+    {
+      "domain": "ctvrc.ca",
+      "email": "info@ctvrc.ca",
+      "sent_date": "2026-11-26T22:19:26.611134+00:00"
     }
   ],
-  "updated_at": "2026-11-26T09:30:10.780195+00:00",
+  "updated_at": "2026-11-26T22:19:37.153607+00:00",
   "bounced_emails": [
     "info@coloradohearing.net"
   ],
