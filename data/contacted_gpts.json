@@ -124,7 +124,8 @@
     "alphineaiinc/aca-realtime-gateway-clean",
     "LeDat0312/ads-automation",
     "mordsm/compass",
-    "kinyatanaka-code/kinbot"
+    "kinyatanaka-code/kinbot",
+    "dvnmr/dvnmr.github.io"
   ],
   "contacted_emails": [
     "contact@julienc.me",
@@ -251,7 +252,8 @@
     "alphineai.inc@gmail.com",
     "le.dat0312@gmail.com",
     "sharon.moshe@gmail.com",
-    "hezhedemo@gmail.com"
+    "hezhedemo@gmail.com",
+    "dvnmr7@gmail.com"
   ],
   "history": [
     {
@@ -1003,6 +1005,12 @@
       "email": "hezhedemo@gmail.com",
       "tool_count": 6,
       "sent_date": "2026-11-26T21:45:33.303509+00:00"
+    },
+    {
+      "repo": "dvnmr/dvnmr.github.io",
+      "email": "dvnmr7@gmail.com",
+      "tool_count": 3,
+      "sent_date": "2026-11-27T08:50:58.731139+00:00"
     }
   ],
   "skipped_no_email_repos": [
@@ -1040,7 +1048,7 @@
     "strelov1/freehire",
     "xen0bit/pwrgrep-rules"
   ],
-  "updated_at": "2026-11-26T21:45:33.303590+00:00",
+  "updated_at": "2026-11-27T08:50:58.731211+00:00",
   "bounced_emails": [
     "41151138@comunidadort.edu.ar",
     "contact@ads4gpts.com",
