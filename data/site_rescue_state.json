@@ -427,17 +427,21 @@
       "sent_date": "2026-11-27T09:41:40.079451+00:00"
     }
   ],
-  "updated_at": "2026-11-27T09:41:45.870910+00:00",
+  "updated_at": "2026-11-27T11:10:00.359374+00:00",
   "bounced_emails": [
+    "bpc@mbchc.com",
     "info@coloradohearing.net"
   ],
-  "replied_emails": [],
+  "replied_emails": [
+    "info@interbayvet.com"
+  ],
   "paid_sales": 0,
   "daily_cap": 20,
   "stop_loss_cap": 200,
   "paused_reason": "",
   "bounce_reset_at": "2026-11-20T12:15:00+00:00",
   "post_fix_bounced_emails": [
+    "bpc@mbchc.com",
     "info@coloradohearing.net"
   ]
 }
