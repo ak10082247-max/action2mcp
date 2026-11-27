@@ -1,5 +1,5 @@
 {
-  "cursor": 100,
+  "cursor": 114,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -42,7 +42,18 @@
     "satellitehealthcare.com",
     "danforthpainclinic.ca",
     "vectoronto.com",
-    "ctvrc.ca"
+    "ctvrc.ca",
+    "mymbchc.org",
+    "godentalgroup.com",
+    "queenannefamilydental.com",
+    "crownhillsmiles.com",
+    "fredhutch.org",
+    "fourpawsvetcenter.com",
+    "interbayvet.com",
+    "seatownvet.com",
+    "seattlechinesemedicalcenter.com",
+    "soundmedicineandwellness.com",
+    "nwtcseattle.com"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -86,7 +97,18 @@
     "info@satellitehealth.com",
     "danforthpainclinic@gmail.com",
     "info@vectoronto.com",
-    "info@ctvrc.ca"
+    "info@ctvrc.ca",
+    "bpc@mbchc.com",
+    "godentalgroup@gmail.com",
+    "info@queenannefamilydental.com",
+    "info@crownhillsmiles.com",
+    "media@fredhutch.org",
+    "fpvcvets@gmail.com",
+    "info@interbayvet.com",
+    "info@seatownvet.com",
+    "seattlechinesemedicalcenter@yahoo.com",
+    "info@soundmedicineandwellness.com",
+    "info@nwtcseattle.com"
   ],
   "history": [
     {
@@ -260,7 +282,9 @@
     {
       "domain": "your-gp.com",
       "email": "reception@your.gp",
-      "sent_date": "2026-11-24T23:01:39.788379+00:00"
+      "sent_date": "2026-11-24T23:01:39.788379+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-27T09:41:45.080583+00:00"
     },
     {
       "domain": "blackandlizars.com",
@@ -346,9 +370,64 @@
       "domain": "ctvrc.ca",
       "email": "info@ctvrc.ca",
       "sent_date": "2026-11-26T22:19:26.611134+00:00"
+    },
+    {
+      "domain": "mymbchc.org",
+      "email": "bpc@mbchc.com",
+      "sent_date": "2026-11-27T09:40:41.992069+00:00"
+    },
+    {
+      "domain": "godentalgroup.com",
+      "email": "godentalgroup@gmail.com",
+      "sent_date": "2026-11-27T09:40:47.919173+00:00"
+    },
+    {
+      "domain": "queenannefamilydental.com",
+      "email": "info@queenannefamilydental.com",
+      "sent_date": "2026-11-27T09:40:53.669144+00:00"
+    },
+    {
+      "domain": "crownhillsmiles.com",
+      "email": "info@crownhillsmiles.com",
+      "sent_date": "2026-11-27T09:40:59.558152+00:00"
+    },
+    {
+      "domain": "fredhutch.org",
+      "email": "media@fredhutch.org",
+      "sent_date": "2026-11-27T09:41:05.376491+00:00"
+    },
+    {
+      "domain": "fourpawsvetcenter.com",
+      "email": "fpvcvets@gmail.com",
+      "sent_date": "2026-11-27T09:41:11.148365+00:00"
+    },
+    {
+      "domain": "interbayvet.com",
+      "email": "info@interbayvet.com",
+      "sent_date": "2026-11-27T09:41:16.879465+00:00"
+    },
+    {
+      "domain": "seatownvet.com",
+      "email": "info@seatownvet.com",
+      "sent_date": "2026-11-27T09:41:22.663829+00:00"
+    },
+    {
+      "domain": "seattlechinesemedicalcenter.com",
+      "email": "seattlechinesemedicalcenter@yahoo.com",
+      "sent_date": "2026-11-27T09:41:28.456121+00:00"
+    },
+    {
+      "domain": "soundmedicineandwellness.com",
+      "email": "info@soundmedicineandwellness.com",
+      "sent_date": "2026-11-27T09:41:34.329135+00:00"
+    },
+    {
+      "domain": "nwtcseattle.com",
+      "email": "info@nwtcseattle.com",
+      "sent_date": "2026-11-27T09:41:40.079451+00:00"
     }
   ],
-  "updated_at": "2026-11-26T22:19:37.153607+00:00",
+  "updated_at": "2026-11-27T09:41:45.870910+00:00",
   "bounced_emails": [
     "info@coloradohearing.net"
   ],
