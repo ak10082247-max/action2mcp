@@ -1,5 +1,5 @@
 {
-  "cursor": 8,
+  "cursor": 22,
   "contacted_domains": [
     "maidavaledentist.co.uk",
     "aerodentistry.com",
@@ -57,7 +57,10 @@
     "visionplusballard.com",
     "spinexdiscclinic.com",
     "parismikiusa.com",
-    "microfaculty.co.uk"
+    "microfaculty.co.uk",
+    "icedentalimplants.co.uk",
+    "poundswickdentalpractice.co.uk",
+    "mountroadsurgery.co.uk"
   ],
   "contacted_emails": [
     "info@maidavaledentist.co.uk",
@@ -116,7 +119,10 @@
     "info@visionplusballard.com",
     "clinic@spinexdiscclinic.com",
     "pm20@parismikiusa.com",
-    "nelondonicb.microfaculty@nhs.net"
+    "nelondonicb.microfaculty@nhs.net",
+    "reception@icedental.institute",
+    "info@poundswickdentalpractice.co.uk",
+    "cmccg.mountroadsurgery@nhs.net"
   ],
   "history": [
     {
@@ -330,22 +336,30 @@
     {
       "domain": "manhattanprimarycaredoctorsnyc.com",
       "email": "info@manhattanprimarycaredoctorsnyc.com",
-      "sent_date": "2026-11-25T09:51:37.470002+00:00"
+      "sent_date": "2026-11-25T09:51:37.470002+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-28T08:54:36.561393+00:00"
     },
     {
       "domain": "nyulangone.org",
       "email": "vilcek-info@nyulangone.org",
-      "sent_date": "2026-11-25T09:51:43.193867+00:00"
+      "sent_date": "2026-11-25T09:51:43.193867+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-28T08:54:36.561393+00:00"
     },
     {
       "domain": "footdoctorpodiatristnyc.com",
       "email": "info@footdoctorpodiatristnyc.com",
-      "sent_date": "2026-11-25T09:51:48.874399+00:00"
+      "sent_date": "2026-11-25T09:51:48.874399+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-28T08:54:36.561393+00:00"
     },
     {
       "domain": "downtownveterinaryclinic.com",
       "email": "downtownvetclinic@gmail.com",
-      "sent_date": "2026-11-25T09:51:54.688772+00:00"
+      "sent_date": "2026-11-25T09:51:54.688772+00:00",
+      "followup_sent": true,
+      "followup_sent_at": "2026-11-28T08:54:36.561393+00:00"
     },
     {
       "domain": "oculus2020.com",
@@ -461,9 +475,24 @@
       "domain": "microfaculty.co.uk",
       "email": "nelondonicb.microfaculty@nhs.net",
       "sent_date": "2026-11-27T21:57:42.288646+00:00"
+    },
+    {
+      "domain": "icedentalimplants.co.uk",
+      "email": "reception@icedental.institute",
+      "sent_date": "2026-11-28T08:54:19.229277+00:00"
+    },
+    {
+      "domain": "poundswickdentalpractice.co.uk",
+      "email": "info@poundswickdentalpractice.co.uk",
+      "sent_date": "2026-11-28T08:54:25.435996+00:00"
+    },
+    {
+      "domain": "mountroadsurgery.co.uk",
+      "email": "cmccg.mountroadsurgery@nhs.net",
+      "sent_date": "2026-11-28T08:54:31.560229+00:00"
     }
   ],
-  "updated_at": "2026-11-27T21:58:01.507476+00:00",
+  "updated_at": "2026-11-28T08:54:52.234181+00:00",
   "bounced_emails": [
     "bpc@mbchc.com",
     "info@coloradohearing.net"
